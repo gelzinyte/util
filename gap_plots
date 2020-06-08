@@ -243,16 +243,17 @@ def make_2b_plots(param_filename, output_dir=None, prefix=None):
 
 
 @click.command()
-@click.option('--param_filename',  type=click.Path(exists=True), required=True)
-@click.option('--train_filename',  type=click.Path(exists=True), required=True)
-@click.option('--test_filename',  type=click.Path(exists=True))
-@click.option('--output_dir', type=click.Path())
-@click.option('--prefix')
+@click.option('--param_filename',  type=click.Path(exists=True), required=True, help='GAP xml to test')
+@click.option('--train_filename',  type=click.Path(exists=True), required=True, help='.xyz file used for training')
+@click.option('--test_filename',  type=click.Path(exists=True), help='.xyz file to test GAP on')
+@click.option('--output_dir', type=click.Path(), help='directory for figures. Create if not-existent')
+@click.option('--prefix', help='prefix to label plots')
 def make_plots(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None):
     """Makes energy and force scatter plots"""
     # TODO make optional directory where to save stuff
     # TODO maybe include dftb???
     # TODO add option to include filename
+    # TODO get .xyz files from GAP xml file!!
 
     if output_dir:
         if not os.path.exists(output_dir):
