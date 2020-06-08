@@ -201,7 +201,7 @@ def make_dimer_plot(dimer_name, ax, param_filename):
     # pred_data = get_E_F_dict(dimer, calc_type='gap', param_filename=param_filename)
 
 
-    command = f"quip E=T F=T atoms_filename=./data/dft_{dimer_name}_dimer.xyz param_filename={param_filename} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
+    command = f"quip E=T F=T atoms_filename=/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz param_filename={param_filename} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
                     | grep AT | sed 's/AT//' > ./tmp_atoms.xyz"
 
     subprocess.run(command, shell=True)
