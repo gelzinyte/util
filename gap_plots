@@ -194,7 +194,7 @@ def make_dimer_plot(dimer_name, ax, param_filename):
     # TODO make this more robust
     corr_desc = {'HH': 1, 'CH': 2, 'OH': 3, 'CC': 4, 'CO': 5}
 
-    dimer = read(f'data/dft_{dimer_name}_dimer.xyz', index=':')
+    dimer = read(f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz', index=':')
     distances = [at.get_distance(0, 1) for at in dimer]
 
     ref_data = get_E_F_dict(dimer, calc_type='dft')
