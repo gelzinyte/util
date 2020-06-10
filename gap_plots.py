@@ -106,9 +106,15 @@ def make_scatter_plots(param_filename, train_filename, test_filename=None, outpu
         test_ref_data = get_E_F_dict(test_ats, calc_type='dft')
         test_pred_data = get_E_F_dict(test_ats, calc_type='gap', param_filename=param_filename)
 
-    # TODO include automatic selection for figsize
-    plt.figure(figsize=(10, 16))
-    gs = gridspec.GridSpec(4, 2)
+
+    counts = util.get_counts(train_ats[0])
+    no_unique_elements = len(counts.keys())
+    width = 10
+    height = width * 0.4
+    height *= no_unique_elements
+
+    plt.figure(figsize=(width, height))
+    gs = gridspec.GridSpec(no_unique_elements+1, 2)
     ax = [plt.subplot(g) for g in gs]
 
     # Energy plots
