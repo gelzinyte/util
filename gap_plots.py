@@ -91,18 +91,25 @@ def do_plot(ref_values, pred_values, ax, label):
 
     ax.scatter(ref_values, pred_values, label=label, s=8, alpha=0.5)
 
-def make_scatter_plots(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None):
-
-    test_set=False
-    if test_filename:
-        test_set=True
+def make_scatter_plots_from_file(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None):
 
     train_ats = read(train_filename, index=':')
+    if test_filename:
+        test_ats = read(test_filename, index=':')
+
+    make_scatter_plots(param_filename, train_ats, test_ats=test_filename, output_dir=output_dir, prefix=None)
+
+
+def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None, prefix=None):
+
+    test_set=False
+    if test_ats:
+        test_set=True
+
     train_ref_data = get_E_F_dict(train_ats, calc_type='dft')
     train_pred_data = get_E_F_dict(train_ats, calc_type='gap', param_filename=param_filename)
 
     if test_set:
-        test_ats = read(test_filename, index=':')
         test_ref_data = get_E_F_dict(test_ats, calc_type='dft')
         test_pred_data = get_E_F_dict(test_ats, calc_type='gap', param_filename=param_filename)
 
@@ -265,7 +272,7 @@ def make_plots(param_filename, train_filename, test_filename=None, output_dir=No
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-    make_scatter_plots(param_filename=param_filename, train_filename=train_filename, test_filename=test_filename, \
+    make_scatter_plots_from_file(param_filename=param_filename, train_filename=train_filename, test_filename=test_filename, \
                        output_dir=output_dir, prefix=prefix)
     make_2b_plots(param_filename=param_filename, output_dir=output_dir, prefix=prefix)
 
