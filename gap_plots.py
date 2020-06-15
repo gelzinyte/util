@@ -117,7 +117,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     counts = util.get_counts(train_ats[0])
     no_unique_elements = len(counts.keys())
     width = 10
-    height = width * 0.4
+    height = width * 0.6
     height *= no_unique_elements
 
     plt.figure(figsize=(width, height))
