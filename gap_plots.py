@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib as mpl
+from collections import OrderedDict
 
 # My imports
 sys.path.append("/home/eg475/reactions")
@@ -29,7 +30,7 @@ def get_E_F_dict(atoms, calc_type, param_filename=None):
     # TODO add check for 'dft_energy' or 'energy'
     calc_type = calc_type.upper()
     data = dict()
-    data['energy'] = []
+    data['energy'] = OrderedDict()
     data['forces'] = dict()
 
     if calc_type == 'DFT':
@@ -56,51 +57,114 @@ def get_E_F_dict(atoms, calc_type, param_filename=None):
 
     for atom in atoms:
         at = atom.copy()
+        config_type='no_config_type'
+        if 'config_type' in at.info.keys():
+           config_type = at.info['config_type']
+
+
+
         if len(at) != 1:
             if calc_type == 'DFT':
-                data['energy'].append(at.info[energy_name])
+                try:
+                    data['energy'][config_type].append(at.info[energy_name])
+                except KeyError:
+                    data['energy'][config_type] = []
+                    data['energy'][config_type].append(at.info[energy_name])
+
                 forces = at.arrays[force_name]
 
             elif calc_type == 'GAP':
                 at.set_calculator(gap)
-                data['energy'].append(at.get_potential_energy())
+                try:
+                    data['energy'][config_type].append(at.get_potential_energy())
+                except KeyError:
+                    data['energy'][config_type] = []
+                    data['energy'][config_type].append(at.get_potential_energy())
+
                 forces = at.get_forces()
 
 
             sym_all = at.get_chemical_symbols()
             for j, sym in enumerate(sym_all):
+                if sym not in data['forces'].keys():
+                    data['forces'][sym] = OrderedDict()
                 try:
-                    data['forces'][sym].append(forces[j])
+                    data['forces'][sym][config_type].append(forces[j])
                 except KeyError:
-                    data['forces'][sym] = []
-                    data['forces'][sym].append(forces[j])
+                    data['forces'][sym][config_type] = []
+                    data['forces'][sym][config_type].append(forces[j])
 
     # TODO make it append np array in the loop
-    data['energy'] = np.array(data['energy'])
-    for key, value in data['forces'].items():
-        data['forces'][key] = np.array(value)
+    for config_type, values in data['energy'].items():
+        data['energy'][config_type] = np.array(values)
+    for sym in data['forces'].keys():
+        for config_type, values in data['forces'][sym].items():
+            data['forces'][sym][config_type] = np.array(values)
+
 
     return data
 
+def dict_to_vals(my_dict):
+    all_values = []
+    for type, values in my_dict.items():
+        all_values.append(values)
+    all_values = np.concatenate(all_values)
+    return all_values
 
-def do_plot(ref_values, pred_values, ax, label):
-    rmse = util.get_rmse(ref_values, pred_values)
-    std = util.get_std(ref_values, pred_values)
+def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
 
-    label = f'{label} {rmse:.3f} $\pm$ {std:.3f}'
+    if not by_config_type:
+        ref_vals = dict_to_vals(ref_values)
+        pred_vals = dict_to_vals(pred_values)
 
-    ax.scatter(ref_values, pred_values, label=label, s=8, alpha=0.5)
+        rmse = util.get_rmse(ref_vals, pred_vals)
+        std = util.get_std(ref_vals, pred_vals)
+        # TODO make formatting nicer
+        print_label = f'{label}: {rmse:.3f} $\pm$ {std:.3f}'
+        ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7)
+
+    else:
+        n_colours = len(ref_values.keys())
+        cmap = mpl.cm.get_cmap('plasma')
+        colour_idx = np.linspace(0, 1, n_colours)
+        # TODO maybe colour by eigenvalue?
+        for ref_config_type, pred_config_type, cidx in zip(ref_values.keys(), pred_values.keys(), colour_idx):
+            if ref_config_type != pred_config_type:
+                raise ValueError('Reference and predicted config_types do not match')
+            ref_vals = ref_values[ref_config_type]
+            pred_vals = pred_values[pred_config_type]
+
+            rmse = util.get_rmse(ref_vals, pred_vals)
+            std = util.get_std(ref_vals, pred_vals)
+            # print_label = f'{label}, config type {ref_config_type}, {rmse:.3f} $\pm$ {std:.3f}'
+            # print_label = f'{ref_config_type}, {rmse:.3f} $\pm$ {std:.3f}'
+            print_label = ref_config_type
+            if cidx != 1.0 and cidx != 0.0:
+                print_label = None
+            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7, color=cmap(cidx))
+
+
+def error_dict(pred, ref):
+    errors = OrderedDict()
+    for pred_type, ref_type in zip(pred.keys(), ref.keys()):
+        if pred_type != ref_type:
+            raise ValueError('Reference and predicted config_types do not match')
+
+        errors[pred_type] = pred[pred_type] - ref[ref_type]
+
+    return errors
 
 def make_scatter_plots_from_file(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None):
 
     train_ats = read(train_filename, index=':')
+    test_ats = None
     if test_filename:
         test_ats = read(test_filename, index=':')
 
-    make_scatter_plots(param_filename, train_ats, test_ats=test_filename, output_dir=output_dir, prefix=None)
+    make_scatter_plots(param_filename, train_ats, test_ats=test_ats, output_dir=output_dir, prefix=prefix)
 
 
-def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None, prefix=None):
+def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None, prefix=None, by_config_type=False):
 
     test_set=False
     if test_ats:
@@ -128,14 +192,14 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     this_ax = ax[0]
     train_ref_es = train_ref_data['energy']
     train_pred_es = train_pred_data['energy']
-    do_plot(train_ref_es, train_pred_es, this_ax, 'Training:')
-    for_limits = np.concatenate([train_ref_es, train_pred_es])
+    do_plot(train_ref_es, train_pred_es, this_ax, 'Training', by_config_type)
+    for_limits = np.concatenate([dict_to_vals(train_ref_es), dict_to_vals(train_pred_es)])
 
     if test_set:
         test_ref_es = test_ref_data['energy']
         test_pred_es = test_pred_data['energy']
-        do_plot(test_ref_es, test_pred_es, this_ax, 'Test:      ')
-        for_limits = np.concatenate([for_limits, test_ref_es, test_pred_es])
+        do_plot(test_ref_es, test_pred_es, this_ax, 'Test', by_config_type)
+        for_limits = np.concatenate([for_limits, dict_to_vals(test_ref_es), dict_to_vals(test_pred_es)])
 
     flim = (for_limits.min() - 0.5, for_limits.max() + 0.5)
     this_ax.plot(flim, flim, c='k', linewidth=0.8)
@@ -146,14 +210,18 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     this_ax.set_title('Energies')
     this_ax.legend(title='Set: RMSE $\pm$ STD, eV')
 
+
     this_ax = ax[1]
-    do_plot(train_ref_es, train_pred_es - train_ref_es, this_ax, 'Training:')
+    # do_plot(train_ref_es, train_pred_es - train_ref_es, this_ax, 'Training:')
+    do_plot(train_ref_es, error_dict(train_pred_es, train_ref_es), this_ax, 'Training', by_config_type)
     if test_set:
-        do_plot(test_ref_es, test_pred_es - test_ref_es, this_ax, 'Test:      ')
+        # do_plot(test_ref_es, test_pred_es - test_ref_es, this_ax, 'Test:      ')
+        do_plot(test_ref_es, error_dict(test_pred_es, test_ref_es), this_ax, 'Test', by_config_type)
     this_ax.set_xlabel('reference energy / eV')
     this_ax.set_ylabel('E$_{pred}$ - E$_{ref}$ / eV')
     this_ax.axhline(y=0, c='k', linewidth=0.8)
     this_ax.set_title('Energy errors')
+
 
 
     # Force plots
@@ -163,14 +231,14 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
 
         train_ref_fs = train_ref_data['forces'][sym]
         train_pred_fs = train_pred_data['forces'][sym]
-        do_plot(train_ref_fs, train_pred_fs, this_ax, 'Training:')
-        for_limits = np.concatenate([train_ref_fs, train_pred_fs])
+        do_plot(train_ref_fs, train_pred_fs, this_ax, 'Training', by_config_type)
+        for_limits = np.concatenate([dict_to_vals(train_ref_fs), dict_to_vals(train_pred_fs)])
 
         if test_set:
             test_ref_fs = test_ref_data['forces'][sym]
             test_pred_fs = test_pred_data['forces'][sym]
-            do_plot(test_ref_fs, test_pred_fs, this_ax, 'Test:      ')
-            for_limits = np.concatenate([for_limits, test_ref_fs, test_pred_fs])
+            do_plot(test_ref_fs, test_pred_fs, this_ax, 'Test', by_config_type)
+            for_limits = np.concatenate([for_limits, dict_to_vals(test_ref_fs), dict_to_vals(test_pred_fs)])
 
 
         this_ax.set_xlabel('reference force / eV')
@@ -182,14 +250,18 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
         this_ax.set_title(f'Forces on {sym}')
         this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å')
 
+
         this_ax = ax[2 * (idx + 1) + 1]
-        do_plot(train_ref_fs, train_pred_fs - train_ref_fs, this_ax, 'Training:')
+        # do_plot(train_ref_fs, train_pred_fs - train_ref_fs, this_ax, 'Training:')
+        do_plot(train_ref_fs, error_dict(train_pred_fs, train_ref_fs), this_ax, 'Training', by_config_type)
         if test_set:
-            do_plot(test_ref_fs, test_pred_fs - test_ref_fs, this_ax, 'Test:      ')
+            # do_plot(test_ref_fs, test_pred_fs - test_ref_fs, this_ax, 'Test:      ')
+            do_plot(test_ref_fs, error_dict(test_pred_fs, test_ref_fs), this_ax, 'Test', by_config_type)
         this_ax.set_xlabel('reference force / eV/Å')
         this_ax.set_ylabel('F$_{pred}$ - F$_{ref}$ / eV/Å')
         this_ax.axhline(y=0, c='k', linewidth=0.8)
         this_ax.set_title(f'Force errors on {sym}')
+
 
     if not prefix:
         prefix = os.path.basename(param_filename)
@@ -211,7 +283,7 @@ def make_dimer_plot(dimer_name, ax, param_filename):
     distances = [at.get_distance(0, 1) for at in dimer]
 
     ref_data = get_E_F_dict(dimer, calc_type='dft')
-    # pred_data = get_E_F_dict(dimer, calc_type='gap', param_filename=param_filename)
+    pred_data = get_E_F_dict(dimer, calc_type='gap', param_filename=param_filename)
 
 
     command = f"quip E=T F=T atoms_filename=/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz param_filename={param_filename} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
@@ -223,8 +295,8 @@ def make_dimer_plot(dimer_name, ax, param_filename):
     es = [at.info['energy'] for at in atoms]
     ax.plot(distances, es, label='GAP 2b')
 
-    ax.plot(distances, ref_data['energy'], label='reference', linestyle='--', color='k')
-    # plt.plot(distances, pred_data['energy'], label='gap',  linestyle=':')
+    ax.plot(distances, dict_to_vals(ref_data['energy']), label='reference', linestyle='--', color='k')
+    plt.plot(distances, dict_to_vals(pred_data['energy']), label='gap')
 
     ax.set_title(dimer_name)
     ax.set_xlabel('distance (Å)')
