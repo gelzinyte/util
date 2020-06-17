@@ -137,11 +137,12 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
             rmse = util.get_rmse(ref_vals, pred_vals)
             std = util.get_std(ref_vals, pred_vals)
             # print_label = f'{label}, config type {ref_config_type}, {rmse:.3f} $\pm$ {std:.3f}'
-            # print_label = f'{ref_config_type}, {rmse:.3f} $\pm$ {std:.3f}'
-            print_label = ref_config_type
-            if cidx != 1.0 and cidx != 0.0:
-                print_label = None
-            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7, color=cmap(cidx))
+            print_label = f'{ref_config_type}: {rmse:.3f} $\pm$ {std:.3f}'
+            # print_label = ref_config_type
+            # if cidx != 1.0 and cidx != 0.0:
+            #     print_label = None
+            # ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7, color=cmap(cidx))
+            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7)
 
 
 def error_dict(pred, ref):
@@ -154,14 +155,16 @@ def error_dict(pred, ref):
 
     return errors
 
-def make_scatter_plots_from_file(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None):
+def make_scatter_plots_from_file(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None, \
+                                 by_config_type=False):
 
     train_ats = read(train_filename, index=':')
     test_ats = None
     if test_filename:
         test_ats = read(test_filename, index=':')
 
-    make_scatter_plots(param_filename, train_ats, test_ats=test_ats, output_dir=output_dir, prefix=prefix)
+    make_scatter_plots(param_filename, train_ats, test_ats=test_ats, output_dir=output_dir, prefix=prefix, \
+                       by_config_type=by_config_type)
 
 
 def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None, prefix=None, by_config_type=False):
@@ -333,7 +336,8 @@ def make_2b_plots(param_filename, output_dir=None, prefix=None):
 @click.option('--test_filename',  type=click.Path(exists=True), help='.xyz file to test GAP on')
 @click.option('--output_dir', type=click.Path(), help='directory for figures. Create if not-existent')
 @click.option('--prefix', help='prefix to label plots')
-def make_plots(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None):
+@click.option('--by_config_type', type=bool, help='if structures should be coloured by config_type in plots')
+def make_plots(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None, by_config_type=False):
     """Makes energy and force scatter plots"""
     # TODO make optional directory where to save stuff
     # TODO maybe include dftb???
@@ -345,7 +349,7 @@ def make_plots(param_filename, train_filename, test_filename=None, output_dir=No
             os.makedirs(output_dir)
 
     make_scatter_plots_from_file(param_filename=param_filename, train_filename=train_filename, test_filename=test_filename, \
-                       output_dir=output_dir, prefix=prefix)
+                       output_dir=output_dir, prefix=prefix, by_config_type=by_config_type)
     make_2b_plots(param_filename=param_filename, output_dir=output_dir, prefix=prefix)
 
 
