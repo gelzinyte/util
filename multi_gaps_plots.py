@@ -54,7 +54,7 @@ def get_rmse_dict(obs, dft_data, gap_data):
 
 def plot_heatmap(data_dict, ax, obs):
     df = pd.DataFrame.from_dict(data_dict)
-    hmap = ax.pcolormesh(df, vmin=0, vmax=20)
+    hmap = ax.pcolormesh(df)
     # ax.set_yticks(np.arange(0.5, len(df.index), 1), df.index)
     # ax.set_xticks(np.arange(0.5, len(df.columns), 1), df.columns)
 
@@ -71,8 +71,8 @@ def plot_heatmap(data_dict, ax, obs):
         units = 'eV'
     elif obs == 'Force':
         units = 'eV/Å '
-    cbar.ax.set_ylabel(f'{obs} RMSE, {units}', rotation=90, labelpad=12)
-    ax.title(f'{obs} RMSE', fontsize=14 )
+    cbar.ax.set_ylabel(f'{obs} RMSE, {units}', rotation=90, labelpad=6)
+    ax.set_title(f'{obs} RMSE', fontsize=14 )
 
 def get_dimer_data(gap):
     pass
