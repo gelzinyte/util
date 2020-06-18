@@ -139,7 +139,7 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
                 kws = {'marker': 'o', 'facecolors': 'none', 'edgecolors': cmap(colors[idx % 10])}
             else:
                 kws = {'marker': 'x', 'facecolors': cmap(colors[idx % 10])}
-            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, linewidth=0.7, **kws)
+            ax.scatter(ref_vals, pred_vals, label=print_label, s=10, linewidth=0.7, **kws)
 
 
 def error_dict(pred, ref):
@@ -208,11 +208,10 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     this_ax.set_xlabel('reference energy / eV')
     this_ax.set_ylabel('predicted energy / eV')
     this_ax.set_title('Energies')
-    # lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor = (1.1, 1.05))
+    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor = (2.1, 1.05))
 
 
     this_ax = ax[1]
-    # do_plot(train_ref_es, train_pred_es - train_ref_es, this_ax, 'Training:')
     do_plot(train_ref_es, error_dict(train_pred_es, train_ref_es), this_ax, 'Training', by_config_type)
     if test_set:
         # do_plot(test_ref_es, test_pred_es - test_ref_es, this_ax, 'Test:      ')
@@ -221,7 +220,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     this_ax.set_ylabel('E$_{pred}$ - E$_{ref}$ / eV')
     this_ax.axhline(y=0, c='k', linewidth=0.8)
     this_ax.set_title('Energy errors')
-    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(1.1, 1.05))
+    # lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(1.1, 1.05))
 
 
 
@@ -249,11 +248,10 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
         this_ax.set_xlim(flim)
         this_ax.set_ylim(flim)
         this_ax.set_title(f'Forces on {sym}')
-        # this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(1.1, 1.05))
+        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(2.1, 1.05))
 
 
         this_ax = ax[2 * (idx + 1) + 1]
-        # do_plot(train_ref_fs, train_pred_fs - train_ref_fs, this_ax, 'Training:')
         do_plot(train_ref_fs, error_dict(train_pred_fs, train_ref_fs), this_ax, 'Training', by_config_type)
         if test_set:
             # do_plot(test_ref_fs, test_pred_fs - test_ref_fs, this_ax, 'Test:      ')
@@ -262,7 +260,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
         this_ax.set_ylabel('F$_{pred}$ - F$_{ref}$ / eV/Å')
         this_ax.axhline(y=0, c='k', linewidth=0.8)
         this_ax.set_title(f'Force errors on {sym}')
-        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(1.1, 1.05))
+        # this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(1.1, 1.05))
 
 
     if not prefix:
@@ -272,8 +270,9 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
-    plt.suptitle(prefix)
+    # plt.suptitle(prefix)
     # plt.tight_layout(rect=[0, 0.03, 1, 0.98])
+    plt.title(prefix)
     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 def make_dimer_plot(dimer_name, ax, param_filename):
@@ -285,7 +284,7 @@ def make_dimer_plot(dimer_name, ax, param_filename):
     distances = [at.get_distance(0, 1) for at in dimer]
 
     ref_data = get_E_F_dict(dimer, calc_type='dft')
-    pred_data = get_E_F_dict(dimer, calc_type='gap', param_filename=param_filename)
+    # pred_data = get_E_F_dict(dimer, calc_type='gap', param_filename=param_filename)
 
 
     command = f"quip E=T F=T atoms_filename=/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz param_filename={param_filename} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
@@ -298,7 +297,7 @@ def make_dimer_plot(dimer_name, ax, param_filename):
     ax.plot(distances, es, label='GAP 2b')
 
     ax.plot(distances, dict_to_vals(ref_data['energy']), label='reference', linestyle='--', color='k')
-    plt.plot(distances, dict_to_vals(pred_data['energy']), label='gap')
+    # plt.plot(distances, dict_to_vals(pred_data['energy']), label='gap')
 
     ax.set_title(dimer_name)
     ax.set_xlabel('distance (Å)')
@@ -322,6 +321,7 @@ def make_2b_plots(param_filename, output_dir=None, prefix=None):
     if not prefix:
         prefix = os.path.basename(param_filename)
         prefix = os.path.splitext(prefix)[0]
+    plt.suptitle(prefix)
     picture_fname = f'{prefix}_dimer.png'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
