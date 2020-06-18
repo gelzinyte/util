@@ -278,7 +278,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
 def make_dimer_plot(dimer_name, ax, param_filename):
 
     # TODO make this more robust
-    corr_desc = {'HH': 1, 'CH': 2, 'OH': 3, 'CC': 4, 'CO': 5}
+    corr_desc = {'HH': 1, 'CH': 2, 'HO': 3, 'CC': 4, 'CO': 5}
 
     dimer = read(f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz', index=':')
     distances = [at.get_distance(0, 1) for at in dimer]
@@ -307,7 +307,7 @@ def make_dimer_plot(dimer_name, ax, param_filename):
 
 def make_2b_plots(param_filename, output_dir=None, prefix=None):
 
-    dimers = ['HH', 'CH', 'CC', 'OH', 'CO']
+    dimers = ['HH', 'CH', 'CC', 'HO', 'CO']
 
     plt.figure(figsize=(8, 10))
     gs = gridspec.GridSpec(3, 2)
