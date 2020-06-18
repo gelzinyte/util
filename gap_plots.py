@@ -125,7 +125,7 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
         n_groups = len(ref_values.keys())
 
         colors = np.arange(10)
-        cmap = mpl.sm.get_cmap('tab10')
+        cmap = mpl.cm.get_cmap('tab10')
 
         for ref_config_type, pred_config_type, idx in zip(ref_values.keys(), pred_values.keys(), range(n_groups)):
             if ref_config_type != pred_config_type:
@@ -139,8 +139,8 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
             if idx<10:
                 kws = {'marker': 'o', 'facecolors': 'none', 'edgecolors': cmap(colors[idx % 10])}
             else:
-                kws = {'marker': 'x', 'facecolors': cmap(colors[i % 10])}
-            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7, **kws)
+                kws = {'marker': 'x', 'facecolors': cmap(colors[idx % 10])}
+            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, **kws)
 
 
 def error_dict(pred, ref):
@@ -209,7 +209,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     this_ax.set_xlabel('reference energy / eV')
     this_ax.set_ylabel('predicted energy / eV')
     this_ax.set_title('Energies')
-    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor = (1.1, 1.05))
+    # lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor = (1.1, 1.05))
 
 
     this_ax = ax[1]
@@ -222,6 +222,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     this_ax.set_ylabel('E$_{pred}$ - E$_{ref}$ / eV')
     this_ax.axhline(y=0, c='k', linewidth=0.8)
     this_ax.set_title('Energy errors')
+    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(1.1, 1.05))
 
 
 
@@ -249,7 +250,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
         this_ax.set_xlim(flim)
         this_ax.set_ylim(flim)
         this_ax.set_title(f'Forces on {sym}')
-        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(1.1, 1.05))
+        # this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(1.1, 1.05))
 
 
         this_ax = ax[2 * (idx + 1) + 1]
@@ -262,6 +263,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
         this_ax.set_ylabel('F$_{pred}$ - F$_{ref}$ / eV/Å')
         this_ax.axhline(y=0, c='k', linewidth=0.8)
         this_ax.set_title(f'Force errors on {sym}')
+        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(1.1, 1.05))
 
 
     if not prefix:
