@@ -208,7 +208,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     this_ax.set_xlabel('reference energy / eV')
     this_ax.set_ylabel('predicted energy / eV')
     this_ax.set_title('Energies')
-    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor = (2.1, 1.05))
+    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(2.9, 1.05))
 
 
     this_ax = ax[1]
@@ -248,7 +248,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
         this_ax.set_xlim(flim)
         this_ax.set_ylim(flim)
         this_ax.set_title(f'Forces on {sym}')
-        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(2.1, 1.05))
+        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(2.9, 1.05))
 
 
         this_ax = ax[2 * (idx + 1) + 1]
