@@ -1,1 +1,2 @@
 *.xyz.idx
+*__pycache__*

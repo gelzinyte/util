@@ -49,11 +49,9 @@ def get_E_F_dict(atoms, calc_type, param_filename=None):
         if param_filename:
             gap = Potential(param_filename=param_filename)
         else:
-            print('GAP filename is not given, but GAP energies requested.')
-            raise NameError
+            raise NameError('GAP filename is not given, but GAP energies requested.')
     else:
-        print('calc_type should be either "GAP" or "DFT"')
-        raise NameError
+        raise NameError('calc_type should be either "GAP" or "DFT"')
 
     for atom in atoms:
         at = atom.copy()
@@ -124,11 +122,12 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
         ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7)
 
     else:
-        n_colours = len(ref_values.keys())
-        cmap = mpl.cm.get_cmap('plasma')
-        colour_idx = np.linspace(0, 1, n_colours)
-        # TODO maybe colour by eigenvalue?
-        for ref_config_type, pred_config_type, cidx in zip(ref_values.keys(), pred_values.keys(), colour_idx):
+        n_groups = len(ref_values.keys())
+
+        colors = np.arange(10)
+        cmap = mpl.sm.get_cmap('tab10')
+
+        for ref_config_type, pred_config_type, idx in zip(ref_values.keys(), pred_values.keys(), range(n_groups)):
             if ref_config_type != pred_config_type:
                 raise ValueError('Reference and predicted config_types do not match')
             ref_vals = ref_values[ref_config_type]
@@ -136,13 +135,12 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
 
             rmse = util.get_rmse(ref_vals, pred_vals)
             std = util.get_std(ref_vals, pred_vals)
-            # print_label = f'{label}, config type {ref_config_type}, {rmse:.3f} $\pm$ {std:.3f}'
             print_label = f'{ref_config_type}: {rmse:.3f} $\pm$ {std:.3f}'
-            # print_label = ref_config_type
-            # if cidx != 1.0 and cidx != 0.0:
-            #     print_label = None
-            # ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7, color=cmap(cidx))
-            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7)
+            if idx<10:
+                kws = {'marker': 'o', 'facecolors': 'none', 'edgecolors': cmap(colors[idx % 10])}
+            else:
+                kws = {'marker': 'x', 'facecolors': cmap(colors[i % 10])}
+            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7, **kws)
 
 
 def error_dict(pred, ref):
@@ -211,7 +209,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     this_ax.set_xlabel('reference energy / eV')
     this_ax.set_ylabel('predicted energy / eV')
     this_ax.set_title('Energies')
-    this_ax.legend(title='Set: RMSE $\pm$ STD, eV')
+    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor = (1.1, 1.05))
 
 
     this_ax = ax[1]
@@ -251,7 +249,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
         this_ax.set_xlim(flim)
         this_ax.set_ylim(flim)
         this_ax.set_title(f'Forces on {sym}')
-        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å')
+        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(1.1, 1.05))
 
 
         this_ax = ax[2 * (idx + 1) + 1]
@@ -274,8 +272,8 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
         picture_fname = os.path.join(output_dir, picture_fname)
 
     plt.suptitle(prefix)
-    plt.tight_layout(rect=[0, 0.03, 1, 0.98])
-    plt.savefig(picture_fname, dpi=300)
+    # plt.tight_layout(rect=[0, 0.03, 1, 0.98])
+    plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 def make_dimer_plot(dimer_name, ax, param_filename):
 
@@ -323,7 +321,7 @@ def make_2b_plots(param_filename, output_dir=None, prefix=None):
     if not prefix:
         prefix = os.path.basename(param_filename)
         prefix = os.path.splitext(prefix)[0]
-    picture_fname = f'{prefix}_2body.png'
+    picture_fname = f'{prefix}_dimer.png'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
     plt.savefig(picture_fname, dpi=300)
