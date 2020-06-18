@@ -31,7 +31,7 @@ def get_E_F_dict(atoms, calc_type, param_filename=None):
     calc_type = calc_type.upper()
     data = dict()
     data['energy'] = OrderedDict()
-    data['forces'] = dict()
+    data['forces'] = OrderedDict()
 
     if calc_type == 'DFT':
         if param_filename:
@@ -58,7 +58,6 @@ def get_E_F_dict(atoms, calc_type, param_filename=None):
         config_type='no_config_type'
         if 'config_type' in at.info.keys():
            config_type = at.info['config_type']
-
 
 
         if len(at) != 1:
@@ -140,7 +139,7 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
                 kws = {'marker': 'o', 'facecolors': 'none', 'edgecolors': cmap(colors[idx % 10])}
             else:
                 kws = {'marker': 'x', 'facecolors': cmap(colors[idx % 10])}
-            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, **kws)
+            ax.scatter(ref_vals, pred_vals, label=print_label, s=8, linewidth=0.7, **kws)
 
 
 def error_dict(pred, ref):
