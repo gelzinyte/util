@@ -154,35 +154,42 @@ def dimer_plots(gaps_dir, output_dir=None, prefix=None):
     gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
     gap_fnames = util.natural_sort(gap_fnames)
 
-    cmap = mpl.cm.get_cmap('Blues')
-    colors = np.linspace(0.2, 1, len(gap_fnames))
+    for i, gap_group in enumerate(util.grouper(gap_fnames, 10)):
 
-    plt.figure(figsize=(8, 10))
-    gs = gridspec.GridSpec(3, 2)
-    axes = [plt.subplot(g) for g in gs]
+        cmap = mpl.cm.get_cmap('Blues')
+        colors = np.linspace(0.2, 1, len(gap_group))
 
-    for ax, dimer in zip(axes, dimers):
-        for gap_fname, color in zip(tqdm(gap_fnames), colors):
-            gap_fname = os.path.join(gaps_dir, gap_fname)
-            make_dimer_plot(dimer, ax, gap_fname, color=cmap(color))
+        plt.figure(figsize=(8, 10))
+        gs = gridspec.GridSpec(3, 2)
+        axes = [plt.subplot(g) for g in gs]
 
-        make_dimer_plot(dimer, ax, 'dft')
+        for ax, dimer in zip(axes, dimers):
+            for gap_fname, color in zip(gap_group, colors):
+                if gap_fname:
+                    gap_fname = os.path.join(gaps_dir, gap_fname)
+                    make_dimer_plot(dimer, ax, gap_fname, color=cmap(color))
 
-        ax.set_title(dimer)
-        ax.set_xlabel('distance (Å)')
-        ax.set_ylabel('energy (eV)')
-        # Potentially sort out the legend
-        ax.legend()
+            make_dimer_plot(dimer, ax, 'dft')
 
-    plt.tight_layout()
+            ax.set_title(dimer)
+            ax.set_xlabel('distance (Å)')
+            ax.set_ylabel('energy (eV)')
+            # Potentially sort out the legend
+            if color == colors[1]:
+                lgd = ax.legend(bbox_to_anchor=(1.1, 1.05))
 
-    if not prefix:
-        prefix = 'multiple_gaps'
-    plt.suptitle(prefix)
-    picture_fname = f'{prefix}_dimers.png'
-    if output_dir:
-        picture_fname = os.path.join(output_dir, picture_fname)
-    plt.savefig(picture_fname, dpi=300)
+        # plt.tight_layout()
+
+        if not prefix:
+            prefix = 'multiple_gaps'
+        plt.suptitle(prefix)
+        if i==0:
+            picture_fname = f'{prefix}_dimers.png'
+        else:
+            picture_fname = f'{prefix}_dimres_{i+1}.png'
+        if output_dir:
+            picture_fname = os.path.join(output_dir, picture_fname)
+        plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 
 

@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from itertools import zip_longest
 
 # Packages for atoms and molecules
 import ase
@@ -100,6 +101,12 @@ def dict_to_vals(my_dict):
     all_values = np.concatenate(all_values)
     return all_values
 
+def grouper(iterable, n, fillvalue=None):
+    """groups a list/etc into chunks of n values, e.g. 
+    grouper('ABCDEFG', 3, 'x') --> 'ABC' 'DEF' 'Gxx'
+    """
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
 ####################################################################################
 #
 # Nomral mode help
