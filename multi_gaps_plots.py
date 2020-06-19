@@ -55,9 +55,6 @@ def get_rmse_dict(obs, dft_data, gap_data):
 def plot_heatmap(data_dict, ax, obs):
     df = pd.DataFrame.from_dict(data_dict)
     hmap = ax.pcolormesh(df)
-    # ax.set_yticks(np.arange(0.5, len(df.index), 1), df.index)
-    # ax.set_xticks(np.arange(0.5, len(df.columns), 1), df.columns)
-
     ax.set_yticks(np.arange(0.5, len(df.index), 1))
     ax.set_yticklabels(df.index)
     ax.set_xticks(np.arange(0.5, len(df.columns), 1))
@@ -123,8 +120,71 @@ def rmse_plots(train_filename, gaps_dir, output_dir=None, prefix=None):
     plt.savefig(picture_fname, dpi=300)
 
 
+def make_dimer_plot(dimer_name, ax, param_filename, color='tab:red'):
+    # which pair potential corresponds to which descriptor
+    corr_desc = {'HH': 1, 'CH': 2, 'HO': 3, 'CC': 4, 'CO': 5}
+    dimer = read(f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz', index=':')
+    distances = [at.get_distance(0, 1) for at in dimer]
+
+    if param_filename == 'dft':
+        data = gap_plots.get_E_F_dict(dimer, calc_type='dft')
+        es = util.dict_to_vals(data['energy'])
+        label='dft'
+        kwargs = {'color':'k', 'linestyle':'--'}
+    elif 'gap' in param_filename and 'xml' in param_filename:
+        command = f"quip E=T F=T atoms_filename=/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz \
+                    param_filename={param_filename} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
+                        | grep AT | sed 's/AT//' > ./tmp_atoms.xyz"
+
+        subprocess.run(command, shell=True)
+        atoms = read('./tmp_atoms.xyz', index=':')
+        os.remove('./tmp_atoms.xyz')
+        es = np.array([at.info['energy'] for at in atoms])
+        label = os.path.basename(param_filename)
+        label = os.path.splitext(label)[0]
+        kwargs = {'color':color}
+    else:
+        raise KeyError('either giva a gap name or "dft" key for which data to calculate')
+
+    ax.plot(distances, es, label=label, **kwargs)
+
+
+
 def dimer_plots(gaps_dir, output_dir=None, prefix=None):
-    pass
+    dimers = ['CC', 'CH', 'CO', 'HH', 'HO']
+    gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
+    gap_fnames = util.natural_sort(gap_fnames)
+
+    cmap = mpl.cm.get_cmap('Blues')
+    colors = np.linspace(0.2, 1, len(gap_fnames))
+
+    plt.figure(figsize=(8, 10))
+    gs = gridspec.GridSpec(3, 2)
+    axes = [plt.subplot(g) for g in gs]
+
+    for ax, dimer in zip(axes, dimers):
+        for gap_fname, color in zip(tqdm(gap_fnames), colors):
+            gap_fname = os.path.join(gaps_dir, gap_fname)
+            make_dimer_plot(dimer, ax, gap_fname, color=cmap(color))
+
+        make_dimer_plot(dimer, ax, 'dft')
+
+        ax.set_title(dimer)
+        ax.set_xlabel('distance (Å)')
+        ax.set_ylabel('energy (eV)')
+        # Potentially sort out the legend
+        ax.legend()
+
+    plt.tight_layout()
+
+    if not prefix:
+        prefix = os.path.basename(param_filename)
+        prefix = os.path.splitext(prefix)[0]
+    plt.suptitle(prefix)
+    picture_fname = f'{prefix}_dimer.png'
+    if output_dir:
+        picture_fname = os.path.join(output_dir, picture_fname)
+    plt.savefig(picture_fname, dpi=300)
 
 
 
@@ -144,8 +204,8 @@ def make_plots(train_filename, gaps_dir=None, output_dir=None, prefix=None):
     if gaps_dir == None:
         gaps_dir = os.getcwd()
 
-    rmse_plots(train_filename=train_filename, gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
-    # dimer_plots(gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
+    # rmse_plots(train_filename=train_filename, gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
+    dimer_plots(gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
 
 
 if __name__=='__main__':

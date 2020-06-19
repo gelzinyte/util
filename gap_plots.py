@@ -242,7 +242,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
 
 
         this_ax.set_xlabel('reference force / eV')
-        this_ax.set_ylabel('predicted force / eV')
+        this_ax.set_ylabel('predicted force / eV/Å')
         flim = (for_limits.min() - 0.5, for_limits.max() + 0.5)
         this_ax.plot(flim, flim, c='k', linewidth=0.8)
         this_ax.set_xlim(flim)
@@ -307,7 +307,8 @@ def make_dimer_plot(dimer_name, ax, param_filename):
 
 def make_2b_plots(param_filename, output_dir=None, prefix=None):
 
-    dimers = ['HH', 'CH', 'CC', 'HO', 'CO']
+    # dimers = ['HH', 'CH', 'CC', 'HO', 'CO']
+    dimers = ['CC', 'CH', 'CO', 'HH', 'HO']
 
     plt.figure(figsize=(8, 10))
     gs = gridspec.GridSpec(3, 2)
