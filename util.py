@@ -228,7 +228,7 @@ def eval_plot(evals_dft, evals_pred, name):
     plt.savefig(f'{name}_eigenvalue_plots.png', dpi=300)
 
     
-def evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name):
+def evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir=None):
     mx = dict()
     for i, ev_dft in enumerate(evecs_dft):
         mx[f'dft_{i}'] = dict()
@@ -250,7 +250,14 @@ def evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name):
     plt.ylabel('Predicted eigenvalues')
     plt.title(f'Dot products between eigenvectors for {name}', fontsize=14)
     plt.tight_layout()
-    plt.savefig(f'{name}_eigenvector_heatmap.png', dpi=300)
+
+    name = f'{name}_eigenvectors.png'
+    if output_dir:
+        if not os.path.exists(output_dr):
+            os.makedirs(output_dir)
+        name = os.path.join(output_dr, name)
+
+    plt.savefig(name, dpi=300)
 
     
 def set_dft_vals(atoms):

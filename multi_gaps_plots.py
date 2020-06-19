@@ -111,9 +111,8 @@ def rmse_plots(train_filename, gaps_dir, output_dir=None, prefix=None):
     plt.tight_layout()
 
     if not prefix:
-        prefix = os.path.basename(train_filename)
-        prefix = os.path.splitext(prefix)[0]
-    picture_fname = f'{prefix}_heatmaps.png'
+        prefix='multiple_gaps'
+    picture_fname = f'{prefix}_RMSEs.png'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
@@ -178,10 +177,9 @@ def dimer_plots(gaps_dir, output_dir=None, prefix=None):
     plt.tight_layout()
 
     if not prefix:
-        prefix = os.path.basename(param_filename)
-        prefix = os.path.splitext(prefix)[0]
+        prefix = 'multiple_gaps'
     plt.suptitle(prefix)
-    picture_fname = f'{prefix}_dimer.png'
+    picture_fname = f'{prefix}_dimers.png'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
     plt.savefig(picture_fname, dpi=300)
@@ -204,7 +202,7 @@ def make_plots(train_filename, gaps_dir=None, output_dir=None, prefix=None):
     if gaps_dir == None:
         gaps_dir = os.getcwd()
 
-    # rmse_plots(train_filename=train_filename, gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
+    rmse_plots(train_filename=train_filename, gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
     dimer_plots(gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
 
 
