@@ -301,6 +301,9 @@ def make_dimer_plot(dimer_name, ax, param_filename):
     es = [at.info['energy'] for at in atoms]
     ax.plot(distances, es, label='GAP 2b')
 
+    gap_data = get_E_F_dict(dimer, calc_type='gap', param_filename=param_filename)
+    ax.plot(distances, dict_to_vals(gap_data['energy']), label='full GAP', color='tab:red')
+
     ax.plot(distances, dict_to_vals(ref_data['energy']), label='reference', linestyle='--', color='k')
     # plt.plot(distances, dict_to_vals(pred_data['energy']), label='gap')
 
