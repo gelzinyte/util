@@ -260,9 +260,9 @@ def evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir=Non
 
     name = f'{name}_eigenvectors.png'
     if output_dir:
-        if not os.path.exists(output_dr):
+        if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        name = os.path.join(output_dr, name)
+        name = os.path.join(output_dir, name)
 
     plt.savefig(name, dpi=300)
 
@@ -383,7 +383,7 @@ def make_config_type_sigma_str(dct):
 
 
 def make_gap_command(gap_filename, training_filename, descriptors_dict, default_sigma, config_type_sigma=None, \
-                     gap_path=None, output_filename=False):
+                     gap_path=None, output_filename=False, glue_fname=None):
     """Makes GAP command to be called in shell"""
     descriptor_strs = [make_descr_str(descriptors_dict[key]) for key in descriptors_dict.keys()]
 
@@ -391,6 +391,11 @@ def make_gap_command(gap_filename, training_filename, descriptors_dict, default_
 
     if not gap_path:
         gap_path = 'gap_fit'
+
+    if glue_fname:
+        glue_command = f' core_param_file={glue_fname} core_ip_args={{IP Glue}}'
+    else:
+        glue_command = ''
 
     if not config_type_sigma:
         config_type_sigma = ''
@@ -400,7 +405,7 @@ def make_gap_command(gap_filename, training_filename, descriptors_dict, default_
         config_type_sigma = make_config_type_sigma_str(config_type_sigma)
 
     gap_command = f'{gap_path} gp_file={gap_filename} atoms_filename={training_filename} force_parameter_name=forces sparse_separate_file=F default_sigma='
-    gap_command += default_sigma + config_type_sigma + ' gap={'
+    gap_command += default_sigma + config_type_sigma + glue_command + ' gap={'
 
     for i, desc in enumerate(descriptor_strs):
         gap_command += desc

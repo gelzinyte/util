@@ -135,11 +135,16 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
             rmse = util.get_rmse(ref_vals, pred_vals)
             std = util.get_std(ref_vals, pred_vals)
             print_label = f'{ref_config_type}: {rmse:.3f} $\pm$ {std:.3f}'
-            if idx<10:
+            if idx < 10:
                 kws = {'marker': 'o', 'facecolors': 'none', 'edgecolors': cmap(colors[idx % 10])}
-            else:
+            elif idx < 20 and idx >=10:
                 kws = {'marker': 'x', 'facecolors': cmap(colors[idx % 10])}
-            ax.scatter(ref_vals, pred_vals, label=print_label, s=10, linewidth=0.7, **kws)
+            elif idx < 30 and idx >=20:
+                kws = {'marker': '+', 'facecolors': cmap(colors[idx % 10])}
+            else:
+                kws = {'marker': '*', 'facecolors': 'none', 'edgecolors': cmap(colors[idx % 10])}
+
+            ax.scatter(ref_vals, pred_vals, label=print_label, linewidth=0.9, **kws)
 
 
 def error_dict(pred, ref):
@@ -241,7 +246,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
             for_limits = np.concatenate([for_limits, dict_to_vals(test_ref_fs), dict_to_vals(test_pred_fs)])
 
 
-        this_ax.set_xlabel('reference force / eV')
+        this_ax.set_xlabel('reference force / eV/Å')
         this_ax.set_ylabel('predicted force / eV/Å')
         flim = (for_limits.min() - 0.5, for_limits.max() + 0.5)
         this_ax.plot(flim, flim, c='k', linewidth=0.8)
@@ -270,7 +275,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
-    # plt.suptitle(prefix)
+    plt.suptitle(prefix)
     # plt.tight_layout(rect=[0, 0.03, 1, 0.98])
     plt.title(prefix)
     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
@@ -332,9 +337,9 @@ def make_2b_plots(param_filename, output_dir=None, prefix=None):
 
 @click.command()
 @click.option('--param_filename',  type=click.Path(exists=True), required=True, help='GAP xml to test')
-@click.option('--train_filename',  type=click.Path(exists=True), required=True, help='.xyz file used for training')
-@click.option('--test_filename',  type=click.Path(exists=True), help='.xyz file to test GAP on')
-@click.option('--output_dir', type=click.Path(), help='directory for figures. Create if not-existent')
+@click.option('--train_filename', default='xyzs/training_set.xyz', show_default=True, type=click.Path(exists=True), required=True, help='.xyz file used for training')
+@click.option('--test_filename', default='xyzs/test_set.xyz', show_default=True, type=click.Path(exists=True), help='.xyz file to test GAP on')
+@click.option('--output_dir', default='pictures', show_default=True, type=click.Path(), help='directory for figures. Create if not-existent')
 @click.option('--prefix', help='prefix to label plots')
 @click.option('--by_config_type', type=bool, help='if structures should be coloured by config_type in plots')
 def make_plots(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None, by_config_type=False):
