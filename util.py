@@ -42,7 +42,7 @@ from molpro import Molpro
 # TODO deal with dftb potential
 # TODO add default types in functions
 
-def util_hello():
+def hello():
     print('Utils say hi')
 
 ####################################################################################
@@ -107,6 +107,83 @@ def grouper(iterable, n, fillvalue=None):
     """
     args = [iter(iterable)] * n
     return zip_longest(*args, fillvalue=fillvalue)
+
+def get_pair_dists(all_dists, at_nos, atno1, atno2):
+    dists = []
+    for i in range(len(all_dists[at_nos==atno1])):
+        dists.append(np.array(all_dists[at_nos==atno1][i][at_nos==atno2]))
+
+    dists = np.array(dists)
+    if atno1==atno2:
+        dists = np.triu(dists)
+        dists = dists[dists!=0]
+    else:
+        dists = dists.flatten()
+    return dists
+
+
+def distances_dict(at_list):
+    dist_hist = {}
+    for at in at_list:
+        all_dists = at.get_all_distances()
+
+        at_nos = at.get_atomic_numbers()
+        at_syms = np.array(at.get_chemical_symbols())
+
+        formula = at.get_chemical_formula()
+        unique_symbs = natural_sort(list(ase.formula.Formula(formula).count().keys()))
+        for idx1, sym1 in enumerate(unique_symbs):
+            for idx2, sym2 in enumerate(unique_symbs[idx1:]):
+                label = sym1 + sym2
+
+                atno1 = at_nos[at_syms == sym1][0]
+                atno2 = at_nos[at_syms == sym2][0]
+
+                if label not in dist_hist.keys():
+                    dist_hist[label] = np.array([])
+
+                distances = get_pair_dists(all_dists, at_nos, atno1, atno2)
+                dist_hist[label] = np.concatenate([dist_hist[label], distances])
+    return dist_hist
+
+
+def rattle(at, stdev, natoms):
+    '''natoms - how many atoms to rattle'''
+    at = at.copy()
+    pos = at.positions.copy()
+    mask = np.ones(pos.shape).flatten()
+    mask[:-natoms] = 0
+    np.random.shuffle(mask)
+    mask = mask.reshape(pos.shape)
+
+    rng = np.random.RandomState()
+    new_pos = pos + rng.normal(scale=stdev, size=pos.shape) * mask
+    at.set_positions(new_pos)
+    return at
+
+
+def has_converged(template_path, molpro_out_path='MOLPRO/molpro.out'):
+    with open(molpro_out_path, 'r') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if 'Final alpha occupancy' in line:
+                final_iteration_no = int(re.search(r'\d+', lines[i - 2]).group())
+
+    # print(final_iteration_no)
+    maxit = 60  # the default
+    with open(template_path, 'r') as f:
+        for line in f:
+            if 'maxit' in line:
+                maxit = line.rstrip().split('maxit=')[1]  # take the non-default if present in the input
+                break
+
+    # print(maxit)
+    if maxit == final_iteration_no:
+        print(f'Final iteration no was found to be {maxit}, optimisation has not converged')
+        return False
+    else:
+        return True
+
 ####################################################################################
 #
 # Nomral mode help
