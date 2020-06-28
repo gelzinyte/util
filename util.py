@@ -166,7 +166,7 @@ def has_converged(template_path, molpro_out_path='MOLPRO/molpro.out'):
     with open(molpro_out_path, 'r') as f:
         lines = f.readlines()
         for i, line in enumerate(lines):
-            if 'Final alpha occupancy' in line:
+            if 'Final alpha occupancy' in line or 'Final occupancy' in line:
                 final_iteration_no = int(re.search(r'\d+', lines[i - 2]).group())
 
     # print(final_iteration_no)
@@ -481,7 +481,7 @@ def make_gap_command(gap_filename, training_filename, descriptors_dict, default_
             raise TypeError('config_type_sigma should be a dictionary of config_type(str):values(list of floats)')
         config_type_sigma = make_config_type_sigma_str(config_type_sigma)
 
-    gap_command = f'{gap_path} gp_file={gap_filename} atoms_filename={training_filename} force_parameter_name=forces sparse_separate_file=F default_sigma='
+    gap_command = f'{gap_path} gp_file={gap_filename} atoms_filename={training_filename} energy_parameter_name=dft_energy force_parameter_name=dft_forces sparse_separate_file=F default_sigma='
     gap_command += default_sigma + config_type_sigma + glue_command + ' gap={'
 
     for i, desc in enumerate(descriptor_strs):

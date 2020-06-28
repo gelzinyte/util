@@ -28,7 +28,7 @@ from ase import Atom, Atoms
 # TODO add printing of GAP command somehow
 # TODO add printing summary table of accuracies somehow
 
-def get_E_F_dict(atoms, calc_type, param_filename=None):
+def get_E_F_dict(atoms, calc_type, param_fname=None):
     # TODO add check for 'dft_energy' or 'energy'
     calc_type = calc_type.upper()
     data = dict()
@@ -36,7 +36,7 @@ def get_E_F_dict(atoms, calc_type, param_filename=None):
     data['forces'] = OrderedDict()
 
     if calc_type == 'DFT':
-        if param_filename:
+        if param_fname:
             print("WARNING: calc_type selected as DFT, but gap filename is given, are you sure?")
         energy_name = 'dft_energy'
         if energy_name not in atoms[0].info.keys():
@@ -48,8 +48,8 @@ def get_E_F_dict(atoms, calc_type, param_filename=None):
             force_name = 'forces'
 
     elif calc_type == 'GAP':
-        if param_filename:
-            gap = Potential(param_filename=param_filename)
+        if param_fname:
+            gap = Potential(param_fname=param_fname)
         else:
             raise NameError('GAP filename is not given, but GAP energies requested.')
     else:
@@ -159,30 +159,30 @@ def error_dict(pred, ref):
 
     return errors
 
-def make_scatter_plots_from_file(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None, \
+def make_scatter_plots_from_file(param_fname, train_fname, test_fname=None, output_dir=None, prefix=None, \
                                  by_config_type=False):
 
-    train_ats = read(train_filename, index=':')
+    train_ats = read(train_fname, index=':')
     test_ats = None
-    if test_filename:
-        test_ats = read(test_filename, index=':')
+    if test_fname:
+        test_ats = read(test_fname, index=':')
 
-    make_scatter_plots(param_filename, train_ats, test_ats=test_ats, output_dir=output_dir, prefix=prefix, \
+    make_scatter_plots(param_fname, train_ats, test_ats=test_ats, output_dir=output_dir, prefix=prefix, \
                        by_config_type=by_config_type)
 
 
-def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None, prefix=None, by_config_type=False):
+def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, prefix=None, by_config_type=False):
 
     test_set=False
     if test_ats:
         test_set=True
 
     train_ref_data = get_E_F_dict(train_ats, calc_type='dft')
-    train_pred_data = get_E_F_dict(train_ats, calc_type='gap', param_filename=param_filename)
+    train_pred_data = get_E_F_dict(train_ats, calc_type='gap', param_fname=param_fname)
 
     if test_set:
         test_ref_data = get_E_F_dict(test_ats, calc_type='dft')
-        test_pred_data = get_E_F_dict(test_ats, calc_type='gap', param_filename=param_filename)
+        test_pred_data = get_E_F_dict(test_ats, calc_type='gap', param_fname=param_fname)
 
 
     counts = util.get_counts(train_ats[0])
@@ -271,7 +271,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
 
 
     if not prefix:
-        prefix = os.path.basename(param_filename)
+        prefix = os.path.basename(param_fname)
         prefix = os.path.splitext(prefix)[0]
     picture_fname = f'{prefix}_scatter.png'
     if output_dir:
@@ -282,7 +282,7 @@ def make_scatter_plots(param_filename, train_ats, test_ats=None, output_dir=None
     plt.title(prefix)
     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
-def make_2b_only_plot(dimer_name, ax, param_filename):
+def make_2b_only_plot(dimer_name, ax, param_fname):
 
     # TODO make this more robust
     corr_desc = {'HH': 1, 'CH': 2, 'HO': 3, 'CC': 4, 'CO': 5}
@@ -290,7 +290,7 @@ def make_2b_only_plot(dimer_name, ax, param_filename):
     dimer = read(f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz', index=':')
     distances = [at.get_distance(0, 1) for at in dimer]
 
-    command = f"quip E=T F=T atoms_filename=/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz param_filename={param_filename} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
+    command = f"quip E=T F=T atoms_filename=/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz param_fname={param_fname} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
                     | grep AT | sed 's/AT//' > ./tmp_atoms.xyz"
 
 
@@ -340,9 +340,10 @@ def make_ref_plot(dimer_name, ax):
     ref_data = get_E_F_dict(dimer, calc_type='dft')
     ax.plot(distances, dict_to_vals(ref_data['energy']), label='(RKS) reference', linestyle='--', color='k')
 
-def make_dimer_curves(param_filename, train_filename, output_dir=None, prefix=None, glue_fname=None, plot_2b_only=True):
+def make_dimer_curves(param_fname, train_fname, output_dir=None, prefix=None, glue_fname=None, plot_2b_contribution=True, \
+                      plot_ref_curve=True):
 
-    train_ats = read(train_filename, index=':')
+    train_ats = read(train_fname, index=':')
     distances_dict = util.distances_dict(train_ats)
     dimers = [key for key, item in distances_dict.items() if len(item)!=0]
 
@@ -362,25 +363,27 @@ def make_dimer_curves(param_filename, train_filename, output_dir=None, prefix=No
         axes_hist.append(plt.subplot(gs2[1], sharex=ax1))
 
 
-    print('Plotting omplete GAP on dimers')
-    gap = Potential(param_filename=param_filename)
+    print('Plotting complete GAP on dimers')
+    gap = Potential(param_fname=param_fname)
     for ax, dimer in zip(axes_main, dimers):
         make_dimer_plot(dimer, ax, calc=gap, label='GAP')
 
-    print('Plotting 2b of GAP on dimers')
-    if plot_2b_only:
+
+    if plot_2b_contribution:
+        print('Plotting 2b of GAP on dimers')
         for ax, dimer in zip(axes_main, tqdm(dimers)):
-            make_2b_only_plot(dimer, ax, param_filename)
+            make_2b_only_plot(dimer, ax, param_fname)
 
     print('Plotting Glue')
     if glue_fname:
-        glue = Potential('IP Glue', param_filename=glue_fname)
+        glue = Potential('IP Glue', param_fname=glue_fname)
         for ax, dimer in zip(axes_main, dimers):
             make_dimer_plot(dimer, ax, calc=glue, label='Glue')
 
-    print('Plotting reference dimer curves (to be fixed still)')
-    for ax, dimer in zip(axes_main, dimers):
-        make_ref_plot(dimer, ax)
+    if plot_ref_curve:
+        print('Plotting reference dimer curves (to be fixed still)')
+        for ax, dimer in zip(axes_main, dimers):
+            make_ref_plot(dimer, ax)
 
     for ax, dimer in zip(axes_main, dimers):
         ax.legend()
@@ -402,7 +405,7 @@ def make_dimer_curves(param_filename, train_filename, output_dir=None, prefix=No
     plt.tight_layout()
 
     if not prefix:
-        prefix = os.path.basename(param_filename)
+        prefix = os.path.basename(param_fname)
         prefix = os.path.splitext(prefix)[0]
     plt.suptitle(prefix)
     picture_fname = f'{prefix}_dimer.png'
@@ -413,15 +416,16 @@ def make_dimer_curves(param_filename, train_filename, output_dir=None, prefix=No
 
 
 @click.command()
-@click.option('--param_filename',  type=click.Path(exists=True), required=True, help='GAP xml to test')
-@click.option('--train_filename', type=click.Path(exists=True), required=True, help='.xyz file used for training')
-@click.option('--test_filename', type=click.Path(exists=True), help='.xyz file to test GAP on')
+@click.option('--param_fname',  type=click.Path(exists=True), required=True, help='GAP xml to test')
+@click.option('--train_fname', type=click.Path(exists=True), required=True, help='.xyz file used for training')
+@click.option('--test_fname', type=click.Path(exists=True), help='.xyz file to test GAP on')
 @click.option('--output_dir', default='pictures', show_default=True, type=click.Path(), help='directory for figures. Create if not-existent')
 @click.option('--prefix', help='prefix to label plots')
 @click.option('--by_config_type', type=bool, help='if structures should be coloured by config_type in plots')
 @click.option('--glue_fname', type=click.Path(exists=True), help='glue potential\'s xml to be evaluated for dimers')
-@click.option('--plot_2b_only', type=bool, default='True', show_default=True, help='whether to plot the 2b only bit of gap')
-def make_plots(param_filename, train_filename, test_filename=None, output_dir=None, prefix=None, by_config_type=False, glue_fname=None, plot_2b_only=True):
+@click.option('--plot_2b_contribution', type=bool, default='True', show_default=True, help='whether to plot the 2b only bit of gap')
+@click.option('--plot_ref_curve', type=bool, default='True', show_default=True, help='whether to plot the reference DFT dimer curve')
+def make_plots(param_fname, train_fname, test_fname=None, output_dir=None, prefix=None, by_config_type=False, glue_fname=None, plot_2b_contribution=True, plot_ref_curve=True):
     """Makes energy and force scatter plots and dimer curves"""
     # TODO make optional directory where to save stuff
     # TODO maybe include dftb???
@@ -433,10 +437,11 @@ def make_plots(param_filename, train_filename, test_filename=None, output_dir=No
             os.makedirs(output_dir)
 
     print('Scatter plotting')
-    make_scatter_plots_from_file(param_filename=param_filename, train_filename=train_filename, test_filename=test_filename, \
+    make_scatter_plots_from_file(param_fname=param_fname, train_fname=train_fname, test_fname=test_fname, \
                        output_dir=output_dir, prefix=prefix, by_config_type=by_config_type)
     print('Ploting dimers')
-    make_dimer_curves(param_filename=param_filename, train_filename=train_filename, output_dir=output_dir, prefix=prefix, glue_fname=glue_fname, plot_2b_only=plot_2b_only)
+    make_dimer_curves(param_fname=param_fname, train_fname=train_fname, output_dir=output_dir, prefix=prefix,\
+                      glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution, plot_ref_curve=plot_ref_curve)
 
 
 

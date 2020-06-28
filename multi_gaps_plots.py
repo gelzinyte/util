@@ -109,7 +109,7 @@ def rmse_plots(train_filename, gaps_dir, output_dir=None, prefix=None):
     for gap_fname in tqdm(gap_fnames):
         gap_title = os.path.splitext(gap_fname)[0]
         gap_fname = os.path.join(gaps_dir, gap_fname)
-        gap_data = gap_plots.get_E_F_dict(train_ats, calc_type='gap', param_filename=gap_fname)
+        gap_data = gap_plots.get_E_F_dict(train_ats, calc_type='gap', param_fname=gap_fname)
         gap_data['forces'] = desymbolise_force_dict(gap_data['forces'])
 
         # if more than 20, take the last 20 only
