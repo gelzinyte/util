@@ -30,30 +30,32 @@ from ase import Atom, Atoms
 
 def get_E_F_dict(atoms, calc_type, param_fname=None):
     # TODO add check for 'dft_energy' or 'energy'
-    calc_type = calc_type.upper()
+    # calc_type = calc_type.upper()
     data = dict()
     data['energy'] = OrderedDict()
     data['forces'] = OrderedDict()
 
-    if calc_type == 'DFT':
-        if param_fname:
-            print("WARNING: calc_type selected as DFT, but gap filename is given, are you sure?")
-        energy_name = 'dft_energy'
-        if energy_name not in atoms[0].info.keys():
-            print("WARNING: 'dft_energy' not found, using 'energy', which might be anything")
-            energy_name = 'energy'
-        force_name = 'dft_forces'
-        if force_name not in atoms[0].arrays.keys():
-            print("WARNING: 'dft_forces' not in found, using 'forces', which might be anything")
-            force_name = 'forces'
-
-    elif calc_type == 'GAP':
+    if calc_type.upper() == 'GAP':
         if param_fname:
             gap = Potential(param_filename=param_fname)
         else:
             raise NameError('GAP filename is not given, but GAP energies requested.')
-    else:
-        raise NameError('calc_type should be either "GAP" or "DFT"')
+    # else:
+    #     raise NameError('calc_type should be either "GAP" or "DFT"')
+
+    else: # calc_type == 'DFT':
+        if param_fname:
+            print("WARNING: calc_type selected as DFT, but gap filename is given, are you sure?")
+        energy_name = f'{calc_type}_energy'
+        if energy_name not in atoms[0].info.keys():
+            print(f"WARNING: '{calc_type}_energy' not found, using 'energy', which might be anything")
+            energy_name = 'energy'
+        force_name = f'{calc_type}_forces'
+        if force_name not in atoms[0].arrays.keys():
+            print("WARNING: 'dft_forces' not in found, using 'forces', which might be anything")
+            force_name = 'forces'
+
+
 
     for atom in atoms:
         at = atom.copy()
@@ -63,16 +65,8 @@ def get_E_F_dict(atoms, calc_type, param_fname=None):
 
 
         if len(at) != 1:
-            if calc_type == 'DFT':
-                try:
-                    data['energy'][config_type].append(at.info[energy_name])
-                except KeyError:
-                    data['energy'][config_type] = []
-                    data['energy'][config_type].append(at.info[energy_name])
 
-                forces = at.arrays[force_name]
-
-            elif calc_type == 'GAP':
+            if calc_type.upper() == 'GAP':
                 at.set_calculator(gap)
                 try:
                     data['energy'][config_type].append(at.get_potential_energy())
@@ -81,6 +75,15 @@ def get_E_F_dict(atoms, calc_type, param_fname=None):
                     data['energy'][config_type].append(at.get_potential_energy())
 
                 forces = at.get_forces()
+            else:
+                try:
+                    data['energy'][config_type].append(at.info[energy_name])
+                except KeyError:
+                    data['energy'][config_type] = []
+                    data['energy'][config_type].append(at.info[energy_name])
+
+                forces = at.arrays[force_name]
+
 
 
             sym_all = at.get_chemical_symbols()
@@ -177,11 +180,11 @@ def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, p
     if test_ats:
         test_set=True
 
-    train_ref_data = get_E_F_dict(train_ats, calc_type='dft')
+    train_ref_data = get_E_F_dict(train_ats, calc_type=ref_name)
     train_pred_data = get_E_F_dict(train_ats, calc_type='gap', param_fname=param_fname)
 
     if test_set:
-        test_ref_data = get_E_F_dict(test_ats, calc_type='dft')
+        test_ref_data = get_E_F_dict(test_ats, calc_type=ref_name)
         test_pred_data = get_E_F_dict(test_ats, calc_type='gap', param_fname=param_fname)
 
 
@@ -212,8 +215,8 @@ def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, p
     this_ax.plot(flim, flim, c='k', linewidth=0.8)
     this_ax.set_xlim(flim)
     this_ax.set_ylim(flim)
-    this_ax.set_xlabel('reference energy / eV')
-    this_ax.set_ylabel('predicted energy / eV')
+    this_ax.set_xlabel(f'{ref_name.upper()} energy / eV')
+    this_ax.set_ylabel(f'GAP energy / eV')
     this_ax.set_title('Energies')
     lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(2.9, 1.05))
 
@@ -223,8 +226,8 @@ def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, p
     if test_set:
         # do_plot(test_ref_es, test_pred_es - test_ref_es, this_ax, 'Test:      ')
         do_plot(test_ref_es, error_dict(test_pred_es, test_ref_es), this_ax, 'Test', by_config_type)
-    this_ax.set_xlabel('reference energy / eV')
-    this_ax.set_ylabel('E$_{pred}$ - E$_{ref}$ / eV')
+    this_ax.set_xlabel(f'{ref_name.upper()} energy / eV')
+    this_ax.set_ylabel(f'E$_{{GAP}}$ - E$_{{{ref_name.upper()}}}$ / eV')
     this_ax.axhline(y=0, c='k', linewidth=0.8)
     this_ax.set_title('Energy errors')
     # lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(1.1, 1.05))
@@ -248,8 +251,8 @@ def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, p
             for_limits = np.concatenate([for_limits, dict_to_vals(test_ref_fs), dict_to_vals(test_pred_fs)])
 
 
-        this_ax.set_xlabel('reference force / eV/Å')
-        this_ax.set_ylabel('predicted force / eV/Å')
+        this_ax.set_xlabel(f'{ref_name.upper()} force / eV/Å')
+        this_ax.set_ylabel('GAP force / eV/Å')
         flim = (for_limits.min() - 0.5, for_limits.max() + 0.5)
         this_ax.plot(flim, flim, c='k', linewidth=0.8)
         this_ax.set_xlim(flim)
@@ -263,8 +266,8 @@ def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, p
         if test_set:
             # do_plot(test_ref_fs, test_pred_fs - test_ref_fs, this_ax, 'Test:      ')
             do_plot(test_ref_fs, error_dict(test_pred_fs, test_ref_fs), this_ax, 'Test', by_config_type)
-        this_ax.set_xlabel('reference force / eV/Å')
-        this_ax.set_ylabel('F$_{pred}$ - F$_{ref}$ / eV/Å')
+        this_ax.set_xlabel(f'{ref_name.upper()} force / eV/Å')
+        this_ax.set_ylabel(f'F$_{{GAP}}$ - F$_{{{ref_name.upper()}}}$ / eV/Å')
         this_ax.axhline(y=0, c='k', linewidth=0.8)
         this_ax.set_title(f'Force component errors on {sym}')
         # this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(1.1, 1.05))
@@ -344,11 +347,12 @@ def make_ref_plot(dimer_name, ax):
     # dimer = read(f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz', index=':')
     dimer = read(atoms_fname, ':')
     distances = [at.get_distance(0, 1) for at in dimer]
+    # TODO maybe deal with optional calc_type name
     ref_data = get_E_F_dict(dimer, calc_type='dft')
     ax.plot(distances, dict_to_vals(ref_data['energy']), label='(RKS) reference', linestyle='--', color='k')
 
 def make_dimer_curves(param_fname, train_fname, output_dir=None, prefix=None, glue_fname=None, plot_2b_contribution=True, \
-                      plot_ref_curve=True, isolated_atoms_fname=None):
+                      plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None):
 
     train_ats = read(train_fname, index=':')
     distances_dict = util.distances_dict(train_ats)
@@ -393,6 +397,17 @@ def make_dimer_curves(param_fname, train_fname, output_dir=None, prefix=None, gl
         for ax, dimer in zip(axes_main, dimers):
             make_ref_plot(dimer, ax)
 
+    if dimer_scatter:
+        dimer_scatter_ats = read(dimer_scatter, ':')
+        for ax, dimer in zip(axes_main, dimers):
+            x_vals = []
+            y_vals = []
+            for at in dimer_scatter_ats:
+                if dimer in ''.join(at.get_chemical_symbols()):
+                    x_vals.append(at.get_distance(0, 1))
+                    y_vals.append(at.info[f'{ref_name}_energy'])
+            ax.scatter(x_vals, y_vals, color='tab:red', marker='x', label='training points')
+
     for ax, dimer in zip(axes_main, dimers):
         ax.legend()
         ax.set_title(dimer)
@@ -435,8 +450,10 @@ def make_dimer_curves(param_fname, train_fname, output_dir=None, prefix=None, gl
 @click.option('--plot_ref_curve', type=bool, default='True', show_default=True, help='whether to plot the reference DFT dimer curve')
 @click.option('--isolated_atoms_fname',  default='xyzs/isolated_atoms.xyz', show_default=True, help='isolated atoms to shift glue')
 @click.option('--ref_name', default='dft', show_default=True, help='prefix to \'_forces\' and \'_energy\' to take as a reference')
+# TODO take this out maybe
+@click.option('--dimer_scatter', help='dimer data in training set to be scattered on top of dimer curves')
 def make_plots(param_fname, train_fname, test_fname=None, output_dir=None, prefix=None, by_config_type=False, glue_fname=False, \
-               plot_2b_contribution=True, plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft'):
+               plot_2b_contribution=True, plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None):
     """Makes energy and force scatter plots and dimer curves"""
     # TODO make optional directory where to save stuff
     # TODO maybe include dftb???
@@ -453,7 +470,7 @@ def make_plots(param_fname, train_fname, test_fname=None, output_dir=None, prefi
     print('Ploting dimers')
     make_dimer_curves(param_fname=param_fname, train_fname=train_fname, output_dir=output_dir, prefix=prefix,\
                       glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution, plot_ref_curve=plot_ref_curve,\
-                      isolated_atoms_fname=isolated_atoms_fname)
+                      isolated_atoms_fname=isolated_atoms_fname, ref_name=ref_name, dimer_scatter=dimer_scatter)
 
 
 
