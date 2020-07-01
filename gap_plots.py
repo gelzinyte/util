@@ -464,6 +464,9 @@ def make_plots(param_fname, train_fname, test_fname=None, output_dir=None, prefi
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
+    if test_fname is None:
+        by_config_type=True
+
     print('Scatter plotting')
     make_scatter_plots_from_file(param_fname=param_fname, train_fname=train_fname, test_fname=test_fname, \
                        output_dir=output_dir, prefix=prefix, by_config_type=by_config_type, ref_name=ref_name)
