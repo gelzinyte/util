@@ -142,92 +142,76 @@ def rmse_plots(train_filename, gaps_dir, output_dir=None, prefix=None):
     plt.savefig(picture_fname, dpi=300)
 
 
-def make_dimer_plot(dimer_name, ax, param_filename, color='tab:red'):
-    # which pair potential corresponds to which descriptor
-    corr_desc = {'HH': 1, 'CH': 2, 'HO': 3, 'CC': 4, 'CO': 5}
-    dimer = read(f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz', index=':')
-    distances = [at.get_distance(0, 1) for at in dimer]
 
-    if param_filename == 'dft':
-        data = gap_plots.get_E_F_dict(dimer, calc_type='dft')
-        es = util.dict_to_vals(data['energy'])
-        label='dft'
-        kwargs = {'color':'k', 'linestyle':'--'}
-    elif 'gap' in param_filename and 'xml' in param_filename:
-        command = f"quip E=T F=T atoms_filename=/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz \
-                    param_filename={param_filename} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
-                        | grep AT | sed 's/AT//' > ./tmp_atoms.xyz"
+def dimer_plots(gaps_dir, train_fname, output_dir=None, prefix=None, glue_fname=None, plot_2b_contribution=True,
+                plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None):
 
-        subprocess.run(command, shell=True)
-        atoms = read('./tmp_atoms.xyz', index=':')
-        os.remove('./tmp_atoms.xyz')
-        es = np.array([at.info['energy'] for at in atoms])
-        label = os.path.basename(param_filename)
-        label = os.path.splitext(label)[0]
-        kwargs = {'color':color}
-    else:
-        raise KeyError('either giva a gap name or "dft" key for which data to calculate')
-
-    ax.plot(distances, es, label=label, **kwargs)
-
-
-
-def dimer_plots(gaps_dir, output_dir=None, prefix=None):
-    dimers = ['CC', 'CH', 'CO', 'HH', 'HO']
     gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
     gap_fnames = util.natural_sort(gap_fnames)
 
-    max_gap_dset_no =15
-
+    max_gap_dset_no =10
     if len(gap_fnames) > max_gap_dset_no:
         gap_fnames = gap_fnames[-max_gap_dset_no:]
 
-    for i, gap_group in enumerate(tqdm(util.grouper(gap_fnames, 10))):
+    gap_plots.make_dimer_curves(gap_fnames, train_fname=train_fname, output_dir=output_dir, prefix=prefix,
+                                glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution,  \
+                                plot_ref_curve=plot_ref_curve, isolated_atoms_fname=isolated_atoms_fname, \
+                                ref_name=ref_name, dimer_scatter=dimer_scatter)
 
-        gap_group = [name for name in gap_group if name]
-        cmap = mpl.cm.get_cmap('Blues')
-        colors = np.linspace(0.2, 1, len(gap_group))
-
-        plt.figure(figsize=(8, 10))
-        gs = gridspec.GridSpec(3, 2, wspace=0.3, hspace=0.3)
-        axes = [plt.subplot(g) for g in gs]
-
-        for ax, dimer in zip(axes[:-1], tqdm(dimers)):
-            for gap_fname, color in zip(gap_group, colors):
-                gap_fname = os.path.join(gaps_dir, gap_fname)
-                make_dimer_plot(dimer, ax, gap_fname, color=cmap(color))
-
-            make_dimer_plot(dimer, ax, 'dft')
-
-            ax.set_title(dimer)
-            ax.set_xlabel('distance (Å)')
-            ax.set_ylabel('energy (eV)')
-            # Potentially sort out the legend
-            if dimer == dimers[1] or dimer == dimers[3]:
-                lgd = ax.legend(bbox_to_anchor=(1.1, 1.05))
-
-        # plt.tight_layout()
-
-        if not prefix:
-            prefix = 'summary'
-        plt.suptitle(prefix)
-
-        picture_fname = f'{prefix}_dimers_{i+1}.png'
-        if output_dir:
-            picture_fname = os.path.join(output_dir, picture_fname)
-        plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
-
-
+    # for i, gap_group in enumerate(tqdm(util.grouper(gap_fnames, 10))):
+    #
+    #     gap_group = [name for name in gap_group if name]
+    #     cmap = mpl.cm.get_cmap('Blues')
+    #     colors = np.linspace(0.2, 1, len(gap_group))
+    #
+    #     plt.figure(figsize=(8, 10))
+    #     gs = gridspec.GridSpec(3, 2, wspace=0.3, hspace=0.3)
+    #     axes = [plt.subplot(g) for g in gs]
+    #
+    #     for ax, dimer in zip(axes[:-1], tqdm(dimers)):
+    #         for gap_fname, color in zip(gap_group, colors):
+    #             gap_fname = os.path.join(gaps_dir, gap_fname)
+    #             make_dimer_plot(dimer, ax, gap_fname, color=cmap(color))
+    #
+    #         make_dimer_plot(dimer, ax, 'dft')
+    #
+    #         ax.set_title(dimer)
+    #         ax.set_xlabel('distance (Å)')
+    #         ax.set_ylabel('energy (eV)')
+    #         # Potentially sort out the legend
+    #         if dimer == dimers[1] or dimer == dimers[3]:
+    #             lgd = ax.legend(bbox_to_anchor=(1.1, 1.05))
+    #
+    #     # plt.tight_layout()
+    #
+    #     if not prefix:
+    #         prefix = 'summary'
+    #     plt.suptitle(prefix)
+    #
+    #     picture_fname = f'{prefix}_dimers_{i+1}.png'
+    #     if output_dir:
+    #         picture_fname = os.path.join(output_dir, picture_fname)
+    #     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 @click.command()
-@click.option('--train_filename',  type=click.Path(exists=True), required=True, \
+@click.option('--train_fname',  type=click.Path(exists=True), required=True, \
               help='.xyz file with multiple config_types to evaluate against')
 @click.option('--gaps_dir',  type=click.Path(exists=True), help='Directory that stores all GAP .xml files to evaluate')
 @click.option('--output_dir', type=click.Path(), help='directory for figures. Create if not-existent')
 @click.option('--prefix', help='prefix to label plots')
 @click.option('--rmse', type=bool, default=True, show_default=True, help='Whether to plot rmse plots')
 @click.option('--dimers', type=bool, default=True, show_default=True, help='Whether to plot dimer plots')
-def make_plots(train_filename, gaps_dir=None, output_dir=None, prefix=None, rmse=True, dimers=True):
+@click.option('--glue_fname', type=click.Path(exists=True), help='glue potential\'s xml to be evaluated for dimers')
+@click.option('--plot_2b_contribution', type=bool, default='True', show_default=True, help='whether to plot the 2b only bit of gap')
+@click.option('--plot_ref_curve', type=bool, default='True', show_default=True, help='whether to plot the reference DFT dimer curve')
+@click.option('--isolated_atoms_fname',  default='xyzs/isolated_atoms.xyz', show_default=True, help='isolated atoms to shift glue')
+@click.option('--ref_name', default='dft', show_default=True, help='prefix to \'_forces\' and \'_energy\' to take as a reference')
+# TODO take this out maybe
+@click.option('--dimer_scatter', help='dimer data in training set to be scattered on top of dimer curves')
+
+def make_plots(train_fname, gaps_dir=None, output_dir=None, prefix=None, rmse=True, dimers=True, \
+               glue_fname=False, plot_2b_contribution=True, plot_ref_curve=True, isolated_atoms_fname=None,\
+               ref_name='dft', dimer_scatter=None):
     """Makes evaluates """
 
     if output_dir:
@@ -242,7 +226,11 @@ def make_plots(train_filename, gaps_dir=None, output_dir=None, prefix=None, rmse
         rmse_plots(train_filename=train_filename, gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
     if dimers:
         print('Plotting dimer plots')
-        dimer_plots(gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
+        print('WARNING the distributions will correspond to the given training file, which is not the same for all GAPs')
+        dimer_plots(gaps_dir=gaps_dir, train_fname=train_fname, output_dir=output_dir, prefix=prefix, \
+                    glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution, \
+                    plot_ref_curve=plot_ref_curve, isolated_atoms_fname=isolated_atoms_fname, \
+                    ref_name=ref_name, dimer_scatter=dimer_scatter)
 
 
 if __name__=='__main__':

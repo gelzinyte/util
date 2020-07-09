@@ -7,6 +7,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from itertools import zip_longest
+import xml.etree.ElementTree as et
 
 # Packages for atoms and molecules
 import ase
@@ -508,6 +509,21 @@ def gap_gradient_test(gap_fname, start=-3, stop=-7):
 
     gradient_test(methane, calc, start, stop)
 
+def get_gap_2b_dict(param_fname):
+    '''dictionary to get descriptor no corresponding for element pairs'''
+    desc_dict = {}
+    elem_symb_dict = {'H':1, 'C':6, 'N':7, 'O':8, 1:'H', 6:'C', 7:'N', 8:'O'}
+    root = et.parse(param_fname).getroot()
+    for i, descriptor in enumerate(root.iter('descriptor')):
+        descriptor = descriptor.text
+        if 'distance_2b' in descriptor:
+            Z1 = re.search(r'Z1=\d', descriptor).group()
+            Z1 = int(Z1.split('=')[1])
+            Z2 = re.search(r'Z2=\d', descriptor).group()
+            Z2 = int(Z2.split('=')[1])
+            entry = ''.join(natural_sort([elem_symb_dict[Z1], elem_symb_dict[Z2]]))
+            desc_dict[entry] = i+1
+    return desc_dict
 
 ####################################################################################
 #

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Standard imports
-import sys, os, subprocess
+import sys, os, subprocess, re
 from tempfile import TemporaryDirectory
 import numpy as np
 import matplotlib.pyplot as plt
@@ -285,17 +285,14 @@ def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, p
     # plt.title(prefix)
     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
-def make_2b_only_plot(dimer_name, ax, param_fname):
+def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
 
     # TODO make this more robust
-    corr_desc = {'HH': 1, 'CH': 2, 'HO': 3, 'CC': 4, 'CO': 5}
+    corr_desc = util.get_gap_2b_dict(param_fname)
     # atoms_fname =f'xyzs/dftb_{dimer_name}_dimer.xyz'
     atoms_fname = f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz'
     dimer = read(atoms_fname, index=':')
     distances = [at.get_distance(0, 1) for at in dimer]
-
-    # command = f"quip E=T F=T atoms_filename=/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz param_filename={param_fname} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
-    #                 | grep AT | sed 's/AT//' > ./tmp_atoms.xyz"
 
     command = f"quip E=T F=T atoms_filename={atoms_fname} param_filename={param_fname} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
                          | grep AT | sed 's/AT//' > ./tmp_atoms.xyz"
@@ -304,10 +301,14 @@ def make_2b_only_plot(dimer_name, ax, param_fname):
     atoms = read('./tmp_atoms.xyz', index=':')
     os.remove('./tmp_atoms.xyz')
     es = [at.info['energy'] for at in atoms]
-    ax.plot(distances, es, label='GAP: only 2b', color='tab:orange')
+    if label is none:
+        label = 'GAP: only 2b'
+    if color is none:
+        color='tab:orange'
+    ax.plot(distances, es, label=label, color=color)
 
 
-def make_dimer_plot(dimer_name, ax, calc, label, isolated_atoms_fname=None):
+def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fname=None):
     init_dimer = Atoms(dimer_name, positions=[(0, 0, 0), (0, 0, 2)])
     if dimer_name=='HH':
         distances = np.linspace(0.4, 5, 50)
@@ -325,7 +326,9 @@ def make_dimer_plot(dimer_name, ax, calc, label, isolated_atoms_fname=None):
         energies.append(at.get_potential_energy())
 
     #clean this up majorly
-    color='tab:blue'
+    if color is None:
+        color='tab:blue'
+
     if 'Glue' in label:
         if isolated_atoms_fname!='none':
             isolated_atoms = read(isolated_atoms_fname, ':')
@@ -351,8 +354,9 @@ def make_ref_plot(dimer_name, ax):
     ref_data = get_E_F_dict(dimer, calc_type='dft')
     ax.plot(distances, dict_to_vals(ref_data['energy']), label='(RKS) reference', linestyle='--', color='k')
 
-def make_dimer_curves(param_fname, train_fname, output_dir=None, prefix=None, glue_fname=None, plot_2b_contribution=True, \
+def make_dimer_curves(param_fnames, train_fname, output_dir=None, prefix=None, glue_fname=None, plot_2b_contribution=True, \
                       plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None):
+    # param_fname - list of param_fnames, most often one
 
     train_ats = read(train_fname, index=':')
     distances_dict = util.distances_dict(train_ats)
@@ -373,18 +377,45 @@ def make_dimer_curves(param_fname, train_fname, output_dir=None, prefix=None, gl
         axes_main.append(ax1)
         axes_hist.append(plt.subplot(gs2[1], sharex=ax1))
 
+    if len(param_fnames) == 1:
+        # means only one thing in param_fname
+        param_fname = param_fnames[0]
+        print('Plotting complete GAP on dimers')
+        gap = Potential(param_filename=param_fname)
+        for ax, dimer in zip(axes_main, dimers):
+            make_dimer_plot(dimer, ax, calc=gap, label='GAP')
 
-    print('Plotting complete GAP on dimers')
-    gap = Potential(param_filename=param_fname)
-    for ax, dimer in zip(axes_main, dimers):
-        make_dimer_plot(dimer, ax, calc=gap, label='GAP')
+    elif len(param_fnames) > 1 and plot_2b_contribution==False:
+        print('WARNING: did not ask to evaluate 2b contributions for multiple gaps, so evaluating full gaps instead')
+        # only evaluate full gap on dimers if not asked to evaluate 2b contribution only
+        # means param_fname is actually a list of
+        cmap = mpl.cm.get_cmap('Blues')
+        colors = np.linspace(0.2, 1, len(param_fnames))
+
+        for color, param_fname in zip(colors, param_fnames):
+            label = os.path.basename(param_fnames)
+            label = os.path.splitext(label)[0]
+            gap = Potential(param_fname=param_fname)
+            for ax, dimer in zip(axes_main, dimers):
+                make_dimer_plot(dimer, ax, calc=gap, label=label, color=cmap(color))
 
 
     if plot_2b_contribution:
-        print('Plotting 2b of GAP on dimers')
-        for ax, dimer in zip(axes_main, tqdm(dimers)):
-            make_2b_only_plot(dimer, ax, param_fname)
+        if len(param_fnames) == 1:
+            param_fname = param_fnames[0]
+            print('Plotting 2b of GAP on dimers')
+            for ax, dimer in zip(axes_main, tqdm(dimers)):
+                make_2b_only_plot(dimer, ax, param_fname)
 
+        elif len(param_fnames) > 1:
+            print('evaluating 2b contributions from all gaps')
+            cmap = mpl.cm.get_cmap('Oranges')
+            colors = np.linspace(0.2, 1, len(param_fnames))
+            for color, param_fname in zip(colors, param_fnames):
+                label = os.path.basename(param_fnames)
+                label = os.path.splitext(label)[0]
+                for ax, dimer in zip(axes_main, dimers):
+                    make_2b_only_plot(dimer, ax, param_fname=param_fname, label=label, color=cmap(color))
 
     if glue_fname:
         print('Plotting Glue')
@@ -471,7 +502,7 @@ def make_plots(param_fname, train_fname, test_fname=None, output_dir=None, prefi
     make_scatter_plots_from_file(param_fname=param_fname, train_fname=train_fname, test_fname=test_fname, \
                        output_dir=output_dir, prefix=prefix, by_config_type=by_config_type, ref_name=ref_name)
     print('Ploting dimers')
-    make_dimer_curves(param_fname=param_fname, train_fname=train_fname, output_dir=output_dir, prefix=prefix,\
+    make_dimer_curves(param_fnames=[param_fname], train_fname=train_fname, output_dir=output_dir, prefix=prefix,\
                       glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution, plot_ref_curve=plot_ref_curve,\
                       isolated_atoms_fname=isolated_atoms_fname, ref_name=ref_name, dimer_scatter=dimer_scatter)
 
