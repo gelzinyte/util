@@ -83,9 +83,9 @@ def get_last_bunch(full_data, bunch=20):
     return new_data
 
 
-def rmse_plots(train_filename, gaps_dir, output_dir=None, prefix=None):
+def rmse_plots(train_fname, gaps_dir, output_dir=None, prefix=None):
 
-    train_ats = read(train_filename, index=':')
+    train_ats = read(train_fname, index=':')
     dft_data = gap_plots.get_E_F_dict(train_ats, calc_type='dft')
     dft_data['forces'] = desymbolise_force_dict(dft_data['forces'])
 
@@ -147,16 +147,22 @@ def dimer_plots(gaps_dir, train_fname, output_dir=None, prefix=None, glue_fname=
                 plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None):
 
     gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
+    gap_fnames = [os.path.join(gaps_dir, name) for name in gap_fnames]
     gap_fnames = util.natural_sort(gap_fnames)
 
     max_gap_dset_no =10
     if len(gap_fnames) > max_gap_dset_no:
         gap_fnames = gap_fnames[-max_gap_dset_no:]
 
+    if prefix is None:
+        prefix='summary'
+
     gap_plots.make_dimer_curves(gap_fnames, train_fname=train_fname, output_dir=output_dir, prefix=prefix,
                                 glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution,  \
                                 plot_ref_curve=plot_ref_curve, isolated_atoms_fname=isolated_atoms_fname, \
                                 ref_name=ref_name, dimer_scatter=dimer_scatter)
+
+
 
     # for i, gap_group in enumerate(tqdm(util.grouper(gap_fnames, 10))):
     #
@@ -197,7 +203,7 @@ def dimer_plots(gaps_dir, train_fname, output_dir=None, prefix=None, glue_fname=
 @click.option('--train_fname',  type=click.Path(exists=True), required=True, \
               help='.xyz file with multiple config_types to evaluate against')
 @click.option('--gaps_dir',  type=click.Path(exists=True), help='Directory that stores all GAP .xml files to evaluate')
-@click.option('--output_dir', type=click.Path(), help='directory for figures. Create if not-existent')
+@click.option('--output_dir', default='pictures', show_default=True, type=click.Path(), help='directory for figures. Create if not-existent')
 @click.option('--prefix', help='prefix to label plots')
 @click.option('--rmse', type=bool, default=True, show_default=True, help='Whether to plot rmse plots')
 @click.option('--dimers', type=bool, default=True, show_default=True, help='Whether to plot dimer plots')
@@ -208,7 +214,6 @@ def dimer_plots(gaps_dir, train_fname, output_dir=None, prefix=None, glue_fname=
 @click.option('--ref_name', default='dft', show_default=True, help='prefix to \'_forces\' and \'_energy\' to take as a reference')
 # TODO take this out maybe
 @click.option('--dimer_scatter', help='dimer data in training set to be scattered on top of dimer curves')
-
 def make_plots(train_fname, gaps_dir=None, output_dir=None, prefix=None, rmse=True, dimers=True, \
                glue_fname=False, plot_2b_contribution=True, plot_ref_curve=True, isolated_atoms_fname=None,\
                ref_name='dft', dimer_scatter=None):
@@ -223,7 +228,7 @@ def make_plots(train_fname, gaps_dir=None, output_dir=None, prefix=None, rmse=Tr
 
     if rmse:
         print('Plotting RMSE plots')
-        rmse_plots(train_filename=train_filename, gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
+        rmse_plots(train_fname=train_fname, gaps_dir=gaps_dir, output_dir=output_dir, prefix=prefix)
     if dimers:
         print('Plotting dimer plots')
         print('WARNING the distributions will correspond to the given training file, which is not the same for all GAPs')

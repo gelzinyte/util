@@ -24,8 +24,8 @@ from ase.optimize.precon import PreconLBFGS
 from ase.optimize import FIRE
 from ase.neb import NEB
 from ase.utils import  pickleload
-from ase.utils import opencew
 from ase.parallel import world
+from ase.utils import opencew
 from ase.vibrations import Vibrations
 
 from rdkit import Chem

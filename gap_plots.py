@@ -232,10 +232,16 @@ def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, p
     this_ax.set_title('Energy errors')
     # lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(1.1, 1.05))
 
-
+    # print('DEBUG: len o axis: ', len(ax))
+    # print('DEBUG: no unique elements', no_unique_elements)
+    # print('keys', train_ref_data['forces'].keys())
+    # print('length', len(train_ref_data['forces']['O']))
 
     # Force plots
     for idx, sym in enumerate(train_ref_data['forces'].keys()):
+        # print('DEBUG: idx', idx)
+        if len(train_ref_data['forces'][sym])==1:
+            continue
 
         this_ax = ax[2 * (idx + 1)]
 
@@ -386,16 +392,17 @@ def make_dimer_curves(param_fnames, train_fname, output_dir=None, prefix=None, g
             make_dimer_plot(dimer, ax, calc=gap, label='GAP')
 
     elif len(param_fnames) > 1 and plot_2b_contribution==False:
-        print('WARNING: did not ask to evaluate 2b contributions for multiple gaps, so evaluating full gaps instead')
+        print('WARNING: did not ask to evaluate 2b contributions on dimers, so evaluating multiple full gaps instead')
         # only evaluate full gap on dimers if not asked to evaluate 2b contribution only
         # means param_fname is actually a list of
         cmap = mpl.cm.get_cmap('Blues')
         colors = np.linspace(0.2, 1, len(param_fnames))
 
         for color, param_fname in zip(colors, param_fnames):
-            label = os.path.basename(param_fnames)
+            # print(param_fname)
+            label = os.path.basename(param_fname)
             label = os.path.splitext(label)[0]
-            gap = Potential(param_fname=param_fname)
+            gap = Potential(param_filename=param_fname)
             for ax, dimer in zip(axes_main, dimers):
                 make_dimer_plot(dimer, ax, calc=gap, label=label, color=cmap(color))
 
@@ -426,7 +433,8 @@ def make_dimer_curves(param_fnames, train_fname, output_dir=None, prefix=None, g
     if plot_ref_curve:
         print('Plotting reference dimer curves (to be fixed still)')
         for ax, dimer in zip(axes_main, dimers):
-            make_ref_plot(dimer, ax)
+            if dimer!='OO':
+                make_ref_plot(dimer, ax)
 
     if dimer_scatter:
         dimer_scatter_ats = read(dimer_scatter, ':')
