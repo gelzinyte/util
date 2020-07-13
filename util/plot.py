@@ -40,18 +40,25 @@ def get_E_F_dict(atoms, calc_type, param_fname=None):
                 at.set_calculator(gap)
                 energy = at.get_potential_energy()
                 try:
-                    data['energy'][config_type].append(energy)
+                    # data['energy'][config_type].append(energy)
+                    data['energy'][config_type] = np.append(data['energy'][config_type], energy)
                 except KeyError:
-                    data['energy'][config_type] = []
-                    data['energy'][config_type].append(energy)
+                    # data['energy'][config_type] = []
+                    data['energy'][config_type] = np.array([])
+                    # data['energy'][config_type].append(energy)
+                    data['energy'][config_type] = np.append(data['energy'][config_type], energy)
 
                 forces = at.get_forces()
             else:
                 try:
-                    data['energy'][config_type].append(at.info[energy_name])
+                    # data['energy'][config_type].append(at.info[energy_name])
+                    data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name])
+
                 except KeyError:
-                    data['energy'][config_type] = []
-                    data['energy'][config_type].append(at.info[energy_name])
+                    # data['energy'][config_type] = []
+                    # data['energy'][config_type].append(at.info[energy_name])
+                    data['energy'][config_type] = np.array([])
+                    data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name])
 
                 forces = at.arrays[force_name]
 
@@ -61,20 +68,25 @@ def get_E_F_dict(atoms, calc_type, param_fname=None):
                 if sym not in data['forces'].keys():
                     data['forces'][sym] = OrderedDict()
                 try:
-                    data['forces'][sym][config_type].append(forces[j])
+                    # data['forces'][sym][config_type].append(forces[j])
+                    data['forces'][sym][config_type] = np.append(data['forces'][sym][config_type], forces[j])
                 except KeyError:
-                    data['forces'][sym][config_type] = []
-                    data['forces'][sym][config_type].append(forces[j])
+                    # data['forces'][sym][config_type] = []
+                    # data['forces'][sym][config_type].append(forces[j])
+
+                    data['forces'][sym][config_type] = np.array([])
+                    data['forces'][sym][config_type] = np.append(data['forces'][sym][config_type], forces[j])
 
     # TODO make it append np array in the loop
-    for config_type, values in data['energy'].items():
-        data['energy'][config_type] = np.array(values)
-    for sym in data['forces'].keys():
-        for config_type, values in data['forces'][sym].items():
-            data['forces'][sym][config_type] = np.array(values)
-
+    # for config_type, values in data['energy'].items():
+    #     data['energy'][config_type] = np.array(values)
+    # for sym in data['forces'].keys():
+    #     for config_type, values in data['forces'][sym].items():
+    #         data['forces'][sym][config_type] = np.array(values)
 
     return data
+
+
 
 
 
