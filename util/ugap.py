@@ -1,5 +1,6 @@
 
 from copy import deepcopy
+from ase.io.extxyz import key_val_str_to_dict
 from ase.io.extxyz import key_val_dict_to_str
 from quippy.potential import Potential
 from ase.build import molecule
