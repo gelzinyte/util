@@ -7,12 +7,12 @@ from itertools import zip_longest
 import ase
 
 # import submodules
-import util.ugap
-import util.itools
-import util.md
-import util.plot
-import util.urdkit
-import util.vib
+# import util.ugap
+# import util.itools
+# import util.md
+# import util.plot
+# import util.urdkit
+# import util.vib
 
 
 def hello():

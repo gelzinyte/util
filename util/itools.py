@@ -6,12 +6,13 @@ from util import ugap
 from util.vib import Vibrations
 import subprocess
 from quippy.potential import Potential
+from copy import deepcopy
 from ase.optimize.precon import PreconLBFGS
 
 
 
 
-def get_more_data(min_atoms, iter_no, n_dpoints, stdev, calc, template_path):
+def get_more_data(min_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path):
     atoms = []
     for _ in range(n_dpoints):
         at = min_atoms.copy()
@@ -84,8 +85,8 @@ def check_NM(opt_atoms, iter_no, molpro_calc, first_guess):
     # util.eval_plot(vib_dft.evals, vib_gap.evals, f'iteration_{iter_no}')
 
 
-def extend_dset(opt_atoms, iter_no):
-    more_atoms = get_more_data(opt_atoms, iter_no=iter_no+1)
+def extend_dset(opt_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path):
+    more_atoms = get_more_data(opt_atoms, iter_no=iter_no+1, n_dpoints=n_dpoints, n_rattle_atoms=n_rattle_atoms, stdev=stdev, calc=calc, template_path=template_path)
     old_dset = read(f'xyzs/dset_{iter_no}.xyz', index=':')
     write(f'xyzs/more_atoms_{iter_no+1}.xyz', more_atoms, 'extxyz', write_results=False)
     new_dset = old_dset + more_atoms

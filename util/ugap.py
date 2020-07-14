@@ -100,3 +100,22 @@ def get_gap_2b_dict(param_fname):
             desc_dict[entry] = i+1
     return desc_dict
 
+
+def get_soap_params(param_fname):
+    root = et.parse(param_fname).getroot()
+    soaps = []
+    for desc in root.iter('descriptor'):
+        soap = key_val_str_to_dict(desc.text)
+#         print(soap)
+        if 'soap' not in soap.keys():
+            continue
+        del soap['Z']
+        soap = key_val_dict_to_str(soap)
+        soaps.append(soap)
+
+    soaps = list(set(soaps))
+    soaps = [key_val_str_to_dict(soap) for soap in soaps]
+
+    if len(soaps)>1:
+        print("WARNING: different soaps encoutnered, taking the first one")
+    return soaps[0]
