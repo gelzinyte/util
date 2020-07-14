@@ -11,6 +11,7 @@ from collections import OrderedDict
 # My imports
 import util
 from util import ugap
+from util.vib import Vibrations
 sys.path.append('/home/eg475/programs/ASAP')
 from scripts import kpca_for_projection_viewer as kpca
 
@@ -26,9 +27,21 @@ from ase.io import read, write
 from ase import Atom, Atoms
 from ase.io.extxyz import key_val_str_to_dict
 from ase.io.extxyz import key_val_dict_to_str
+from ase.optimize.precon import PreconLBFGS
+from ase.units import Ha
 
-
-
+''' Interesting things:
+        make_scatter_plots - scatter for given gap and train/test set
+        make_dimer_curves  - dimers given list of param_fnames
+        rmse_heatmap       - heatmap of gap rmses evaluated on all config types in given dataset
+        dimer_summary_plot - all gaps in dir evaluated on dimers
+        rmse_line_plots    - energy and f on atom gap rmse train/test plots vs iteration 
+        summary_scatter    - actually not interesting. scatter plot of gap_i on its training set
+        kpca_plot          - kpce of by config_type in training set, optimised structures and dft-optg structure
+        evec_plot          - eigenvector heatmap for given gap
+        opt_summary_plots  - fmax and E error wrt dft optg vs iteration 
+        eval_plot          - eigenvalue plot for all gaps
+'''
 
 def get_E_F_dict(atoms, calc_type, param_fname=None):
 
@@ -518,7 +531,7 @@ def get_last_bunch(full_data, bunch=20):
     return new_data
 
 
-def rmse_plots(train_fname, gaps_dir, output_dir=None, prefix=None):
+def rmse_heatmap(train_fname, gaps_dir, output_dir=None, prefix=None):
 
     train_ats = read(train_fname, index=':')
     dft_data = get_E_F_dict(train_ats, calc_type='dft')
@@ -672,7 +685,6 @@ def get_train_test_rmse_dicts(gap_idx, dft_data, gap_data):
             test_rmses['forces'][sym2] = util.get_rmse(dict_to_vals(f_test_dft), dict_to_vals(f_test_gap))
 
     return (training_rmses, test_rmses)
-
 
 def rmse_line_plots(gaps_dir, train_fname, output_dir=None, prefix=None):
     train_ats = read(train_fname, index=':')
@@ -926,27 +938,185 @@ def do_evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir=
 def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-3, steps=1000, output_dir='pictures'):
     gap_title = os.path.splitext(os.path.basename(param_fname))[0]
     gap = Potential(param_filename=param_fname)
-    atoms = read(first_guess)
-    atoms.set_calculator(gap)
 
-    # optimize
-    opt = PreconLBFGS(atoms, trajectory=f'xyzs/{gap_title}_optg_for_NM.traj')
-    opt.run(fmax=fmax, steps=steps)
+    gap_optg_name = f'xyzs/{gap_title}_optg_for_NM.xyz'
+    # might have optimised stuff with this gap for eval plot, check.
+    if not os.path.isfile(f'{gap_title}.all.pckl'):
+        print('Optimising first_guess with GAP and getting Normal Modes')
+        atoms = read(first_guess)
+        atoms.set_calculator(gap)
 
-    # get NM
-    vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
-    if not os.path.isfile(f'{gap_title}_optg.all.pckl'):
+        # optimize
+        opt = PreconLBFGS(atoms, trajectory=f'xyzs/{gap_title}_optg_for_NM.traj')
+        opt.run(fmax=fmax, steps=steps)
+        write(gap_optg_name, atoms, 'extxyz', write_result=False)
+
+        # get NM
+        vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
         atoms_gap = vib_gap.run()
-    vib_gap.summary()
+        vib_gap.summary()
+    else:
+        print('Found .all.pckl for this gap, loading stuff')
+        atoms = read(gap_optg_name)
+        vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
+        vib_gap.summary()
 
     # dft NM
     dft_atoms = read('molpro_optg/optimized.xyz')
-    vib_dft = Vibrations(atoms, name='dft_optg')
+    vib_dft = Vibrations(dft_atoms, name='dft_optg')
     vib_dft.summary()
 
     do_evec_plot(vib_dft.evals, vib_dft.evecs, vib_gap.evals, vib_gap.evecs, gap_title, output_dir=output_dir)
 
 
+def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimized.xyz', gaps_dir='gaps', \
+                      output_dir='pictures'):
+    dft_optg = read(dft_optg)
+    dft_min = dft_optg.info['dft_energy']
+
+    atoms = read(opt_all, ':')
+    dft_energies = [at.info['dft_energy'] - dft_min for at in atoms]
+    dft_fmaxs = [max(at.arrays['dft_forces'].flatten()) for at in atoms]
+
+    fig1 = plt.figure(figsize=(7, 5))
+    ax1 = plt.gca()
+
+    fig2 = plt.figure(figsize=(7, 5))
+    ax2 = plt.gca()
+
+    N = len(atoms)
+    cmap = mpl.cm.get_cmap('tab10')
+    colors = np.linspace(0, 1, 10)
+
+    gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
+    gap_fnames = util.natural_sort(gap_fnames)
+
+    for idx, gap_fname in enumerate(tqdm(gap_fnames)):
+
+        gap_title = os.path.splitext(gap_fname)[0]
+        gap_fname = os.path.join(gaps_dir, gap_fname)
+        gap = Potential(param_filename=gap_fname)
+
+        gap_energies = []
+        gap_fmaxes = []
+        for aa in atoms:
+            at = aa.copy()
+            at.set_calculator(gap)
+            gap_energies.append(at.get_potential_energy())
+            gap_fmaxes.append(max(at.get_forces().flatten()))
+        gap_energies_shifted = [e - dft_min for e in gap_energies]
+
+        c = cmap(colors[idx])
+
+        E_label = f'GAP {idx + 1}'
+        F_label = f'GAP {idx + 1}'
+
+        if idx != 0:
+            ax1.plot(range(1, idx + 2), gap_fmaxes[:idx + 1], marker='x', label=F_label, color=c)
+            ax2.plot(range(1, idx + 2), np.absolute(gap_energies_shifted[:idx + 1]), marker='x', markersize=10, linestyle='-', label=E_label, color=c)
+
+        if idx != N - 1:
+            if idx != 0:
+                E_label = None
+                F_label = None
+
+            ax1.plot(range(idx + 1, len(gap_fmaxes) + 1), gap_fmaxes[idx:], marker='x', label=F_label, linestyle=':', color=c)
+            ax2.plot(range(idx + 1, len(gap_energies_shifted) + 1), np.absolute(gap_energies_shifted[idx:]), marker='x',
+                     markersize=10, linestyle=':',  label=E_label, color=c)
+
+        ax1.annotate(f'{gap_fmaxes[idx]:.4f}', xy=(idx + 1, gap_fmaxes[idx]))
+        ax2.annotate(f'{np.absolute(gap_energies_shifted[idx]):.4f}', xy=(idx + 1, np.absolute(gap_energies_shifted[idx])))
+
+    ax1.plot(range(1, len(dft_fmaxs) + 1), dft_fmaxs, marker='+', markersize=10, label=f'DFT', color='k', linestyle='--')
+    ax2.plot(range(1, len(dft_energies) + 1), np.absolute(dft_energies), marker='+', markersize=10, label=f'DFT', color='k', linestyle='--')
+
+    ax1.annotate(f'{dft_fmaxs[idx]:.4f}', xy=(idx + 1, dft_fmaxs[idx]))
+    ax2.annotate(f'{np.absolute(dft_energies[idx]):.4f}', xy=(idx + 1, np.absolute(dft_energies[idx])))
+
+    for ax in [ax1, ax2]:
+        ax.set_xlabel('iteration')
+        ax.grid(which='both', c='lightgrey')
+        ax.set_yscale('log')
+        ax.legend(title='Evaluated with:')
+        ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+
+    ax2.set_title('Energy error wrt DFT-OPTG structure on GAP_i-optimised structures')
+    ax2.set_ylabel('|E - E$_{DFT\ OPTG}$|, eV', fontsize=12)
+    fig2.tight_layout()
+
+    ax1.set_title('Maximum force component on GAP_i-optimised structures')
+    ax1.set_ylabel('Fmax, eV/Å', fontsize=12)
+    fig1.tight_layout()
+
+    fig2_name = f'opt_energy_vs_iter.png'
+    fig1_name = 'opt_fmax_vs_iter.png'
+    if output_dir:
+        fig2_name = os.path.join(output_dir, fig2_name)
+        fig1_name = os.path.join(output_dir, fig1_name)
+    fig2.savefig(fig2_name, dpi=300)
+    fig1.savefig(fig1_name, dpi=300)
+
+
+def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='molpro_optg/optimized.xyz',
+              dft_vib_name='dft_optg', \
+              fmax=1e-3, steps=1000, output_dir='pictures'):
+    print('\n---DFT vib modes\n')
+    dft_atoms = read(dft_optg)
+    vib_dft = Vibrations(dft_atoms, name=dft_vib_name)
+    vib_dft.summary()
+
+    gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
+    gap_fnames = util.natural_sort(gap_fnames)
+
+    plt.figure(figsize=(8, 5))
+
+    for idx, gap_fname in enumerate(gap_fnames):
+
+        gap_title = os.path.splitext(gap_fname)[0]
+        gap_fname = os.path.join(gaps_dir, gap_fname)
+        gap = Potential(param_filename=gap_fname)
+
+        gap_optg_name = f'xyzs/{gap_title}_optg_forNM.xyz'
+        # might have done this for eval plots, check
+        if not os.path.isfile(f'{gap_title}_optg.all.pckl'):
+            print(f'\n---Optimising first_guess with {gap_title}\n')
+
+            atoms = read(first_guess)
+            atoms.set_calculator(gap)
+
+            # optimize
+            opt = PreconLBFGS(atoms, trajectory=f'xyzs/{gap_title}_optg_for_NM.traj')
+            opt.run(fmax=fmax, steps=steps)
+            write(gap_optg_name, atoms, 'extxyz', write_results=False)
+
+            # get NM
+            print(f'\n{gap_title} Normal Modes\n')
+            vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
+            atoms_gap = vib_gap.run()
+            vib_gap.summary()
+        else:
+            print(f'\n---Found .all.pckl for {gap_title}, loading stuff\n')
+            atoms = read(gap_optg_name)
+            vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
+            vib_gap.summary()
+
+        evals = vib_gap.evals
+        rmse = util.get_rmse(evals, vib_dft.evals)
+        plt.plot(range(len(evals)), evals, label=f'{gap_title}, RMSE: {rmse:.4f} eV$^2$')
+
+    plt.plot(range(len(vib_dft.evals)), vib_dft.evals, label='DFT', linewidth=0.8, linestyle='--', color='k')
+
+    plt.legend()
+    plt.grid(color='lightgrey')
+    plt.xlabel('#')
+    plt.ylabel('eigenvalue, eV$^2$')
+    plt.tight_layout()
+
+    name = 'eval_plot.png'
+    if output_dir is not None:
+        name = os.path.join(output_dir, name)
+
+    plt.savefig(name, dpi=300)
 
 
 
