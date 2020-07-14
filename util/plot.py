@@ -531,7 +531,7 @@ def get_last_bunch(full_data, bunch=20):
     return new_data
 
 
-def rmse_heatmap(train_fname, gaps_dir, output_dir=None, prefix=None):
+def rmse_heatmap(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=None):
 
     train_ats = read(train_fname, index=':')
     dft_data = get_E_F_dict(train_ats, calc_type='dft')
@@ -590,7 +590,7 @@ def rmse_heatmap(train_fname, gaps_dir, output_dir=None, prefix=None):
     plt.savefig(picture_fname, dpi=300)
 
 
-def dimer_summary_plot(gaps_dir, train_fname, output_dir=None, prefix=None, glue_fname=None, plot_2b_contribution=True,
+def dimer_summary_plot(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=None, glue_fname=None, plot_2b_contribution=True,
                 plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None, ylim=(15, 15)):
 
     gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
@@ -686,7 +686,7 @@ def get_train_test_rmse_dicts(gap_idx, dft_data, gap_data):
 
     return (training_rmses, test_rmses)
 
-def rmse_line_plots(gaps_dir, train_fname, output_dir=None, prefix=None):
+def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=None):
     train_ats = read(train_fname, index=':')
     dft_data = get_E_F_dict(train_ats, calc_type='dft')
 
@@ -941,7 +941,7 @@ def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-3, steps=
 
     gap_optg_name = f'xyzs/{gap_title}_optg_for_NM.xyz'
     # might have optimised stuff with this gap for eval plot, check.
-    if not os.path.isfile(f'{gap_title}.all.pckl'):
+    if not os.path.isfile(f'{gap_title}_optg.all.pckl'):
         print('Optimising first_guess with GAP and getting Normal Modes')
         atoms = read(first_guess)
         atoms.set_calculator(gap)
@@ -949,7 +949,7 @@ def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-3, steps=
         # optimize
         opt = PreconLBFGS(atoms, trajectory=f'xyzs/{gap_title}_optg_for_NM.traj')
         opt.run(fmax=fmax, steps=steps)
-        write(gap_optg_name, atoms, 'extxyz', write_result=False)
+        write(gap_optg_name, atoms, 'extxyz', write_results=False)
 
         # get NM
         vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
@@ -1076,7 +1076,7 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
         gap_fname = os.path.join(gaps_dir, gap_fname)
         gap = Potential(param_filename=gap_fname)
 
-        gap_optg_name = f'xyzs/{gap_title}_optg_forNM.xyz'
+        gap_optg_name = f'xyzs/{gap_title}_optg_for_NM.xyz'
         # might have done this for eval plots, check
         if not os.path.isfile(f'{gap_title}_optg.all.pckl'):
             print(f'\n---Optimising first_guess with {gap_title}\n')
@@ -1118,6 +1118,24 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
 
     plt.savefig(name, dpi=300)
 
+def rmsd_plot(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimized.xyz', output_dir='pictures'):
+    dft_optg_at = read(dft_optg)
+    atoms = read(opt_all, ':')
+    rmsd = [util.get_rmse(dft_optg_at.positions, at.positions) for at in atoms]
 
+    plt.figure(figsize=(8,5))
+    plt.plot(range(len(rmsd)), rmsd, marker='x', markersize=10)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+    plt.xlabel('Iteration')
+    plt.ylabel('RMSD, Å')
+    plt.grid(color='lightgrey', which='both')
+    plt.title('Geometry optimisation, GAP i vs DFT')
+    plt.yscale('log')
+    plt.tight_layout()
+    name = 'rmsd.png'
+    if output_dir is not None:
+        name = os.path.join(output_dir, name)
+    plt.savefig(name, dpi=300)
 
 
