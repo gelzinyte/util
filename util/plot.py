@@ -774,16 +774,22 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
 
         # TODO: smartify this
         color_mapping_train = {'iter_1': cmap(0.05), 'iter_2': cmap(0.15), 'iter_3': cmap(0.25), 'iter_4': cmap(0.35), \
-                               'iter_5': cmap(0.45), 'iter_6': cmap(0.55)}
+                               'iter_5': cmap(0.45), 'iter_6': cmap(0.55), 'iter_7':cmap(0.65), 'iter_8':cmap(0.75), 'iter_9':cmap(0.85), 'iter_10':cmap(0.95), \
+                               'iter_11': cmap(0.05), 'iter_12': cmap(0.15), 'iter_13': cmap(0.25), 'iter_14': cmap(0.35), \
+                               'iter_15': cmap(0.45), 'iter_16': cmap(0.55), 'iter_17': cmap(0.65), 'iter_18': cmap(0.75),\
+                               'iter_19': cmap(0.85), 'iter_20': cmap(0.95), 'iter_21':cmap(0.05)}
+
         colors_train = [color_mapping_train[c] for c in colors_train_names]
         plt.scatter(xs_train, ys_train, color=colors_train, label='training points')
 
 
 
     # optg_points
-    color_map_opt = {'first_guess': cmap(0), 'opt_1': cmap(0.1), 'opt_2': cmap(0.2), 'opt_3': cmap(0.3),
-                     'opt_4': cmap(0.4), \
-                     'opt_5': cmap(0.5), 'dft_optg': 'white'}
+    color_map_opt = {'first_guess': cmap(0), 'opt_1': cmap(0.1), 'opt_2': cmap(0.2), 'opt_3': cmap(0.3),\
+                     'opt_4': cmap(0.4), 'opt_5': cmap(0.5), 'opt_6':cmap(0.6), 'opt_7':cmap(0.7), 'opt_8':cmap(0.8), 'opt_9':cmap(0.9), 'opt_10':cmap(1), 'dft_optg': 'white',\
+                                             'opt_11': cmap(0.1), 'opt_12': cmap(0.2), 'opt_13': cmap(0.3),\
+                     'opt_14': cmap(0.4), 'opt_15': cmap(0.5), 'opt_16': cmap(0.6), 'opt_17': cmap(0.7), 'opt_18': cmap(0.8),\
+                     'opt_19': cmap(0.9), 'opt_20': cmap(1), 'opt_21':cmap(0.1)}
 
     optg_pts = []
     optg_ats = [at for at in atoms if 'iter' not in at.info['config_type']]
@@ -956,7 +962,7 @@ def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-3, steps=
         atoms_gap = vib_gap.run()
         vib_gap.summary()
     else:
-        print('Found .all.pckl for this gap, loading stuff')
+        print(f'Found .all.pckl for {gap_title}, loading stuff')
         atoms = read(gap_optg_name)
         vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
         vib_gap.summary()
@@ -1006,7 +1012,7 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
             gap_fmaxes.append(max(at.get_forces().flatten()))
         gap_energies_shifted = [e - dft_min for e in gap_energies]
 
-        c = cmap(colors[idx])
+        c = cmap(colors[idx%10])
 
         E_label = f'GAP {idx + 1}'
         F_label = f'GAP {idx + 1}'
@@ -1037,7 +1043,7 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
         ax.set_xlabel('iteration')
         ax.grid(which='both', c='lightgrey')
         ax.set_yscale('log')
-        ax.legend(title='Evaluated with:')
+        ax.legend(title='Evaluated with:', loc='upper left')
         ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
 
     ax2.set_title('Energy error wrt DFT-OPTG structure on GAP_i-optimised structures')
@@ -1108,7 +1114,7 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
 
     ax = plt.gca()
     ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-    plt.legend()
+    plt.legend(loc='upper left')
     plt.grid(color='lightgrey')
     plt.xlabel('#')
     plt.ylabel('eigenvalue, eV$^2$')
