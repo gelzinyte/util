@@ -924,7 +924,7 @@ def do_evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir=
     plt.xticks(np.arange(0.5, len(evals_dft), 1), [round(x, 3) for x in evals_dft], rotation=90)
     plt.xlabel('DFT eigenvalues')
     plt.ylabel('Predicted eigenvalues')
-    plt.title(f'Dot products between eigenvectors for {name}', fontsize=14)
+    plt.title(f'Dot products between DFT and {name} eigenvectors', fontsize=14)
     plt.tight_layout()
 
     name = f'{name}_evecs.png'
@@ -1106,10 +1106,13 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
 
     plt.plot(range(len(vib_dft.evals)), vib_dft.evals, label='DFT', linewidth=0.8, linestyle='--', color='k')
 
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
     plt.legend()
     plt.grid(color='lightgrey')
     plt.xlabel('#')
     plt.ylabel('eigenvalue, eV$^2$')
+    plt.title('Ordered Eigenvalues')
     plt.tight_layout()
 
     name = 'eval_plot.png'
@@ -1124,7 +1127,7 @@ def rmsd_plot(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimized.xyz', 
     rmsd = [util.get_rmse(dft_optg_at.positions, at.positions) for at in atoms]
 
     plt.figure(figsize=(8,5))
-    plt.plot(range(len(rmsd)), rmsd, marker='x', markersize=10)
+    plt.plot(range(1, len(rmsd)+1), rmsd, marker='x', markersize=10)
     ax = plt.gca()
     ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
     plt.xlabel('Iteration')
