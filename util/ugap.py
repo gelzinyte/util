@@ -7,6 +7,7 @@ from ase.build import molecule
 import numpy as np
 import xml.etree.ElementTree as et
 import re
+from ase.io import read, write
 
 
 def make_descr_str(descr_dict):
@@ -120,3 +121,12 @@ def get_soap_params(param_fname):
     if len(soaps)>1:
         print("WARNING: different soaps encoutnered, taking the first one")
     return soaps[0]
+
+
+def atoms_from_gap(param_fname, tmp_atoms_fname='tmp_atoms.xyz'):
+    root = root = et.parse(param_fname).getroot()
+    xyz_string = root.find('GAP_params').find('XYZ_data').text[5:]
+    with open(tmp_atoms_fname, 'w') as f:
+        f.write(xyz_string)
+    return read(tmp_atoms_fname, ':')
+

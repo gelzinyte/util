@@ -165,15 +165,15 @@ def error_dict(pred, ref):
     return errors
 
 
-def make_scatter_plots_from_file(param_fname, train_fname, test_fname=None, output_dir=None, prefix=None, \
+def make_scatter_plots_from_file(param_fname, test_fname=None, output_dir=None, prefix=None, \
                                  by_config_type=False, ref_name='dft'):
 
-    train_ats = read(train_fname, index=':')
+    # train_ats = read(train_fname, index=':')
     test_ats = None
     if test_fname:
         test_ats = read(test_fname, index=':')
 
-    make_scatter_plots(param_fname=param_fname, train_ats=train_ats, test_ats=test_ats, output_dir=output_dir,\
+    make_scatter_plots(param_fname=param_fname,  test_ats=test_ats, output_dir=output_dir,\
                        prefix=prefix, by_config_type=by_config_type, ref_name=ref_name)
 
 
@@ -264,7 +264,9 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     return lgd
 
 
-def make_scatter_plots(param_fname, train_ats, test_ats=None, output_dir=None, prefix=None, by_config_type=False, ref_name='dft'):
+def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None, by_config_type=False, ref_name='dft'):
+
+    train_ats = ugap.atoms_from_gap(param_fname)
 
     counts = util.get_counts(train_ats[0])
     no_unique_elements = len(counts.keys())

@@ -5,7 +5,7 @@ from util import plot
 
 @click.command()
 @click.option('--param_fname',  type=click.Path(exists=True), required=True, help='GAP xml to test')
-@click.option('--train_fname', type=click.Path(exists=True), required=True, help='.xyz file used for training')
+@click.option('--train_fname', type=click.Path(exists=True), help='.xyz file used for training. If not given, will be read from gap.xml')
 @click.option('--test_fname', type=click.Path(exists=True), help='.xyz file to test GAP on')
 @click.option('--output_dir', default='pictures', show_default=True, type=click.Path(), help='directory for figures. Create if not-existent')
 @click.option('--prefix', help='prefix to label plots')
@@ -30,7 +30,7 @@ def make_plots(param_fname, train_fname, test_fname=None, output_dir=None, prefi
         by_config_type=True
 
     print('Scatter plotting')
-    plot.make_scatter_plots_from_file(param_fname=param_fname, train_fname=train_fname, test_fname=test_fname, \
+    plot.make_scatter_plots_from_file(param_fname=param_fname, test_fname=test_fname, \
                        output_dir=output_dir, prefix=prefix, by_config_type=by_config_type, ref_name=ref_name)
     print('Ploting dimers')
     plot.make_dimer_curves(param_fnames=[param_fname], train_fname=train_fname, output_dir=output_dir, prefix=prefix,\
