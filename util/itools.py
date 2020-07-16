@@ -44,14 +44,15 @@ def fit_gap(idx, descriptors, default_sigma):
     out = subprocess.run(command, shell=True)
 
 
-def optimise_structure(iter_no, atoms):
+def optimise_structure(iter_no, atoms, fmax=None):
     gap_name = f'gaps/gap_{iter_no}.xml'
     gap = Potential(param_filename=gap_name)
     # copy first guess so that first_guess stays non-optimised.
     guess = atoms.copy()
     guess.set_calculator(gap)
     steps = 1000
-    fmax = max(10/10**iter_no, 0.01)
+    if fmax is None:
+        fmax = max(10/10**iter_no, 0.01)
     print(f'Fmax = {fmax}')
     opt = PreconLBFGS(guess, trajectory=f'xyzs/optimisation_{iter_no}.traj')
     converged = opt.run(fmax=fmax, steps=steps)
