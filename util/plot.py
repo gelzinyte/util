@@ -417,7 +417,7 @@ def make_dimer_curves(param_fnames, output_dir=None, prefix=None, glue_fname=Non
             cmap = mpl.cm.get_cmap('Oranges')
             colors = np.linspace(0.2, 1, len(param_fnames))
             for color, param_fname in zip(colors, param_fnames):
-                label = os.path.basename(param_fnames)
+                label = os.path.basename(param_fname)
                 label = os.path.splitext(label)[0]
                 for ax, dimer in zip(axes_main, dimers):
                     make_2b_only_plot(dimer, ax, param_fname=param_fname, label=label, color=cmap(color))
@@ -601,17 +601,22 @@ def dimer_summary_plot(gaps_dir='gaps', output_dir='pictures', prefix=None, glue
     gap_fnames = [os.path.join(gaps_dir, name) for name in gap_fnames]
     gap_fnames = util.natural_sort(gap_fnames)
 
-    max_gap_dset_no =10
-    if len(gap_fnames) > max_gap_dset_no:
-        gap_fnames = gap_fnames[-max_gap_dset_no:]
+    # max_gap_dset_no =10
+    # if len(gap_fnames) > max_gap_dset_no:
+    #     gap_fnames = gap_fnames[-max_gap_dset_no:]
 
-    if prefix is None:
-        prefix='summary'
+    for idx, gap_fname_group in enumerate(util.grouper(gap_fnames, 10)):
+        gap_fname_group = [x for x in gap_fname_group if x is not None]
 
-    make_dimer_curves(gap_fnames, output_dir=output_dir, prefix=prefix,
-                                glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution,  \
-                                plot_ref_curve=plot_ref_curve, isolated_atoms_fname=isolated_atoms_fname, \
-                                ref_name=ref_name, dimer_scatter=dimer_scatter, ylim=ylim)
+        print(idx)
+        if prefix is None:
+            prefix_new=f'summary'
+        prefix_new += f'_{idx}'
+
+        make_dimer_curves(gap_fname_group, output_dir=output_dir, prefix=prefix_new,
+                                    glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution,  \
+                                    plot_ref_curve=plot_ref_curve, isolated_atoms_fname=isolated_atoms_fname, \
+                                    ref_name=ref_name, dimer_scatter=dimer_scatter, ylim=ylim)
 
 
 def summary_scatter(gaps_dir, output_dir=None, prefix=None, ref_name='dft'):
@@ -719,19 +724,19 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
     for idx, sym in enumerate(syms):
         color = cmap(colors[idx])
         forces_train = [value['forces'][sym] for key, value in all_train_rmses.items()]
-        ax2.plot(range(len(forces_train)), forces_train, linestyle='-', color=color, marker='x', \
+        ax2.plot(range(1, len(forces_train)+1), forces_train, linestyle='-', color=color, marker='x', \
                  label=f'on {sym}, training set')
 
         forces_test = [value['forces'][sym] for key, value in all_test_rmses.items()]
-        ax2.plot(range(len(forces_test)), forces_test, linestyle=':', color=color, marker='x', \
+        ax2.plot(range(1, len(forces_test)+1), forces_test, linestyle=':', color=color, marker='x', \
                 label=f'on {sym}, testing set')
 
     ax1 = ax2.twinx()
     energies_train = [value['energy'] for key, value in all_train_rmses.items()]
-    ax1.plot(range(len(energies_train)), energies_train, linestyle='-', color='tab:red', marker='x', label='training set')
+    ax1.plot(range(1, len(energies_train)+1), energies_train, linestyle='-', color='tab:red', marker='x', label='training set')
 
     energies_test = [value['energy'] for key, value in all_test_rmses.items() if 'energy' in value.keys()]
-    ax1.plot(range(len(energies_test)), energies_test, linestyle=':', color='tab:red', marker='x', label='testing set')
+    ax1.plot(1, range(len(energies_test)+1), energies_test, linestyle=':', color='tab:red', marker='x', label='testing set')
 
     for ax in [ax1, ax2]:
         ax.set_yscale('log')
@@ -987,87 +992,99 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
     dft_optg = read(dft_optg)
     dft_min = dft_optg.info['dft_energy']
 
-    atoms = read(opt_all, ':')
-    dft_energies = [at.info['dft_energy'] - dft_min for at in atoms]
-    dft_fmaxs = [max(at.arrays['dft_forces'].flatten()) for at in atoms]
+    gap_fnames_all = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
+    gap_fnames_all = util.natural_sort(gap_fnames_all)
 
-    fig1 = plt.figure(figsize=(12, 9))
-    ax1 = plt.gca()
+    atoms_all = read(opt_all, ':')
 
-    fig2 = plt.figure(figsize=(12, 9))
-    ax2 = plt.gca()
+    group_size = 10
 
-    N = len(atoms)
-    cmap = mpl.cm.get_cmap('tab10')
-    colors = np.linspace(0, 1, 10)
+    for super_idx, (atoms, gap_fnames) in enumerate(zip(util.grouper(atoms_all, group_size), util.grouper(gap_fnames_all group_size))):
 
-    gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
-    gap_fnames = util.natural_sort(gap_fnames)
+        # remove 'None' padding from grouper
+        atoms = [at for at in atoms if at is not None]
+        gap_fnames = [gap_fname for gap_fname in gap_fnames if gap_fname is not None]
 
-    for idx, gap_fname in enumerate(tqdm(gap_fnames)):
+        dft_energies = [at.info['dft_energy'] - dft_min for at in atoms]
+        dft_fmaxs = [max(at.arrays['dft_forces'].flatten()) for at in atoms]
 
-        gap_title = os.path.splitext(gap_fname)[0]
-        gap_fname = os.path.join(gaps_dir, gap_fname)
-        gap = Potential(param_filename=gap_fname)
+        fig1 = plt.figure(figsize=(12, 9))
+        ax1 = plt.gca()
 
-        gap_energies = []
-        gap_fmaxes = []
-        for aa in atoms:
-            at = aa.copy()
-            at.set_calculator(gap)
-            gap_energies.append(at.get_potential_energy())
-            gap_fmaxes.append(max(at.get_forces().flatten()))
-        gap_energies_shifted = [e - dft_min for e in gap_energies]
+        fig2 = plt.figure(figsize=(12, 9))
+        ax2 = plt.gca()
 
-        c = cmap(colors[idx%10])
+        N = len(atoms)
+        cmap = mpl.cm.get_cmap('tab10')
+        colors = np.linspace(0, 1, 10)
 
-        E_label = f'GAP {idx + 1}'
-        F_label = f'GAP {idx + 1}'
 
-        if idx != 0:
-            ax1.plot(range(1, idx + 2), gap_fmaxes[:idx + 1], marker='x', label=F_label, color=c)
-            ax2.plot(range(1, idx + 2), np.absolute(gap_energies_shifted[:idx + 1]), marker='x', markersize=10, linestyle='-', label=E_label, color=c)
+        for idx, gap_fname in enumerate(gap_fnames):
 
-        if idx != N - 1:
+            absolute_idx = group_size*super_idx + idx
+
+            gap_title = os.path.splitext(gap_fname)[0]
+            gap_fname = os.path.join(gaps_dir, gap_fname)
+            gap = Potential(param_filename=gap_fname)
+
+            gap_energies = []
+            gap_fmaxes = []
+            for aa in atoms:
+                at = aa.copy()
+                at.set_calculator(gap)
+                gap_energies.append(at.get_potential_energy())
+                gap_fmaxes.append(max(at.get_forces().flatten()))
+            gap_energies_shifted = [e - dft_min for e in gap_energies]
+
+            c = cmap(colors[idx%10])
+
+            E_label = f'GAP {absolute_idx + 1}'
+            F_label = f'GAP {absolute_idx + 1}'
+
             if idx != 0:
-                E_label = None
-                F_label = None
+                ax1.plot(range(group_size*super_idx+1, absolute_idx + 2), gap_fmaxes[:idx + 1], marker='x', label=F_label, color=c)
+                ax2.plot(range(group_size*super_idx+1, absolute_idx + 2), np.absolute(gap_energies_shifted[:idx + 1]), marker='x', markersize=10, linestyle='-', label=E_label, color=c)
 
-            ax1.plot(range(idx + 1, len(gap_fmaxes) + 1), gap_fmaxes[idx:], marker='x', label=F_label, linestyle=':', color=c, alpha=0.7)
-            ax2.plot(range(idx + 1, len(gap_energies_shifted) + 1), np.absolute(gap_energies_shifted[idx:]), marker='x',
-                     markersize=10, linestyle=':',  label=E_label, color=c, alpha=0.7)
+            if idx != N - 1:
+                if idx != 0:
+                    E_label = None
+                    F_label = None
 
-        ax1.annotate(f'{gap_fmaxes[idx]:.4f}', xy=(idx + 1, gap_fmaxes[idx]))
-        ax2.annotate(f'{np.absolute(gap_energies_shifted[idx]):.4f}', xy=(idx + 1, np.absolute(gap_energies_shifted[idx])))
+                ax1.plot(range(absolute_idx + 1, len(gap_fmaxes) + 1), gap_fmaxes[idx:], marker='x', label=F_label, linestyle=':', color=c, alpha=0.7)
+                ax2.plot(range(absolute_idx + 1, len(gap_energies_shifted) + 1), np.absolute(gap_energies_shifted[idx:]), marker='x',
+                         markersize=10, linestyle=':',  label=E_label, color=c, alpha=0.7)
 
-    ax1.plot(range(1, len(dft_fmaxs) + 1), dft_fmaxs, marker='+', markersize=10, label=f'DFT', color='k', linestyle='--')
-    ax2.plot(range(1, len(dft_energies) + 1), np.absolute(dft_energies), marker='+', markersize=10, label=f'DFT', color='k', linestyle='--')
+            ax1.annotate(f'{gap_fmaxes[idx]:.4f}', xy=(idx + 1, gap_fmaxes[idx]))
+            ax2.annotate(f'{np.absolute(gap_energies_shifted[idx]):.4f}', xy=(idx + 1, np.absolute(gap_energies_shifted[idx])))
 
-    ax1.annotate(f'{dft_fmaxs[idx]:.4f}', xy=(idx + 1, dft_fmaxs[idx]))
-    ax2.annotate(f'{np.absolute(dft_energies[idx]):.4f}', xy=(idx + 1, np.absolute(dft_energies[idx])))
+        ax1.plot(range(group_size*super_idx+1, len(dft_fmaxs) + 1), dft_fmaxs, marker='+', markersize=10, label=f'DFT', color='k', linestyle='--')
+        ax2.plot(range(group_size*super_idx+1, len(dft_energies) + 1), np.absolute(dft_energies), marker='+', markersize=10, label=f'DFT', color='k', linestyle='--')
 
-    for ax in [ax1, ax2]:
-        ax.set_xlabel('iteration')
-        ax.grid(which='both', c='lightgrey')
-        ax.set_yscale('log')
-        ax.legend(title='Evaluated with:', loc='upper left')
-        ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+        ax1.annotate(f'{dft_fmaxs[idx]:.4f}', xy=(idx + 1, dft_fmaxs[idx]))
+        ax2.annotate(f'{np.absolute(dft_energies[idx]):.4f}', xy=(idx + 1, np.absolute(dft_energies[idx])))
 
-    ax2.set_title('Energy error wrt DFT-OPTG structure on GAP_i-optimised structures')
-    ax2.set_ylabel('|E - E$_{DFT\ OPTG}$|, eV', fontsize=12)
-    fig2.tight_layout()
+        for ax in [ax1, ax2]:
+            ax.set_xlabel('iteration')
+            ax.grid(which='both', c='lightgrey')
+            ax.set_yscale('log')
+            ax.legend(title='Evaluated with:', loc='upper left')
+            ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
 
-    ax1.set_title('Maximum force component on GAP_i-optimised structures')
-    ax1.set_ylabel('Fmax, eV/Å', fontsize=12)
-    fig1.tight_layout()
+        ax2.set_title('Energy error wrt DFT-OPTG structure on GAP_i-optimised structures')
+        ax2.set_ylabel('|E - E$_{DFT\ OPTG}$|, eV', fontsize=12)
+        fig2.tight_layout()
 
-    fig2_name = f'opt_energy_vs_iter.png'
-    fig1_name = 'opt_fmax_vs_iter.png'
-    if output_dir:
-        fig2_name = os.path.join(output_dir, fig2_name)
-        fig1_name = os.path.join(output_dir, fig1_name)
-    fig2.savefig(fig2_name, dpi=300)
-    fig1.savefig(fig1_name, dpi=300)
+        ax1.set_title('Maximum force component on GAP_i-optimised structures')
+        ax1.set_ylabel('Fmax, eV/Å', fontsize=12)
+        fig1.tight_layout()
+
+        fig2_name = f'opt_energy_vs_iter.png'
+        fig1_name = 'opt_fmax_vs_iter.png'
+        if output_dir:
+            fig2_name = os.path.join(output_dir, fig2_name)
+            fig1_name = os.path.join(output_dir, fig1_name)
+        fig2.savefig(fig2_name, dpi=300)
+        fig1.savefig(fig1_name, dpi=300)
 
 
 def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='molpro_optg/optimized.xyz',
