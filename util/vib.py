@@ -51,7 +51,7 @@ class Vibrations(ase.vibrations.Vibrations):
     def evals(self):
         if 'hnu' not in dir(self):
             self.read()
-        return [np.real(val**2) for val in self.hnu]
+        return np.array([np.real(val**2) for val in self.hnu])
 
     @property
     def evecs(self):

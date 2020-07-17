@@ -611,7 +611,7 @@ def dimer_summary_plot(gaps_dir='gaps', output_dir='pictures', prefix=None, glue
         print(idx)
         if prefix is None:
             prefix_new=f'summary'
-        prefix_new += f'_{idx}'
+        prefix_new += f'_{idx+1}'
 
         make_dimer_curves(gap_fname_group, output_dir=output_dir, prefix=prefix_new,
                                     glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution,  \
@@ -1001,7 +1001,6 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
     atoms_all = read(opt_all, ':')
 
     group_size = 10
-    # group_size=3
 
     for super_idx, (atoms, gap_fnames) in enumerate(zip(util.grouper(atoms_all, group_size), util.grouper(gap_fnames_all, group_size))):
 
@@ -1060,14 +1059,14 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
                 ax2.plot(range(absolute_idx + 1, group_size*super_idx + len(gap_energies_shifted) + 1), np.absolute(gap_energies_shifted[idx:]), marker='x',
                          markersize=10, linestyle=':',  label=E_label, color=c, alpha=0.7)
 
-            ax1.annotate(f'{gap_fmaxes[idx]:.4f}', xy=(idx + 1, gap_fmaxes[idx]))
-            ax2.annotate(f'{np.absolute(gap_energies_shifted[idx]):.4f}', xy=(idx + 1, np.absolute(gap_energies_shifted[idx])))
+            ax1.annotate(f'{gap_fmaxes[idx]:.4f}', xy=(absolute_idx + 1, gap_fmaxes[idx]))
+            ax2.annotate(f'{np.absolute(gap_energies_shifted[idx]):.4f}', xy=(absolute_idx+1, np.absolute(gap_energies_shifted[idx])))
 
         ax1.plot(range(group_size*super_idx+1, group_size*super_idx + len(dft_fmaxs) + 1), dft_fmaxs, marker='+', markersize=10, label=f'DFT', color='k', linestyle='--')
         ax2.plot(range(group_size*super_idx+1, group_size*super_idx + len(dft_energies) + 1), np.absolute(dft_energies), marker='+', markersize=10, label=f'DFT', color='k', linestyle='--')
 
-        ax1.annotate(f'{dft_fmaxs[idx]:.4f}', xy=(idx + 1, dft_fmaxs[idx]))
-        ax2.annotate(f'{np.absolute(dft_energies[idx]):.4f}', xy=(idx + 1, np.absolute(dft_energies[idx])))
+        ax1.annotate(f'{dft_fmaxs[idx]:.4f}', xy=(absolute_idx + 1, dft_fmaxs[idx]))
+        ax2.annotate(f'{np.absolute(dft_energies[idx]):.4f}', xy=(absolute_idx + 1, np.absolute(dft_energies[idx])))
 
         for ax in [ax1, ax2]:
             ax.set_xlabel('iteration')
@@ -1076,21 +1075,52 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
             ax.legend(title='Evaluated with:', loc='upper left')
             ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
 
-        ax2.set_title(f'Energy error wrt DFT-OPTG structure on GAP_i-optimised structures {super_idx}')
+        ax2.set_title(f'Energy error wrt DFT-OPTG structure on GAP_i-optimised structures {super_idx+1}')
         ax2.set_ylabel('|E - E$_{DFT\ OPTG}$|, eV', fontsize=12)
-        fig2.tight_layout()
+        # fig2.tight_layout()
 
-        ax1.set_title(f'Maximum force component on GAP_i-optimised structures {super_idx}')
+        ax1.set_title(f'Maximum force component on GAP_i-optimised structures {super_idx+1}')
         ax1.set_ylabel('Fmax, eV/Å', fontsize=12)
-        fig1.tight_layout()
+        # fig1.tight_layout()
 
-        fig2_name = f'opt_energy_vs_iter_{super_idx}.png'
-        fig1_name = f'opt_fmax_vs_iter_{super_idx}.png'
-        if output_dir:
-            fig2_name = os.path.join(output_dir, fig2_name)
-            fig1_name = os.path.join(output_dir, fig1_name)
-        fig2.savefig(fig2_name, dpi=300)
-        fig1.savefig(fig1_name, dpi=300)
+    all_fig_nos = plt.get_fignums()
+    fmax_fig_nos = all_fig_nos[0::2]
+    e_fig_nos = all_fig_nos[1::2]
+
+    for name_prfx, nos in zip(['opt_fmax_vs_iter', 'opt_energy_vs_iter'], [fmax_fig_nos, e_fig_nos]):
+
+        all_ylim_upper = []
+        all_ylim_lower = []
+        for idx in nos:
+            fig = plt.figure(idx)
+            ylim = fig.get_axes()[0].get_ylim()
+            all_ylim_upper.append(ylim[1])
+            all_ylim_lower.append(ylim[0])
+
+        lower_ylim = min(all_ylim_lower)
+        upper_ylim = max(all_ylim_upper)
+
+        for i, idx in enumerate(nos):
+            fig = plt.figure(idx)
+            fig.get_axes()[0].set_ylim(lower_ylim, upper_ylim)
+            fig.tight_layout()
+
+            name = f'{name_prfx}_{i+1}.png'
+            if output_dir is not None:
+                name = os.path.join(output_dir, name)
+
+            plt.savefig(name, dpi=300)
+            plt.close(fig)
+
+
+
+        # fig2_name = f'opt_energy_vs_iter_{super_idx+1}.png'
+        # fig1_name = f'opt_fmax_vs_iter_{super_idx+1}.png'
+        # if output_dir:
+        #     fig2_name = os.path.join(output_dir, fig2_name)
+        #     fig1_name = os.path.join(output_dir, fig1_name)
+        # fig2.savefig(fig2_name, dpi=300)
+        # fig1.savefig(fig1_name, dpi=300)
 
 
 def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='molpro_optg/optimized.xyz',
@@ -1107,11 +1137,11 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
     gap_fnames_all = util.natural_sort(gap_fnames_all)
 
     # group_size=10
-    group_size=3
+    # group_size=3
 
     for super_idx, gap_fnames in enumerate(util.grouper(gap_fnames_all, group_size)):
-        if super_idx == 3:
-            break
+        # if super_idx == 2:
+        #     break
 
         gap_fnames = [gap_fname for gap_fname in gap_fnames if gap_fname is not None]
 
@@ -1156,16 +1186,19 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
 
             evals = vib_gap.evals
             rmse = util.get_rmse(evals, vib_dft.evals)
-            plt.plot(range(len(evals)), evals, label=f'{gap_title}, RMSE: {rmse:.4f} eV$^2$')
+            # plt.plot(range(len(evals)), evals, label=f'{gap_title}, RMSE: {rmse:.4f} eV$^2$')
+            plt.scatter(vib_dft.evals, evals-vib_dft.evals, marker='x', label=f'{gap_title}, RMSE: {rmse:.4f} eV$^2$')
 
-        plt.plot(range(len(vib_dft.evals)), vib_dft.evals, label='DFT', linewidth=0.8, linestyle='--', color='k')
+        # plt.plot(range(len(vib_dft.evals)), vib_dft.evals, label='DFT', linewidth=0.8, linestyle='--', color='k')
 
         ax = plt.gca()
         ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
         plt.legend(loc='upper left')
         plt.grid(color='lightgrey')
-        plt.xlabel('#')
-        plt.ylabel('eigenvalue, eV$^2$')
+        # plt.xlabel('#')
+        # plt.ylabel('eigenvalue, eV$^2$')
+        plt.xlabel('DFT eigenvalue, eV$^2$')
+        plt.ylabel('GAP_i eval - DFT eval, eV$^2$')
         plt.title('Ordered Eigenvalues')
         plt.tight_layout()
 
