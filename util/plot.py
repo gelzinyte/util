@@ -274,7 +274,7 @@ def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None,
     height = width * 0.6
     height *= no_unique_elements
 
-    plt.figure(figsize=(width, height))
+    fig = plt.figure(figsize=(width, height))
     gs = gridspec.GridSpec(no_unique_elements+1, 2)
     ax = [plt.subplot(g) for g in gs]
 
@@ -290,6 +290,7 @@ def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None,
     plt.suptitle(prefix)
     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
     # plt.savefig(picture_fname, dpi=300)
+    plt.close(fig)
 
 
 def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
@@ -371,7 +372,7 @@ def make_dimer_curves(param_fnames, output_dir=None, prefix=None, glue_fname=Non
     else:
         no_vert = int((len(dimers)+1)/2)
 
-    plt.figure(figsize=(12, no_vert*5))
+    fig = plt.figure(figsize=(12, no_vert*5))
     gs1 = gridspec.GridSpec(no_vert, 2)
     axes_main = []
     axes_hist = []
@@ -478,6 +479,7 @@ def make_dimer_curves(param_fnames, output_dir=None, prefix=None, glue_fname=Non
         picture_fname = os.path.join(output_dir, picture_fname)
     plt.tight_layout()
     plt.savefig(picture_fname, dpi=300)
+    plt.close(fig)
 
 
 def desymbolise_force_dict(my_dict):
@@ -577,7 +579,7 @@ def rmse_heatmap(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=Non
     N = len(gap_fnames)
     width = (N * 0.6 + 1.2) * 2
     height = N * 0.6
-    plt.figure(figsize=(width, height))
+    fig = plt.figure(figsize=(width, height))
     gs = gridspec.GridSpec(1, 2)
     all_ax = [plt.subplot(g) for g in gs]
 
@@ -592,6 +594,7 @@ def rmse_heatmap(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=Non
         picture_fname = os.path.join(output_dir, picture_fname)
 
     plt.savefig(picture_fname, dpi=300)
+    plt.close(fig)
 
 
 def dimer_summary_plot(gaps_dir='gaps', output_dir='pictures', prefix=None, glue_fname=None, plot_2b_contribution=True,
@@ -608,7 +611,6 @@ def dimer_summary_plot(gaps_dir='gaps', output_dir='pictures', prefix=None, glue
     for idx, gap_fname_group in enumerate(util.grouper(gap_fnames, 10)):
         gap_fname_group = [x for x in gap_fname_group if x is not None]
 
-        print(idx)
         if prefix is None:
             prefix_new=f'summary'
         prefix_new += f'_{idx+1}'
@@ -658,6 +660,7 @@ def get_train_test_rmse_dicts(gap_idx, dft_data, gap_data):
         if key1 != key2:
             raise Exception(f'observations do not match. dft: {key1}, gap: {key2}')
         dset_no = int(re.search(r'\d+', key1).group())
+
         if dset_no <= gap_idx:
             e_train_dft[key1] = dft_data['energy'][key1]
             e_train_gap[key2] = gap_data['energy'][key2]
@@ -715,7 +718,7 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
         all_train_rmses[gap_title] = train_rmses
         all_test_rmses[gap_title] = test_rmses
 
-    plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(12, 8))
 
     ax2 = plt.gca()
     syms = all_train_rmses[gap_title]['forces'].keys()
@@ -727,9 +730,15 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
         ax2.plot(range(1, len(forces_train)+1), forces_train, linestyle='-', color=color, marker='x', \
                  label=f'on {sym}, training set')
 
+        # plt.gca().annotate(int(no), xy=(pt['x'], pt['y']))
+
         forces_test = [value['forces'][sym] for key, value in all_test_rmses.items()]
         ax2.plot(range(1, len(forces_test)+1), forces_test, linestyle=':', color=color, marker='x', \
                 label=f'on {sym}, testing set')
+
+        ax2.annotate(forces_test[-1], xy=(len(forces_test)+1, forces_test[-1]))
+        ax2.annotate(forces_train[-1], xy=(len(forces_train) + 1, forces_train[-1]))
+
 
     ax1 = ax2.twinx()
     energies_train = [value['energy'] for key, value in all_train_rmses.items()]
@@ -737,6 +746,9 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
 
     energies_test = [value['energy'] for key, value in all_test_rmses.items() if 'energy' in value.keys()]
     ax1.plot(range(1, len(energies_test)+1), energies_test, linestyle=':', color='tab:red', marker='x', label='testing set')
+
+    ax1.annotate(energies_test[-1], xy=(len(energies_test)+1, energies_test[-1]))
+    ax1.annotate(energies_train[-1], xy=(len(energies_train)+1, energies_train[-1]))
 
     for ax in [ax1, ax2]:
         ax.set_yscale('log')
@@ -762,13 +774,14 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
 
     plt.tight_layout()
     plt.savefig(picture_fname, dpi=300)
+    plt.close(fig)
 
 
 def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
     atoms = read(xyz_fname, ':')
     cmap = mpl.cm.get_cmap('tab20')
 
-    plt.figure(figsize=(8, 4))
+    fig = plt.figure(figsize=(14, 8))
 
 
     # training set points
@@ -817,15 +830,17 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
 
     for idx, pt in enumerate(optg_pts):
 
-        if idx != 0 and idx != 1 and idx != len(optg_pts)-1:
-            label=None
-        else:
-            label = pt['label']
+        # if idx != 0 and idx != 1 and idx != len(optg_pts)-1:
+        #     label=None
+        # else:
+        #     label = pt['label']
+        label = pt['label']
 
         plt.scatter(pt['x'], pt['y'], color=pt['color'], label=label, marker='X', linewidth=0.5, s=80, \
                     linewidths=10, edgecolors='k')
-        no = re.findall(r'\d+', pt['label'])
-        plt.gca().annotate(no, xyz=(pt['x'], pt['y']))
+        # no = re.findall(r'\d+', pt['label'])
+        # if len(no)>0:
+        #     plt.gca().annotate(int(no), xy=(pt['x'], pt['y']))
 
 
     plt.legend()
@@ -844,7 +859,7 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
 
     plt.tight_layout()
     plt.savefig(f'{pic_name}.png', dpi=300)
-    plt.show()
+    plt.close(fig)
 
 
 def make_kpca_dset(training_set, all_opt_ats, first_guess, dft_optg, xyz_fname):
@@ -947,18 +962,19 @@ def do_evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir=
         name = os.path.join(output_dir, name)
 
     plt.savefig(name, dpi=300)
+    plt.close(fig)
 
 def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-2, steps=1000, output_dir='pictures'):
     gap_title = os.path.splitext(os.path.basename(param_fname))[0]
     gap = Potential(param_filename=param_fname)
-    gap_no = re.findall(r'\d+', gap_title)
+    gap_no = int(re.findall(r'\d+', gap_title)[0])
 
     gap_optg_name = f'xyzs/{gap_title}_optg_for_NM.xyz'
     # might have optimised stuff with this gap for eval plot, check.
     if not os.path.isfile(f'{gap_title}_optg.all.pckl'):
 
         if not os.path.isfile(f'xyzs/opt_at_{gap_no}.xyz'):
-            print(f'\n---Optimised structure not found, optimising first_guess with {gap_title} and getting Normal Modes\n')
+            print(f'\n---Optimised structure xyzs/opt_at_{gap_no}.xyz not found, optimising first_guess with {gap_title} and getting Normal Modes\n')
             atoms = read(first_guess)
             atoms.set_calculator(gap)
 
@@ -968,7 +984,7 @@ def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-2, steps=
             write(gap_optg_name, atoms, 'extxyz', write_results=False)
 
         else:
-            print(f'\n---Loading structure optimised with {gap_title} previously')
+            print(f'\n---Loading structure xyzs/opt_at_{gap_no}.xyz optimised with {gap_title} previously')
             atoms = read(f'xyzs/opt_at_{gap_no}.xyz')
             atoms.set_calculator(gap)
 
@@ -1136,7 +1152,7 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
     gap_fnames_all = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
     gap_fnames_all = util.natural_sort(gap_fnames_all)
 
-    # group_size=10
+    group_size=10
     # group_size=3
 
     for super_idx, gap_fnames in enumerate(util.grouper(gap_fnames_all, group_size)):
@@ -1153,13 +1169,13 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
             gap_title = os.path.splitext(gap_fname)[0]
             gap_fname = os.path.join(gaps_dir, gap_fname)
             gap = Potential(param_filename=gap_fname)
-            gap_no = re.findall(r'\d+', gap_title)
+            gap_no = int(re.findall(r'\d+', gap_title)[0])
 
             gap_optg_name = f'xyzs/{gap_title}_optg_for_NM.xyz'
             # might have done this for eval plots, check
             if not os.path.isfile(f'{gap_title}_optg.all.pckl'):
                 if not os.path.isfile(f'xyzs/opt_at_{gap_no}.xyz'):
-                    print(f'\n---Optimising first_guess with {gap_title}\n')
+                    print(f'\n--- optimised structure (xyzs/opt_at_{gap_no}.xyz) not found, Optimising first_guess with {gap_title}\n')
                     atoms = read(first_guess)
                     atoms.set_calculator(gap)
 
@@ -1231,7 +1247,7 @@ def rmsd_plot(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimized.xyz', 
     atoms = read(opt_all, ':')
     rmsd = [util.get_rmse(dft_optg_at.positions, at.positions) for at in atoms]
 
-    plt.figure(figsize=(8,5))
+    fig = plt.figure(figsize=(8,5))
     plt.plot(range(1, len(rmsd)+1), rmsd, marker='x', markersize=10)
     ax = plt.gca()
     ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
@@ -1245,5 +1261,6 @@ def rmsd_plot(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimized.xyz', 
     if output_dir is not None:
         name = os.path.join(output_dir, name)
     plt.savefig(name, dpi=300)
+    plt.close(fig)
 
 
