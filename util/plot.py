@@ -994,7 +994,10 @@ def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-2, steps=
         vib_gap.summary()
     else:
         print(f'Found .all.pckl for {gap_title}, loading stuff')
-        atoms = read(gap_optg_name)
+        try:
+            atoms = read(f'xyzs/opt_at_{gap_no}.xyz')
+        except FileNotFoundError:
+            atoms = read(gap_optg_name)
         vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
         vib_gap.summary()
 
@@ -1196,7 +1199,11 @@ def eval_plot(gaps_dir='gaps', first_guess='xyzs/first_guess.xyz', dft_optg='mol
                 vib_gap.summary()
             else:
                 print(f'\n---Found .all.pckl for {gap_title}, loading stuff\n')
-                atoms = read(gap_optg_name)
+                # either optimised now and saved in optg_for_NM.xyz or load previously optimised stuff
+                try:
+                    atoms = read(f'xyzs/opt_at_{gap_no}.xyz')
+                except FileNotFoundError:
+                    atoms = read(gap_optg_name)
                 vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
                 vib_gap.summary()
 
