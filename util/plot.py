@@ -834,13 +834,13 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
         #     label=None
         # else:
         #     label = pt['label']
-        label = pt['label']
+        # label = pt['label']
 
         plt.scatter(pt['x'], pt['y'], color=pt['color'], label=label, marker='X', linewidth=0.5, s=80, \
                     linewidths=10, edgecolors='k')
-        # no = re.findall(r'\d+', pt['label'])
-        # if len(no)>0:
-        #     plt.gca().annotate(int(no), xy=(pt['x'], pt['y']))
+        no = re.findall(r'\d+', pt['label'])[0]
+        if len(no)>0:
+            plt.gca().annotate(int(no), xy=(pt['x'], pt['y']))
 
 
     plt.legend()
