@@ -29,6 +29,7 @@ from ase.io.extxyz import key_val_str_to_dict
 from ase.io.extxyz import key_val_dict_to_str
 from ase.optimize.precon import PreconLBFGS
 from ase.units import Ha
+from util import dict_to_vals
 
 ''' Interesting things:
         make_scatter_plots - scatter for given gap and train/test set
@@ -43,78 +44,9 @@ from ase.units import Ha
         eval_plot          - eigenvalue plot for all gaps
 '''
 
-def get_E_F_dict(atoms, calc_type, param_fname=None):
-
-    data = dict()
-    data['energy'] = OrderedDict()
-    data['forces'] = OrderedDict()
-
-    # select which energies and forces to extract
-    if calc_type.upper() == 'GAP':
-        if param_fname:
-            gap = Potential(param_filename=param_fname)
-        else:
-            raise NameError('GAP filename is not given, but GAP energies requested.')
-
-    else:
-        if param_fname:
-            print(f"WARNING: calc_type selected as {calc_type}, but gap filename is given, are you sure?")
-        energy_name = f'{calc_type}_energy'
-        if energy_name not in atoms[0].info.keys():
-            print(f"WARNING: '{calc_type}_energy' not found, using 'energy', which might be anything")
-            energy_name = 'energy'
-        force_name = f'{calc_type}_forces'
-        if force_name not in atoms[0].arrays.keys():
-            print(f"WARNING: '{calc_type}_forces' not in found, using 'forces', which might be anything")
-            force_name = 'forces'
 
 
-    for atom in atoms:
-        at = atom.copy()
-        config_type='no_config_type'
-        if 'config_type' in at.info.keys():
-            config_type = at.info['config_type']
 
-
-        if len(at) != 1:
-            if calc_type.upper() == 'GAP':
-                at.set_calculator(gap)
-                energy = at.get_potential_energy()
-                try:
-                    data['energy'][config_type] = np.append(data['energy'][config_type], energy)
-                except KeyError:
-                    data['energy'][config_type] = np.array([])
-                    data['energy'][config_type] = np.append(data['energy'][config_type], energy)
-                forces = at.get_forces()
-
-            else:
-                try:
-                    data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name])
-                except KeyError:
-                    data['energy'][config_type] = np.array([])
-                    data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name])
-                forces = at.arrays[force_name]
-
-            sym_all = at.get_chemical_symbols()
-            for j, sym in enumerate(sym_all):
-                if sym not in data['forces'].keys():
-                    data['forces'][sym] = OrderedDict()
-                try:
-                    data['forces'][sym][config_type] = np.append(data['forces'][sym][config_type], forces[j])
-                except KeyError:
-                    data['forces'][sym][config_type] = np.array([])
-                    data['forces'][sym][config_type] = np.append(data['forces'][sym][config_type], forces[j])
-
-    return data
-
-
-def dict_to_vals(my_dict):
-    ''' concatenates dictionary of multiple dictionary:value  to dictionary:[value1, value2, ...]'''
-    all_values = []
-    for type, values in my_dict.items():
-        all_values.append(values)
-    all_values = np.concatenate(all_values)
-    return all_values
 
 
 def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
@@ -184,12 +116,12 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     if test_ats:
         test_set = True
 
-    train_ref_data = get_E_F_dict(train_ats, calc_type=ref_name)
-    train_pred_data = get_E_F_dict(train_ats, calc_type='gap', param_fname=param_fname)
+    train_ref_data = util.get_E_F_dict(train_ats, calc_type=ref_name)
+    train_pred_data = util.get_E_F_dict(train_ats, calc_type='gap', param_fname=param_fname)
 
     if test_set:
-        test_ref_data = get_E_F_dict(test_ats, calc_type=ref_name)
-        test_pred_data = get_E_F_dict(test_ats, calc_type='gap', param_fname=param_fname)
+        test_ref_data = util.get_E_F_dict(test_ats, calc_type=ref_name)
+        test_pred_data = util.get_E_F_dict(test_ats, calc_type='gap', param_fname=param_fname)
 
     # Energy plots
     this_ax = ax[0]
@@ -264,7 +196,7 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     return lgd
 
 
-def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None, by_config_type=False, ref_name='dft'):
+def make_scatter_plots(param_fname, test_ats=None, output_dir='pictures', prefix=None, by_config_type=False, ref_name='dft', close=True):
 
     train_ats = ugap.atoms_from_gap(param_fname)
 
@@ -290,7 +222,10 @@ def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None,
     plt.suptitle(prefix)
     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
     # plt.savefig(picture_fname, dpi=300)
-    plt.close(fig)
+    if close:
+        plt.close(fig)
+    else:
+        plt.show()
 
 
 def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
@@ -352,12 +287,12 @@ def make_ref_plot(dimer_name, ax, calc_type='dft'):
     atoms_fname=f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz'
     dimer = read(atoms_fname, ':')
     distances = [at.get_distance(0, 1) for at in dimer]
-    ref_data = get_E_F_dict(dimer, calc_type=calc_type)
+    ref_data = util.get_E_F_dict(dimer, calc_type=calc_type)
     ax.plot(distances, dict_to_vals(ref_data['energy']), label='(RKS) reference', linestyle='--', color='k')
 
 
-def make_dimer_curves(param_fnames, output_dir=None, prefix=None, glue_fname=None, plot_2b_contribution=True, \
-                      plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None, ylim=(15, 25)):
+def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fname=None, plot_2b_contribution=True, \
+                      plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None, ylim=(15, 25), close=False):
     # param_fname - list of param_fnames, most often one
 
     # train_ats = read(train_fname, index=':')
@@ -479,21 +414,12 @@ def make_dimer_curves(param_fnames, output_dir=None, prefix=None, glue_fname=Non
         picture_fname = os.path.join(output_dir, picture_fname)
     plt.tight_layout()
     plt.savefig(picture_fname, dpi=300)
-    plt.close(fig)
+    if close:
+        plt.close(fig)
+    else:
+        plt.show()
 
 
-def desymbolise_force_dict(my_dict):
-    '''from dict['forces'][sym]:values makes dict['forces']:[values1, values2...]'''
-    force_dict = OrderedDict()
-    for sym, sym_dict in my_dict.items():
-        for config_type, values in sym_dict.items():
-            try:
-                force_dict[config_type] = np.append(force_dict[config_type], values)
-            except KeyError:
-                force_dict[config_type] = np.array([])
-                force_dict[config_type] = np.append(force_dict[config_type], values)
-
-    return force_dict
 
 
 def get_rmse_dict(obs, dft_data, gap_data):
@@ -540,14 +466,14 @@ def get_last_bunch(full_data, bunch=20):
 def rmse_heatmap(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=None):
 
     train_ats = read(train_fname, index=':')
-    dft_data = get_E_F_dict(train_ats, calc_type='dft')
-    dft_data['forces'] = desymbolise_force_dict(dft_data['forces'])
+    dft_data = util.get_E_F_dict(train_ats, calc_type='dft')
+    dft_data['forces'] = util.desymbolise_force_dict(dft_data['forces'])
 
     # TODO think this through better
-    max_gap_dset_no = 15
-    if len(dft_data['energy'].keys()) > max_gap_dset_no:
-        print(f'more than {max_gap_dset_no} config types, taking the last {max_gap_dset_no}')
-        dft_data = get_last_bunch(dft_data, bunch=max_gap_dset_no)
+    # max_gap_dset_no = 15
+    # if len(dft_data['energy'].keys()) > max_gap_dset_no:
+    #     print(f'more than {max_gap_dset_no} config types, taking the last {max_gap_dset_no}')
+    #     dft_data = get_last_bunch(dft_data, bunch=max_gap_dset_no)
 
     E_rmses = dict()
     F_rmses = dict()
@@ -555,20 +481,20 @@ def rmse_heatmap(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=Non
     gap_fnames = [f for f in os.listdir(gaps_dir) if 'gap' in f and 'xml' in f]
     gap_fnames = util.natural_sort(gap_fnames)
 
-    if len(gap_fnames) > max_gap_dset_no:
-        print(f'more than {max_gap_dset_no} gaps, taking the last {max_gap_dset_no}')
-        gap_fnames = gap_fnames[-max_gap_dset_no:]
+    # if len(gap_fnames) > max_gap_dset_no:
+    #     print(f'more than {max_gap_dset_no} gaps, taking the last {max_gap_dset_no}')
+    #     gap_fnames = gap_fnames[-max_gap_dset_no:]
 
 
     for gap_fname in tqdm(gap_fnames):
         gap_title = os.path.splitext(gap_fname)[0]
         gap_fname = os.path.join(gaps_dir, gap_fname)
-        gap_data = get_E_F_dict(train_ats, calc_type='gap', param_fname=gap_fname)
-        gap_data['forces'] = desymbolise_force_dict(gap_data['forces'])
+        gap_data = util.get_E_F_dict(train_ats, calc_type='gap', param_fname=gap_fname)
+        gap_data['forces'] = util.desymbolise_force_dict(gap_data['forces'])
 
         # if more than 20, take the last 20 only
-        if len(gap_data['energy'].keys()) > max_gap_dset_no:
-            gap_data = get_last_bunch(gap_data, bunch=max_gap_dset_no)
+        # if len(gap_data['energy'].keys()) > max_gap_dset_no:
+        #     gap_data = get_last_bunch(gap_data, bunch=max_gap_dset_no)
 
         E_rmses[gap_title] = get_rmse_dict(obs='energy', dft_data=dft_data, gap_data=gap_data)
         F_rmses[gap_title] = get_rmse_dict(obs='forces', dft_data=dft_data, gap_data=gap_data)
@@ -700,7 +626,7 @@ def get_train_test_rmse_dicts(gap_idx, dft_data, gap_data):
 
 def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=None):
     train_ats = read(train_fname, index=':')
-    dft_data = get_E_F_dict(train_ats, calc_type='dft')
+    dft_data = util.get_E_F_dict(train_ats, calc_type='dft')
 
     all_train_rmses = {}
     all_test_rmses = {}
@@ -711,7 +637,7 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
     for idx, gap_fname in enumerate(tqdm(gap_fnames)):
         gap_title = os.path.splitext(gap_fname)[0]
         gap_fname = os.path.join(gaps_dir, gap_fname)
-        gap_data = get_E_F_dict(train_ats, calc_type='gap', param_fname=gap_fname)
+        gap_data = util.get_E_F_dict(train_ats, calc_type='gap', param_fname=gap_fname)
 
         train_rmses, test_rmses = get_train_test_rmse_dicts(gap_idx=idx + 1, dft_data=dft_data, gap_data=gap_data)
 
@@ -834,13 +760,13 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
         #     label=None
         # else:
         #     label = pt['label']
-        # label = pt['label']
+        label = pt['label']
 
         plt.scatter(pt['x'], pt['y'], color=pt['color'], label=label, marker='X', linewidth=0.5, s=80, \
                     linewidths=10, edgecolors='k')
-        no = re.findall(r'\d+', pt['label'])[0]
+        no = re.findall(r'\d+', pt['label'])
         if len(no)>0:
-            plt.gca().annotate(int(no), xy=(pt['x'], pt['y']))
+            plt.gca().annotate(int(no[0]), xy=(pt['x'], pt['y']))
 
 
     plt.legend()
@@ -964,7 +890,7 @@ def do_evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir=
     plt.savefig(name, dpi=300)
     plt.close(fig)
 
-def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-2, steps=1000, output_dir='pictures'):
+def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', dft_optg='molpro_optg/optimized.xyz', fmax=1e-2, steps=1000, output_dir='pictures'):
     gap_title = os.path.splitext(os.path.basename(param_fname))[0]
     gap = Potential(param_filename=param_fname)
     gap_no = int(re.findall(r'\d+', gap_title)[0])
@@ -1002,7 +928,7 @@ def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', fmax=1e-2, steps=
         vib_gap.summary()
 
     # dft NM
-    dft_atoms = read('molpro_optg/optimized.xyz')
+    dft_atoms = read(dft_optg)
     vib_dft = Vibrations(dft_atoms, name='dft_optg')
     vib_dft.summary()
 
