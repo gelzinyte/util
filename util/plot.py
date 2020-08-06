@@ -143,7 +143,7 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     this_ax.set_xlabel(f'{ref_name.upper()} energy / eV/atom')
     this_ax.set_ylabel(f'GAP energy / eV/atom')
     this_ax.set_title('Energies')
-    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(2.9, 1.05))
+    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV/atom', bbox_to_anchor=(2.9, 1.05))
 
     this_ax = ax[1]
     do_plot(train_ref_es, error_dict(train_pred_es, train_ref_es), this_ax, 'Training', by_config_type)
