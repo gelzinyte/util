@@ -79,6 +79,7 @@ def grouper(iterable, n, fillvalue=None):
 
 
 def set_dft_vals(atoms):
+    '''sets at.info.'dft_energy' to 'energy' '''
     for at in atoms:
         at.info['dft_energy'] = at.info['energy']
         at.arrays['dft_forces'] = at.arrays['forces']
@@ -237,7 +238,7 @@ def get_E_F_dict(atoms, calc_type, param_fname=None):
         if len(at) != 1:
             if calc_type.upper() == 'GAP':
                 at.set_calculator(gap)
-                energy = at.get_potential_energy()
+                energy = at.get_potential_energy() / len(at)
                 try:
                     data['energy'][config_type] = np.append(data['energy'][config_type], energy)
                 except KeyError:
@@ -247,10 +248,10 @@ def get_E_F_dict(atoms, calc_type, param_fname=None):
 
             else:
                 try:
-                    data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name])
+                    data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name] / len(at))
                 except KeyError:
                     data['energy'][config_type] = np.array([])
-                    data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name])
+                    data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name] / len(at))
                 forces = at.arrays[force_name]
 
             sym_all = at.get_chemical_symbols()

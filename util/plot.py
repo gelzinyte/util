@@ -140,8 +140,8 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     this_ax.plot(flim, flim, c='k', linewidth=0.8)
     this_ax.set_xlim(flim)
     this_ax.set_ylim(flim)
-    this_ax.set_xlabel(f'{ref_name.upper()} energy / eV')
-    this_ax.set_ylabel(f'GAP energy / eV')
+    this_ax.set_xlabel(f'{ref_name.upper()} energy / eV/atom')
+    this_ax.set_ylabel(f'GAP energy / eV/atom')
     this_ax.set_title('Energies')
     lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(2.9, 1.05))
 
@@ -150,8 +150,8 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     if test_set:
         # do_plot(test_ref_es, test_pred_es - test_ref_es, this_ax, 'Test:      ')
         do_plot(test_ref_es, error_dict(test_pred_es, test_ref_es), this_ax, 'Test', by_config_type)
-    this_ax.set_xlabel(f'{ref_name.upper()} energy / eV')
-    this_ax.set_ylabel(f'E$_{{GAP}}$ - E$_{{{ref_name.upper()}}}$ / eV')
+    this_ax.set_xlabel(f'{ref_name.upper()} energy / eV/atom')
+    this_ax.set_ylabel(f'E$_{{GAP}}$ - E$_{{{ref_name.upper()}}}$ / eV/atom')
     this_ax.axhline(y=0, c='k', linewidth=0.8)
     this_ax.set_title('Energy errors')
     # lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV', bbox_to_anchor=(1.1, 1.05))
@@ -445,7 +445,7 @@ def plot_heatmap(data_dict, ax, obs):
             text = ax.text(j + 0.5, i + 0.5, round(df.iat[i, j], 3), ha='center', color=color)
     cbar = plt.colorbar(hmap, ax=ax)
     if obs == 'Energy':
-        units = 'eV'
+        units = 'eV/atom'
     elif obs == 'Force':
         units = 'eV/Å '
     cbar.ax.set_ylabel(f'{obs} RMSE, {units}', rotation=90, labelpad=6)
@@ -686,7 +686,7 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
     ax1.legend(title='Energy')
     ax2.legend(title='Force', loc='best', bbox_to_anchor=(0, 0, 1, 0.85))
 
-    ax1.set_ylabel('Energy RMSE, eV')
+    ax1.set_ylabel('Energy RMSE, eV/atom')
     ax2.set_ylabel('Force component RMSE, eV/Å')
 
     ax2.set_xlabel('Iteration')
@@ -715,10 +715,10 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
     ys_train = [at.info['pca_coord'][1] for at in atoms if 'iter' in at.info['config_type']]
 
     if colour_by_energy:
-        energies = [at.info['dft_energy'] for at in atoms if 'iter' in at.info['config_type']]
+        energies = [at.info['dft_energy']/len(at) for at in atoms if 'iter' in at.info['config_type']]
         plt.scatter(xs_train, ys_train, c=energies, cmap='inferno', label='training points')
         cb = plt.colorbar()
-        cb.set_label('DFT energy, eV')
+        cb.set_label('DFT energy, eV/atom')
 
     else:
         colors_train_names = [at.info['config_type'] for at in atoms if 'iter' in at.info['config_type']]
@@ -953,7 +953,7 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
         atoms = [at for at in atoms if at is not None]
         gap_fnames = [gap_fname for gap_fname in gap_fnames if gap_fname is not None]
 
-        dft_energies = [at.info['dft_energy'] - dft_min for at in atoms]
+        dft_energies = [at.info['dft_energy']/len(at) - dft_min/len(at) for at in atoms]
         dft_fmaxs = [max(at.arrays['dft_forces'].flatten()) for at in atoms]
 
         fig1 = plt.figure(figsize=(12, 8))
@@ -975,14 +975,14 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
             gap_fname = os.path.join(gaps_dir, gap_fname)
             gap = Potential(param_filename=gap_fname)
 
-            gap_energies = []
+            gap_energies_shifted = []
             gap_fmaxes = []
             for aa in atoms:
                 at = aa.copy()
                 at.set_calculator(gap)
-                gap_energies.append(at.get_potential_energy())
+                gap_energies_shifted.append((at.get_potential_energy()-dft_min)/len(at))
                 gap_fmaxes.append(max(at.get_forces().flatten()))
-            gap_energies_shifted = [e - dft_min for e in gap_energies]
+            # gap_energies_shifted = [e - dft_min for e in gap_energies]
 
             c = cmap(colors[idx%10])
 
@@ -1021,7 +1021,7 @@ def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimize
             ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
 
         ax2.set_title(f'Energy error wrt DFT-OPTG structure on GAP_i-optimised structures {super_idx+1}')
-        ax2.set_ylabel('|E - E$_{DFT\ OPTG}$|, eV', fontsize=12)
+        ax2.set_ylabel('|E - E$_{DFT\ OPTG}$|, eV/atom', fontsize=12)
         # fig2.tight_layout()
 
         ax1.set_title(f'Maximum force component on GAP_i-optimised structures {super_idx+1}')
