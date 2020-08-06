@@ -104,7 +104,7 @@ def do_opt(at, gap_fname, dft_calc, traj_name, dft_stride=5, fmax=0.01,
 
     print('writing atoms for', traj_name)
     write(f'{traj_name}.xyz', traj, 'extxyz', write_results=False)
-    write(f'{traj_name}_at.xyz', at, 'extxyz', write_results=False)
+    # write(f'{traj_name}_at.xyz', at, 'extxyz', write_results=False)
 
 
 def get_data(opt_fnames):
@@ -112,11 +112,11 @@ def get_data(opt_fnames):
     all_es = []
     for file in opt_fnames:
         this_dict = {}
-        print('reading:', file)
-        if os.path.isfile(file):
-            print('file found by os.path.isfile')
-        else:
-            print('file not found by os.path.isfile')
+        # print('reading:', file)
+        # if os.path.isfile(file):
+        #     print('file found by os.path.isfile')
+        # else:
+        #     print('file not found by os.path.isfile')
         ats = read(file, ':')
         this_dict['gap_es'] = [at.info['gap_energy'] / len(at) for at in ats]
         this_dict['gap_fmaxs'] = [max(at.arrays['gap_forces'].flatten()) for
@@ -143,8 +143,9 @@ def get_data(opt_fnames):
     return all_data, shift_by
 
 
-def plot_opt_plot(opt_fnames):
+def plot_opt_plot(opt_fnames, prefix=None):
     all_data, shift_by = get_data(opt_fnames)
+    print(shift_by)
 
     fig1 = plt.figure(figsize=(7, 5))
     ax1 = plt.gca()
@@ -153,9 +154,10 @@ def plot_opt_plot(opt_fnames):
     ax2 = plt.gca()
 
     for idx, dt in enumerate(all_data):
-        ax1.plot(range(len(dt['gap_es'])), sft(dt['gap_es'], shift_by),
+
+        ax1.plot(range(len(dt['gap_es'])), dt['gap_es'],
                  label=f'GAP {idx}')
-        ax1.scatter(dt['dft_idx'], sft(dt['dft_es'], shift_by), marker='x',
+        ax1.scatter(dt['dft_idx'], dt['dft_es'], marker='x',
                     label=f'DFT {idx}')
 
         ax2.plot(range(len(dt['gap_fmaxs'])), dt['gap_fmaxs'],
@@ -164,7 +166,7 @@ def plot_opt_plot(opt_fnames):
                     label=f'DFT {idx}')
 
     for ax in [ax1, ax2]:
-        ax.set_yscale('log')
+        # ax.set_yscale('log')
         ax.set_xlabel('optimisation step')
         ax.grid(color='lightgrey')
         ax.legend()
@@ -173,17 +175,31 @@ def plot_opt_plot(opt_fnames):
                                             minor_thresholds=(2, 0.4))
         ax.get_yaxis().set_minor_formatter(formatter)
 
-    ax1.set_ylabel('energy wrt min E / eV/atom')
+    ax2.set_yscale('log')
+
+    ax1.set_ylabel('energy / eV/atom')
     ax2.set_ylabel('Fmax / eV/A')
 
-    fig1.savefig('optg_gap_tests/gap_energy_optg.pdf')
-    fig2.savefig('optg_gap_tests/gap_fmax_optg.pdf')
+    if prefix is None: 
+        prefix = 'gap'
+
+    ax1.set_title(f'energy, {prefix}')
+    ax2.set_title(f'Fmax, {prefix}')
+
+    fig1.savefig(f'optg_gap_tests/{prefix}_energy_optg.png', dpi=300)
+    fig2.savefig(f'optg_gap_tests/{prefix}_fmax_optg.png', dpi=300)
 
 
 def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
                   no_runs=4, fmax=0.01, dft_stride=5):
     if not os.path.isdir('optg_gap_tests'):
         os.makedirs('optg_gap_tests')
+
+    gap_title = os.path.splitext(os.path.basename(gap_fname))[0]
+    mol_title = os.path.splitext(os.path.basename(first_guess))[0]
+    prefix = gap_title + ' ' + mol_title
+
+
 
     fg = read(first_guess)
     if 'dft_energy' in fg.info.keys():
@@ -209,4 +225,4 @@ def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
     fnames += [f'optg_gap_tests/opt_{idx}_rattled_fg.xyz' for idx in
                range(1, no_runs)]
 
-    plot_opt_plot(fnames)
+    plot_opt_plot(fnames, prefix)
