@@ -186,20 +186,18 @@ def plot_opt_plot(opt_fnames, prefix=None):
     ax1.set_title(f'energy, {prefix}')
     ax2.set_title(f'Fmax, {prefix}')
 
-    fig1.savefig(f'optg_gap_tests/{prefix}_energy_optg.png', dpi=300)
-    fig2.savefig(f'optg_gap_tests/{prefix}_fmax_optg.png', dpi=300)
+    fig1.savefig(f'{prefix}_energy_optg.png', dpi=300)
+    fig2.savefig(f'{prefix}_fmax_optg.png', dpi=300)
 
 
 def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
-                  no_runs=4, fmax=0.01, dft_stride=5):
-    if not os.path.isdir('optg_gap_tests'):
-        os.makedirs('optg_gap_tests')
+                  no_runs=4, fmax=0.01, dft_stride=5, output_dir='optg_gap_tests'):
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
 
     gap_title = os.path.splitext(os.path.basename(gap_fname))[0]
     mol_title = os.path.splitext(os.path.basename(first_guess))[0]
-    prefix = gap_title + ' ' + mol_title
-
-
+    prefix = os.path.join(output_dir,  gap_title + '_' + mol_title)
 
     fg = read(first_guess)
     if 'dft_energy' in fg.info.keys():

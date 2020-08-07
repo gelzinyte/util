@@ -241,7 +241,7 @@ def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
     subprocess.run(command, shell=True)
     atoms = read('./tmp_atoms.xyz', index=':')
     os.remove('./tmp_atoms.xyz')
-    es = [at.info['energy'] for at in atoms]
+    es = [at.info['energy']/len(at) for at in atoms]
     if label is none:
         label = 'GAP: only 2b'
     if color is none:
@@ -263,7 +263,7 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
     energies = []
     for at in dimer:
         at.set_calculator(calc)
-        energies.append(at.get_potential_energy())
+        energies.append(at.get_potential_energy()/len(at))
 
     #clean this up majorly
     if color is None:
@@ -276,7 +276,7 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
             for sym in dimer_name:
                 for iso_at in isolated_atoms:
                     if sym in iso_at.symbols:
-                        e_shift +=iso_at.info['dft_energy']
+                        e_shift +=iso_at.info['dft_energy']/len(iso_at)
             energies = [e + e_shift for e in energies]
         color='tab:green'
 
@@ -385,7 +385,7 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
     for ax, dimer in zip(axes_main, dimers):
         ax.legend(loc='upper right')
         ax.set_title(dimer)
-        ax.set_ylabel('energy (eV)')
+        ax.set_ylabel('energy (eV/atom)')
         ax.grid(color='lightgrey')
 
         e_shift = 0
