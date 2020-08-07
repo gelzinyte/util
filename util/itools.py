@@ -183,8 +183,8 @@ def plot_opt_plot(opt_fnames, prefix=None):
     if prefix is None: 
         prefix = 'gap'
 
-    ax1.set_title(f'energy, {prefix}')
-    ax2.set_title(f'Fmax, {prefix}')
+    ax1.set_title(f'energy for optg trajectory, {prefix}')
+    ax2.set_title(f'Fmax for optg trajectory, {prefix}')
 
     fig1.savefig(f'{prefix}_energy_optg.png', dpi=300)
     fig2.savefig(f'{prefix}_fmax_optg.png', dpi=300)
@@ -208,9 +208,9 @@ def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
         print(f'\n---RUN: {run_idx}\n')
         at = fg.copy()
         if run_idx == 0:
-            traj_name = f'optg_gap_tests/opt_{run_idx}_original_fg'
+            traj_name = f'{output_dir}/opt_{run_idx}_original_fg'
         else:
-            traj_name = f'optg_gap_tests/opt_{run_idx}_rattled_fg'
+            traj_name = f'{output_dir}/opt_{run_idx}_rattled_fg'
             at.rattle(stdev=0.1, seed=run_idx + 592)
 
         if not os.path.isfile(f'{traj_name}.xyz'):
@@ -219,8 +219,8 @@ def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
         else:
             print(f'found file: {traj_name}')
 
-    fnames = ['optg_gap_tests/opt_0_original_fg.xyz']
-    fnames += [f'optg_gap_tests/opt_{idx}_rattled_fg.xyz' for idx in
+    fnames = [f'{output_dir}/opt_0_original_fg.xyz']
+    fnames += [f'{output_dir}/opt_{idx}_rattled_fg.xyz' for idx in
                range(1, no_runs)]
 
     plot_opt_plot(fnames, prefix)

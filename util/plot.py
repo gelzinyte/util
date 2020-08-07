@@ -220,6 +220,7 @@ def make_scatter_plots(param_fname, test_ats=None, output_dir='pictures', prefix
         picture_fname = os.path.join(output_dir, picture_fname)
 
     plt.suptitle(prefix)
+    # plt.tight_layout()
     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
     # plt.savefig(picture_fname, dpi=300)
     if close:
@@ -263,7 +264,7 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
     energies = []
     for at in dimer:
         at.set_calculator(calc)
-        energies.append(at.get_potential_energy()/len(at))
+        energies.append(at.get_potential_energy())
 
     #clean this up majorly
     if color is None:
@@ -276,7 +277,7 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
             for sym in dimer_name:
                 for iso_at in isolated_atoms:
                     if sym in iso_at.symbols:
-                        e_shift +=iso_at.info['dft_energy']/len(iso_at)
+                        e_shift +=iso_at.info['dft_energy']
             energies = [e + e_shift for e in energies]
         color='tab:green'
 
@@ -288,7 +289,7 @@ def make_ref_plot(dimer_name, ax, calc_type='dft'):
     dimer = read(atoms_fname, ':')
     distances = [at.get_distance(0, 1) for at in dimer]
     ref_data = util.get_E_F_dict(dimer, calc_type=calc_type)
-    ax.plot(distances, dict_to_vals(ref_data['energy']), label='(RKS) reference', linestyle='--', color='k')
+    ax.plot(distances, dict_to_vals(ref_data['energy'])*2, label='(RKS) reference', linestyle='--', color='k')
 
 
 def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fname=None, plot_2b_contribution=True, \
@@ -385,7 +386,7 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
     for ax, dimer in zip(axes_main, dimers):
         ax.legend(loc='upper right')
         ax.set_title(dimer)
-        ax.set_ylabel('energy (eV/atom)')
+        ax.set_ylabel('energy (eV)')
         ax.grid(color='lightgrey')
 
         e_shift = 0
