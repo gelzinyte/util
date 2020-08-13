@@ -105,7 +105,7 @@ def get_gap_2b_dict(param_fname):
             Z1 = int(Z1.split('=')[1])
             Z2 = re.search(r'Z2=\d', descriptor).group()
             Z2 = int(Z2.split('=')[1])
-            entry = ''.join(natural_sort([elem_symb_dict[Z1], elem_symb_dict[Z2]]))
+            entry = ''.join(util.natural_sort([elem_symb_dict[Z1], elem_symb_dict[Z2]]))
             desc_dict[entry] = i+1
     return desc_dict
 

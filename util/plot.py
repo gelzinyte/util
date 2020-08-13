@@ -242,10 +242,10 @@ def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
     subprocess.run(command, shell=True)
     atoms = read('./tmp_atoms.xyz', index=':')
     os.remove('./tmp_atoms.xyz')
-    es = [at.info['energy']/len(at) for at in atoms]
-    if label is none:
+    es = [at.info['energy'] for at in atoms]
+    if label is None:
         label = 'GAP: only 2b'
-    if color is none:
+    if color is None:
         color='tab:orange'
     ax.plot(distances, es, label=label, color=color)
 
@@ -253,7 +253,7 @@ def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
 def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fname=None):
     init_dimer = Atoms(dimer_name, positions=[(0, 0, 0), (0, 0, 2)])
 
-    distances = np.linspace(0.2, 6, 50)
+    distances = np.linspace(0.2, 9, 50)
 
     dimer = []
     for d in distances:
@@ -397,7 +397,8 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
         ylimits = (e_shift-ylim[0], e_shift+ylim[1])
         ylimits_default = ax.get_ylim()
         # ax.set_ylim(bottom=min(ylimits[0], ylimits_default[0]), top=max(ylimits_default[1], ylimits[1]))
-        ax.set_ylim(bottom=min(ylimits[0], ylimits_default[0]), top=ylimits[1])
+        # ax.set_ylim(bottom=min(ylimits[0], ylimits_default[0]), top=ylimits[1])
+        ax.set_xlim(0.03, 9)
 
     print('Plotting distance histogram')
     for ax, dimer in zip(axes_hist, dimers):

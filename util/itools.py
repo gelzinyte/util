@@ -191,7 +191,7 @@ def plot_opt_plot(opt_fnames, prefix=None):
 
 
 def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
-                  no_runs=4, fmax=0.01, dft_stride=5, output_dir='optg_gap_tests'):
+                  no_runs=4, fmax=0.01, dft_stride=5, output_dir='optg_gap_tests', seed_shift=483):
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
@@ -211,7 +211,7 @@ def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
             traj_name = f'{output_dir}/opt_{run_idx}_original_fg'
         else:
             traj_name = f'{output_dir}/opt_{run_idx}_rattled_fg'
-            at.rattle(stdev=0.1, seed=run_idx + 592)
+            at.rattle(stdev=0.1, seed=run_idx + seed_shift)
 
         if not os.path.isfile(f'{traj_name}.xyz'):
             print(f'\n---optimisation for {traj_name}\n')
