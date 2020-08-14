@@ -8,6 +8,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import subprocess
 import re
+import sys
+sys.path.append('/home/eg475/molpro_stuff/driver')
+from molpro import Molpro
 
 
 def plot_curve(dimer_name, multiplicities, orca_blocks, labels, distances, iso_at_mult):
@@ -60,6 +63,9 @@ def isolated_at_data(dimer_name, multiplicities):
     _orca_command = '/home/eg475/programs/orca/orca_4_2_1_linux_x86' \
                     '-64_openmpi314/orca'
 
+    if not os.path.isdir('xyzs'):
+        os.makedirs('xyzs')
+
     isolated_fname = f'xyzs/isolated_{dimer_name}.xyz'
     if not os.path.isfile(isolated_fname):
         isolated_names = list(dimer_name)
@@ -92,6 +98,9 @@ def isolated_at_data(dimer_name, multiplicities):
 def dimer_data(dimer_name, mult, orca_block, idx, distances=None):
     _orca_command = '/home/eg475/programs/orca/orca_4_2_1_linux_x86' \
                     '-64_openmpi314/orca'
+
+    if not os.path.isdir('xyzs'):
+        os.makedirs('xyzs')
 
     dimer_fname = f'xyzs/{dimer_name}_{idx}.xyz'
     orca_block_original = orca_block
@@ -129,7 +138,7 @@ def dimer_data(dimer_name, mult, orca_block, idx, distances=None):
 
                 at.set_calculator(calc)
                 at.info['dft_energy'] = at.get_potential_energy()
-                at.arrays['dft_forces'] = at.get_forces()
+                #at.arrays['dft_forces'] = at.get_forces()
                 write(at_fname, at, 'extxyz', write_results=False)
 
             prev_dist = dist
@@ -174,7 +183,7 @@ def analyse_orca_scf(file):
         for line in f:
             if 'SCF ITERATIONS' in line:
                 search = True
-            if 'SCF NOT CONVERGED AFTER 1000 CYCLES' in line or 'Energy ' \
+            if 'SCF NOT CONVERGED AFTER' in line or 'Energy ' \
                                                                 'Check ' \
                                                                 'signals ' \
                                                                 'convergence' in line:
@@ -221,3 +230,167 @@ def analyse_orca_scf(file):
         ax.set_yscale('log')
         ax.set_xlabel('iteration')
         ax.grid(color='lightgrey')
+
+
+def isolated_at_molpro_data(dimer_name, is_at_template_paths):
+
+
+    if not os.path.isdir('xyzs'):
+        os.makedirs('xyzs')
+
+    isolated_fname = f'xyzs/isolated_{dimer_name}.xyz'
+    if not os.path.isfile(isolated_fname):
+
+        print('getting isolated atom energies')
+
+
+
+        isolated_names = list(dimer_name)
+        isolated_ats = []
+
+        for name, template_path in zip(isolated_names, is_at_template_paths):
+
+            template_path = os.path.join(os.getcwd(), template_path)
+            with open(template_path, 'r') as f:
+                print('\nMolpro template:')
+                print(template_path)
+                for line in f.readlines():
+                    print(line.rstrip())
+                    if 'RKS' in line.upper():
+                        calc_type = 'RKS'
+                    elif 'UKS' in line.upper():
+                        calc_type = 'UKS'
+                print('\n')
+
+            calc_args = {'template': template_path,
+                         'molpro': '/opt/molpro/bin/molprop',
+                         'energy_from': calc_type,
+                         'extract_forces': False}
+
+            at = Atoms(name, positions=[(0, 0, 0)])
+
+            calc = Molpro(directory=f'MOLPRO_{name}', label='molpro_isolated_at', calc_args=calc_args)
+
+            at.set_calculator(calc)
+            at.info['dft_energy'] = at.get_potential_energy()
+            isolated_ats.append(at)
+        write(isolated_fname, isolated_ats, 'extxyz', write_results=False)
+    else:
+        print('loading', isolated_fname)
+        isolated_ats = read(isolated_fname, ':')
+    return isolated_ats
+
+
+
+def dimer_molpro_data(dimer_name, template_path, idx, distances):
+
+
+
+    if not os.path.isdir('xyzs'):
+        os.makedirs('xyzs')
+
+
+    dimer_fname = f'xyzs/{dimer_name}_{idx}.xyz'
+    if not os.path.isfile(dimer_fname):
+
+        print(f'getting {dimer_name} energies, idx={idx}')
+
+        template_path = os.path.join(os.getcwd(), template_path)
+        with open(template_path, 'r') as f:
+            print('\nMolpro template:')
+            print(template_path)
+            for line in f.readlines():
+                print(line.rstrip())
+                if 'RKS' in line.upper():
+                    calc_type = 'RKS'
+                elif 'UKS' in line.upper():
+                    calc_type = 'UKS'
+            print('\n')
+
+        calc_args = {'template': template_path,
+                     'molpro': '/opt/molpro/bin/molprop',
+                     'energy_from': calc_type,
+                     'extract_forces': False}
+
+        if distances is None:
+            distances = np.linspace(0.1, 6, 20)
+
+        dimer_at = Atoms(dimer_name, positions=((0, 0, -0.5), (0, 0, 0.5)))
+
+
+        for dist in tqdm(distances):
+            at_fname = f'xyzs/{dimer_name}_{idx}_{dist:.2f}.xyz'
+            if not os.path.isfile(at_fname):
+                at = dimer_at.copy()
+                at.set_distance(0, 1, dist)
+
+                label = f'molpro_{idx}_dist_{dist:.2f}'
+                label = label.replace('.', '_')
+                calc = Molpro(directory=f'MOLPRO_{dimer_name}', label=label, calc_args=calc_args)
+
+
+                at.set_calculator(calc)
+                at.info['dft_energy'] = at.get_potential_energy()
+                # at.arrays['dft_forces'] = at.get_forces()
+                write(at_fname, at, 'extxyz', write_results=False)
+
+
+        dimer_list = []
+        for dist in distances:
+            at = read(f'xyzs/{dimer_name}_{idx}_{dist:.2f}.xyz')
+            dimer_list.append(at)
+        write(dimer_fname, dimer_list, 'extxyz', write_results=False)
+    else:
+        print('loading', dimer_fname)
+        dimer_list = read(dimer_fname, ':')
+
+    return dimer_list
+
+
+def plot_molpro_curve(dimer_name, template_paths, labels, distances, is_at_template_paths):
+
+    isolated_ats = isolated_at_molpro_data(dimer_name, is_at_template_paths)
+
+    plt.figure(figsize=(10, 8))
+    ax = plt.gca()
+    min_e = 0
+
+    for idx, (label, template_path) in enumerate(
+            zip(labels, template_paths)):
+
+        dimer_ats = dimer_molpro_data(dimer_name, template_path,
+                               idx=idx, distances=distances)
+
+        distances = [at.get_distance(0, 1) for at in dimer_ats]
+        dft_energies = [at.info[f'dft_energy'] for at in dimer_ats]
+        if min(dft_energies) < min_e:
+            min_e = min(dft_energies)
+
+        marker = '.'
+        if idx % 2 == 0:
+            marker = 'x'
+
+        linestyle='-'
+        if idx % 3 == 0:
+            linestyle = '--'
+        elif idx % 3 == 1:
+            linestyle = '-.'
+
+        plt.plot(distances, dft_energies, linewidth=1.5, marker=marker, alpha=0.5,  linestyle=linestyle,
+                 label=f'{label}:{dft_energies[-1]:.2f}')
+
+    iso_ats_es = [at.info['dft_energy'] for at in isolated_ats]
+    hline_label = f'{dimer_name[0]} ({iso_ats_es[0]:.1f}) + {dimer_name[1]} ' \
+                  f'({iso_ats_es[1]:.1f}) = {sum(iso_ats_es):.1f}'
+    ax.axhline(y=sum(iso_ats_es), linestyle='-.', label=hline_label,
+               color='k', linewidth=0.8)
+
+    ax.set_xlabel('distance, Ang')
+    ax.set_ylabel('energy, eV')
+    ax.grid(color='lightgrey')
+    plt.legend()
+    plt.title(dimer_name)
+    plt.tight_layout()
+    ax.set_ylim(top=sum(iso_ats_es)+10,  bottom=min_e-5)
+    plt.savefig(f'{dimer_name}_dissociation_curve.png', dpi=300)
+    plt.show()

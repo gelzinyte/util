@@ -277,9 +277,12 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
             for sym in dimer_name:
                 for iso_at in isolated_atoms:
                     if sym in iso_at.symbols:
+                        print(f'dimer: {dimer_name}, symbol: {sym}, adding: {iso_at.info["dft_energy"]}')
                         e_shift +=iso_at.info['dft_energy']
             energies = [e + e_shift for e in energies]
         color='tab:green'
+
+    print(f'curve: {label}, dimer: {dimer_name}, last energy as plotted: {energies[-1]}')
 
     ax.plot(distances, energies, label=label, color=color)
 
