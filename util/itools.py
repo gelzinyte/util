@@ -11,6 +11,8 @@ from ase.optimize.precon import PreconLBFGS
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from util import shift0 as sft
+import re
+import time
 
 
 def get_more_data(source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None):
@@ -224,3 +226,127 @@ def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
                range(1, no_runs)]
 
     plot_opt_plot(fnames, prefix)
+
+
+def get_no_cores(sub_script='sub.sh'):
+
+    with open(sub_script, 'r') as f:
+        for line in f:
+            if '-pe smp' in line:
+                no_cores = int(re.findall(r'\d+', line)[0])
+                return no_cores
+
+
+def read_args(arg_file='fit_args.txt'):
+    arguments = []
+    with open(arg_file, 'r') as f:
+        for line in f:
+            line = line.split(' #')[0]
+            arguments.append(line)
+    return arguments
+
+
+def get_more_data(source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None):
+    '''source_atoms - list of atoms to be rattled and added to dataset'''
+    atoms = []
+    for source_at in source_atoms:
+        for _ in range(n_dpoints):
+            at = source_at.copy()
+            at = util.rattle(at, stdev=stdev, natoms=n_rattle_atoms)
+            calc.reset()
+            at.set_calculator(calc)
+            at.info['dft_energy'] = at.get_potential_energy()
+            at.arrays['dft_forces'] = at.get_forces()
+            if template_path is not None:
+                if not util.has_converged(template_path=template_path, molpro_out_path='MOLPRO/molpro.out'):
+                    raise RuntimeError('Molpro has not converged')
+            at.info['config_type'] = f'iter_{iter_no}'
+            at.set_cell([20, 20, 20])
+            atoms.append(at)
+    return atoms
+
+
+def par_get_more_data(no_cores, source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None):
+
+    if not os.path.isdir('par_atoms'):
+        os.makedirs('par_atoms')
+
+    atoms_list = prepare_atoms(source_atoms, n_dpoints, n_rattle_atoms, stdev)
+    calc_labels, calc_commands = prepare_input_get_calc_commands_and_labels(calc, atoms_list, iter_no)
+    sub_script_fnames = prepare_sub_scripts(calc_commands)
+    is_job_finished = run_calculations(sub_script_fnames)
+
+    time.sleep(10)
+
+    atoms = read_job_outputs(calc_labels, is_job_finished)
+
+
+def read_job_outputs(calc_labels, is_job_finished):
+
+    out = subprocess.run('qstat', shell=True, capture_output=True)
+    qstat = out.stdout
+    return None
+
+
+def run_read_calculations(sub_script_fnames):
+
+    is_job_finished = {}
+    for fname in sub_script_fnames:
+        out = subprocess.run(f'qsub {fname}', shell=True, capture_output=True)
+        if len(out.stderr)!=0:
+            raise RuntimeError('script launch ended with error')
+        job_no = int(re.findall('\d+', out.stdout)[0])
+        is_job_finished[job_no] = False
+
+    return is_job_finished
+
+
+def prepare_sub_scripts(calc_commands):
+    sub_head = '#!/bin/bash \n'+\
+               '#$ -pe smp 1 # no of threads to use\n'+\
+               '#$ -l h_rt=0:15:00 #max time of job; will get cleared after\n'+\
+               "#$ -q  'orinoco' # the two queues\n"+\
+               '#$ -S /bin/bash\n'
+               # '#$ -N run\n'+\
+
+    sub_tail = '#$ -j yes\n'+\
+               '#$ -cwd\n'+\
+               'export  OMP_NUM_THREADS=${NSLOTS} # tells not to use more threads than specified above.\n'
+
+    sub_names = []
+    for idx, command in enumerate(calc_commands):
+        name = f'sub_{idx}.sh'
+        text = sub_head + f'#$ -N r{idx}\n' + sub_tail +  command + '\n'
+        with open(name, 'w') as f:
+            f.write(text)
+        sub_names.append(name)
+
+    return sub_names
+
+
+def prepare_input_get_calc_commands_and_labels(calc, atoms_list, iter_no):
+    orig_calc_label = calc.label
+
+    calc_commands = []
+    calc_labels = []
+    for idx, atoms in enumerate(atoms_list):
+        label = f'{orig_calc_label}_iter_{iter_no}_at_{idx}'
+        calc_labels.append(label)
+        calc.label = label
+        calc.write_input(atoms)
+        command = calc.command.replace('PREFIX', label)
+        calc_commands.append(command)
+
+    return calc_labels, calc_commands
+
+
+def prepare_atoms(source_atoms, n_dpoints, n_rattle_atoms, stdev):
+    atoms = []
+    for source_at in source_atoms:
+        for _ in range(n_dpoints):
+            at = source_at.copy()
+            at = util.rattle(at, stdev=stdev, natoms=n_rattle_atoms)
+            atoms.append(at)
+
+    return atoms
+
