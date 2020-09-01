@@ -11,6 +11,7 @@ from ase.optimize.precon import PreconLBFGS
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from util import shift0 as sft
+from util import urdkit
 import re
 import time
 
@@ -35,7 +36,7 @@ def get_more_data(source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc,
     return atoms
 
 
-def fit_gap(idx, descriptors, default_sigma):
+def fit_gap(idx, descriptors, default_sigma, config_type_sigma=None):
     train_file = f'xyzs/dset_{idx}.xyz'
     gap_fname = f'gaps/gap_{idx}.xml'
     out_fname = f'gaps/out_{idx}.txt'
@@ -43,7 +44,8 @@ def fit_gap(idx, descriptors, default_sigma):
     desc = deepcopy(descriptors)
 
     command = ugap.make_gap_command(gap_filename=gap_fname, training_filename=train_file, descriptors_dict=desc,
-                                  default_sigma=default_sigma, output_filename=out_fname, glue_fname='glue_orca.xml')
+                                  default_sigma=default_sigma, output_filename=out_fname, glue_fname='glue_orca.xml',
+                                    config_type_sigma=config_type_sigma)
 
     print(f'\n-------GAP {idx} command\n')
     print(command)
@@ -82,7 +84,7 @@ def extend_dset(iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=N
 
 
 def do_opt(at, gap_fname, dft_calc, traj_name, dft_stride=5, fmax=0.01,
-           steps=200):
+           steps=199):
     gap = Potential(param_filename=gap_fname)
 
     at.set_calculator(gap)
@@ -106,7 +108,7 @@ def do_opt(at, gap_fname, dft_calc, traj_name, dft_stride=5, fmax=0.01,
 
     print('writing atoms for', traj_name)
     write(f'{traj_name}.xyz', traj, 'extxyz', write_results=False)
-    # write(f'{traj_name}_at.xyz', at, 'extxyz', write_results=False)
+    write(f'{traj_name}_at.xyz', at, 'extxyz', write_results=False)
 
 
 def get_data(opt_fnames):
@@ -157,15 +159,21 @@ def plot_opt_plot(opt_fnames, prefix=None):
 
     for idx, dt in enumerate(all_data):
 
+        label_gap = None
+        label_dft = None
+        if idx==0:
+            label_gap = 'GAP trajectory'
+            label_dft = 'DFT re-evaluation'
+
         ax1.plot(range(len(dt['gap_es'])), dt['gap_es'],
-                 label=f'GAP {idx}')
+                 label=label_gap)
         ax1.scatter(dt['dft_idx'], dt['dft_es'], marker='x',
-                    label=f'DFT {idx}')
+                    label=label_dft, )
 
         ax2.plot(range(len(dt['gap_fmaxs'])), dt['gap_fmaxs'],
-                 label=f'GAP {idx}')
+                 label=label_gap)
         ax2.scatter(dt['dft_idx'], dt['dft_fmaxs'], marker='x',
-                    label=f'DFT {idx}')
+                    label=label_dft)
 
     for ax in [ax1, ax2]:
         # ax.set_yscale('log')
@@ -185,8 +193,8 @@ def plot_opt_plot(opt_fnames, prefix=None):
     if prefix is None: 
         prefix = 'gap'
 
-    ax1.set_title(f'energy for optg trajectory, {prefix}')
-    ax2.set_title(f'Fmax for optg trajectory, {prefix}')
+    ax1.set_title(f'geometry optimisation of perturbed structures')
+    ax2.set_title(f'geometry optimisation of perturbed structures')
 
     fig1.savefig(f'{prefix}_energy_optg.png', dpi=300)
     fig2.savefig(f'{prefix}_fmax_optg.png', dpi=300)
@@ -194,6 +202,7 @@ def plot_opt_plot(opt_fnames, prefix=None):
 
 def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
                   no_runs=4, fmax=0.01, dft_stride=5, output_dir='optg_gap_tests', seed_shift=483):
+    print("run's random seed:", seed_shift)
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
@@ -265,88 +274,10 @@ def get_more_data(source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc,
             atoms.append(at)
     return atoms
 
-
-def par_get_more_data(no_cores, source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None):
-
-    if not os.path.isdir('par_atoms'):
-        os.makedirs('par_atoms')
-
-    atoms_list = prepare_atoms(source_atoms, n_dpoints, n_rattle_atoms, stdev)
-    calc_labels, calc_commands = prepare_input_get_calc_commands_and_labels(calc, atoms_list, iter_no)
-    sub_script_fnames = prepare_sub_scripts(calc_commands)
-    is_job_finished = run_calculations(sub_script_fnames)
-
-    time.sleep(10)
-
-    atoms = read_job_outputs(calc_labels, is_job_finished)
-
-
-def read_job_outputs(calc_labels, is_job_finished):
-
-    out = subprocess.run('qstat', shell=True, capture_output=True)
-    qstat = out.stdout
-    return None
-
-
-def run_read_calculations(sub_script_fnames):
-
-    is_job_finished = {}
-    for fname in sub_script_fnames:
-        out = subprocess.run(f'qsub {fname}', shell=True, capture_output=True)
-        if len(out.stderr)!=0:
-            raise RuntimeError('script launch ended with error')
-        job_no = int(re.findall('\d+', out.stdout)[0])
-        is_job_finished[job_no] = False
-
-    return is_job_finished
-
-
-def prepare_sub_scripts(calc_commands):
-    sub_head = '#!/bin/bash \n'+\
-               '#$ -pe smp 1 # no of threads to use\n'+\
-               '#$ -l h_rt=0:15:00 #max time of job; will get cleared after\n'+\
-               "#$ -q  'orinoco' # the two queues\n"+\
-               '#$ -S /bin/bash\n'
-               # '#$ -N run\n'+\
-
-    sub_tail = '#$ -j yes\n'+\
-               '#$ -cwd\n'+\
-               'export  OMP_NUM_THREADS=${NSLOTS} # tells not to use more threads than specified above.\n'
-
-    sub_names = []
-    for idx, command in enumerate(calc_commands):
-        name = f'sub_{idx}.sh'
-        text = sub_head + f'#$ -N r{idx}\n' + sub_tail +  command + '\n'
-        with open(name, 'w') as f:
-            f.write(text)
-        sub_names.append(name)
-
-    return sub_names
-
-
-def prepare_input_get_calc_commands_and_labels(calc, atoms_list, iter_no):
-    orig_calc_label = calc.label
-
-    calc_commands = []
-    calc_labels = []
-    for idx, atoms in enumerate(atoms_list):
-        label = f'{orig_calc_label}_iter_{iter_no}_at_{idx}'
-        calc_labels.append(label)
-        calc.label = label
-        calc.write_input(atoms)
-        command = calc.command.replace('PREFIX', label)
-        calc_commands.append(command)
-
-    return calc_labels, calc_commands
-
-
-def prepare_atoms(source_atoms, n_dpoints, n_rattle_atoms, stdev):
-    atoms = []
-    for source_at in source_atoms:
-        for _ in range(n_dpoints):
-            at = source_at.copy()
-            at = util.rattle(at, stdev=stdev, natoms=n_rattle_atoms)
-            atoms.append(at)
-
-    return atoms
+def get_structure_to_optimise(smi, seed, stdev=0.1):
+    urdkit.smi_to_xyz(smi, 'xyzs/mol_3d.xyz')
+    at = read('xyzs/mol_3d.xyz')
+    if seed is not None:
+        at.rattle(stdev=stdev, seed=seed)
+    return at
 

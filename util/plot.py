@@ -277,12 +277,12 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
             for sym in dimer_name:
                 for iso_at in isolated_atoms:
                     if sym in iso_at.symbols:
-                        print(f'dimer: {dimer_name}, symbol: {sym}, adding: {iso_at.info["dft_energy"]}')
+                        # print(f'dimer: {dimer_name}, symbol: {sym}, adding: {iso_at.info["dft_energy"]}')
                         e_shift +=iso_at.info['dft_energy']
             energies = [e + e_shift for e in energies]
         color='tab:green'
 
-    print(f'curve: {label}, dimer: {dimer_name}, last energy as plotted: {energies[-1]}')
+    # print(f'curve: {label}, dimer: {dimer_name}, last energy as plotted: {energies[-1]}')
 
     ax.plot(distances, energies, label=label, color=color)
 
@@ -296,7 +296,7 @@ def make_ref_plot(dimer_name, ax, calc_type='dft'):
 
 
 def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fname=None, plot_2b_contribution=True, \
-                      plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None, ylim=(15, 25), close=False):
+                      plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None, ylim=(15, 25), close=True):
     # param_fname - list of param_fnames, most often one
 
     # train_ats = read(train_fname, index=':')
@@ -712,7 +712,7 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
     atoms = read(xyz_fname, ':')
     cmap = mpl.cm.get_cmap('tab20')
 
-    fig = plt.figure(figsize=(14, 8))
+    fig = plt.figure(figsize=(7, 4))
 
 
     # training set points
@@ -742,7 +742,7 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
 
     # optg_points
     color_map_opt = {'first_guess': cmap(0), 'opt_1': cmap(0.1), 'opt_2': cmap(0.2), 'opt_3': cmap(0.3),\
-                     'opt_4': cmap(0.4), 'opt_5': cmap(0.5), 'opt_6':cmap(0.6), 'opt_7':cmap(0.7), 'opt_8':cmap(0.8), 'opt_9':cmap(0.9), 'opt_10':cmap(1), 'dft_optg': 'white',\
+                     'opt_4': cmap(0.4), 'opt_5': cmap(0.5), 'opt_6':cmap(0.6), 'opt_7':cmap(0.7), 'opt_8':cmap(0.8), 'opt_9':cmap(0.9), 'opt_10':cmap(1), 'dft_optg': 'k',\
                                              'opt_11': cmap(0.1), 'opt_12': cmap(0.2), 'opt_13': cmap(0.3),\
                      'opt_14': cmap(0.4), 'opt_15': cmap(0.5), 'opt_16': cmap(0.6), 'opt_17': cmap(0.7), 'opt_18': cmap(0.8),\
                      'opt_19': cmap(0.9), 'opt_20': cmap(1), 'opt_21':cmap(0.1)}
@@ -752,13 +752,27 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
     for at in optg_ats:
         entry = {}
         label = at.info['config_type']
-        entry['label'] = label
+
+        # for nice plot in presentation
+        if label=='first_guess':
+            label_new = 'starting conformation'
+        elif label=='dft_optg':
+            label_new='DFT equilibrium'
+        elif 'opt' in label:
+            no = re.findall('\d', label)[0]
+            label_new = f'GAP{no}-optimised'
+
+
+
+        entry['label'] = label_new
+        # entry['label'] = label
         entry['x'] = at.info['pca_coord'][0]
         entry['y'] = at.info['pca_coord'][1]
         entry['color'] = color_map_opt[label]
         optg_pts.append(entry)
 
-
+    #  no annotation
+    annotate = False
     for idx, pt in enumerate(optg_pts):
 
         # if idx != 0 and idx != 1 and idx != len(optg_pts)-1:
@@ -769,27 +783,31 @@ def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
 
         plt.scatter(pt['x'], pt['y'], color=pt['color'], label=label, marker='X', linewidth=0.5, s=80, \
                     linewidths=10, edgecolors='k')
-        no = re.findall(r'\d+', pt['label'])
-        if len(no)>0:
-            plt.gca().annotate(int(no[0]), xy=(pt['x'], pt['y']))
+        if annotate:
+            no = re.findall(r'\d+', pt['label'])
+            if len(no)>0:
+                plt.gca().annotate(int(no[0]), xy=(pt['x'], pt['y']))
 
 
-    plt.legend()
+    # plt.legend()
     which=''
     if 'default' in pic_name:
         which = 'default soap'
     elif 'my_soap' in pic_name:
         which = 'my soap'
 
-    plt.title(f'kPCA ({which}) on GAP_i training sets and GAP_i-optimised structures')
+    # plt.title(f'kPCA ({which}) on GAP_i training sets and GAP_i-optimised structures')
+    plt.title(f'kPCA of data gathered during GAP training cycles')
     plt.xlabel('Principal component 1')
     plt.ylabel('Principal component 2')
 
     if output_dir is not None:
         pic_name = os.path.join(output_dir, pic_name)
 
+    # plt.ylim(top=0.6)
     plt.tight_layout()
-    plt.savefig(f'{pic_name}.png', dpi=300)
+    # plt.savefig(f'{pic_name}.png', dpi=300)
+    plt.savefig(f'{pic_name}.pdf')
     plt.close(fig)
 
 
