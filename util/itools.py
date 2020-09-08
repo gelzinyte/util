@@ -2,6 +2,7 @@
 import os
 from ase.io import read, write
 import util
+from util import qm
 from util import ugap
 from util.vib import Vibrations
 import subprocess
@@ -19,27 +20,10 @@ sys.path.append('/home/eg475/molpro_stuff/driver')
 import molpro as mp
 
 
-# def get_more_data(source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None):
-#     '''source_atoms - list of atoms to be rattled and added to dataset'''
-#     atoms = []
-#     for source_at in source_atoms:
-#         for _ in range(n_dpoints):
-#             at = source_at.copy()
-#             at = util.rattle(at, stdev=stdev, natoms=n_rattle_atoms)
-#             calc.reset()
-#             at.set_calculator(calc)
-#             at.info['dft_energy'] = at.get_potential_energy()
-#             at.arrays['dft_forces'] = at.get_forces()
-#             if template_path is not None:
-#                 if not util.has_converged(template_path=template_path, molpro_out_path='MOLPRO/molpro.out'):
-#                     raise RuntimeError('Molpro has not converged')
-#             at.info['config_type'] = f'iter_{iter_no}'
-#             at.set_cell([20, 20, 20])
-#             atoms.append(at)
-#     return atoms
 
 
 def fit_gap(idx, descriptors, default_sigma, config_type_sigma=None):
+
     train_file = f'xyzs/dset_{idx}.xyz'
     gap_fname = f'gaps/gap_{idx}.xml'
     out_fname = f'gaps/out_{idx}.txt'
@@ -69,6 +53,8 @@ def optimise_structure(iter_no, atoms, fmax=1e-2, steps=500):
     return guess
 
 def get_structures(source_atoms, n_dpoints, n_rattle_atoms, stdev):
+    '''based on source atoms, this rattles the structures a number of times, which are then
+       re-evaluated with DFT of choice'''
     atoms = []
     for source_at in source_atoms:
         for _ in range(n_dpoints):
@@ -129,128 +115,6 @@ def do_opt(at, gap_fname, dft_calc, traj_name, dft_stride=5, fmax=0.01,
 
     print('writing atoms for', traj_name)
     write(f'{traj_name}.xyz', traj, 'extxyz', write_results=False)
-    write(f'{traj_name}_at.xyz', at, 'extxyz', write_results=False)
-
-
-def get_data(opt_fnames):
-    all_data = []
-    all_es = []
-    for file in opt_fnames:
-        this_dict = {}
-        ats = read(file, ':')
-        this_dict['gap_es'] = [at.info['gap_energy'] / len(at) for at in ats]
-        this_dict['gap_fmaxs'] = [max(at.arrays['gap_forces'].flatten()) for
-                                  at in ats]
-        dft_es = []
-        dft_fmaxs = []
-        dft_idx = []
-        for idx, at in enumerate(ats):
-            if 'dft_energy' in at.info.keys():
-                dft_idx.append(idx)
-                dft_es.append(at.info['dft_energy'] / len(at))
-                dft_fmaxs.append(max(at.arrays['dft_forces'].flatten()))
-        this_dict['dft_es'] = dft_es
-        this_dict['dft_fmaxs'] = dft_fmaxs
-        this_dict['dft_idx'] = dft_idx
-
-        all_es += this_dict['gap_es']
-        all_es += dft_es
-
-        all_data.append(this_dict)
-
-    shift_by = min(all_es)
-
-    return all_data, shift_by
-
-
-def plot_opt_plot(opt_fnames, prefix=None):
-    all_data, shift_by = get_data(opt_fnames)
-    print(shift_by)
-
-    fig1 = plt.figure(figsize=(7, 5))
-    ax1 = plt.gca()
-
-    fig2 = plt.figure(figsize=(7, 5))
-    ax2 = plt.gca()
-
-    for idx, dt in enumerate(all_data):
-
-        label_gap = None
-        label_dft = None
-        if idx==0:
-            label_gap = 'GAP trajectory'
-            label_dft = 'DFT re-evaluation'
-
-        ax1.plot(range(len(dt['gap_es'])), dt['gap_es'],
-                 label=label_gap)
-        ax1.scatter(dt['dft_idx'], dt['dft_es'], marker='x',
-                    label=label_dft, )
-
-        ax2.plot(range(len(dt['gap_fmaxs'])), dt['gap_fmaxs'],
-                 label=label_gap)
-        ax2.scatter(dt['dft_idx'], dt['dft_fmaxs'], marker='x',
-                    label=label_dft)
-
-    for ax in [ax1, ax2]:
-        # ax.set_yscale('log')
-        ax.set_xlabel('optimisation step')
-        ax.grid(color='lightgrey')
-        ax.legend()
-        ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-        formatter = mpl.ticker.LogFormatter(labelOnlyBase=False,
-                                            minor_thresholds=(2, 0.4))
-        ax.get_yaxis().set_minor_formatter(formatter)
-
-    ax2.set_yscale('log')
-
-    ax1.set_ylabel('energy / eV/atom')
-    ax2.set_ylabel('Fmax / eV/A')
-
-    if prefix is None: 
-        prefix = 'gap'
-
-    ax1.set_title(f'geometry optimisation of perturbed structures')
-    ax2.set_title(f'geometry optimisation of perturbed structures')
-
-    fig1.savefig(f'{prefix}_energy_optg.png', dpi=300)
-    fig2.savefig(f'{prefix}_fmax_optg.png', dpi=300)
-
-
-def gap_optg_test(gap_fname, dft_calc, first_guess='xyzs/first_guess.xyz',
-                  no_runs=4, fmax=0.01, dft_stride=5, output_dir='optg_gap_tests', seed_shift=483):
-    print("run's random seed:", seed_shift)
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
-
-    gap_title = os.path.splitext(os.path.basename(gap_fname))[0]
-    mol_title = os.path.splitext(os.path.basename(first_guess))[0]
-    prefix = os.path.join(output_dir,  gap_title + '_' + mol_title)
-
-    fg = read(first_guess)
-    if 'dft_energy' in fg.info.keys():
-        del fg.info['dft_energy']
-        del fg.arrays['dft_forces']
-
-    for run_idx in range(no_runs):
-        print(f'\n---RUN: {run_idx}\n')
-        at = fg.copy()
-        if run_idx == 0:
-            traj_name = f'{output_dir}/opt_{run_idx}_original_fg'
-        else:
-            traj_name = f'{output_dir}/opt_{run_idx}_rattled_fg'
-            at.rattle(stdev=0.1, seed=run_idx + seed_shift)
-
-        if not os.path.isfile(f'{traj_name}.xyz'):
-            print(f'\n---optimisation for {traj_name}\n')
-            do_opt(at, gap_fname, dft_calc, traj_name, dft_stride, fmax)
-        else:
-            print(f'found file: {traj_name}')
-
-    fnames = [f'{output_dir}/opt_0_original_fg.xyz']
-    fnames += [f'{output_dir}/opt_{idx}_rattled_fg.xyz' for idx in
-               range(1, no_runs)]
-
-    plot_opt_plot(fnames, prefix)
 
 
 def get_no_cores(sub_script='sub.sh'):
@@ -284,7 +148,11 @@ def get_more_data(source_atoms, iter_no, calc):
     return source_atoms
 
 def get_structure_to_optimise(smi, seed, stdev=0.1):
-    
+    '''creates 3-D structure from smiles. if seed is not given, atoms are not rattled
+    and basic knowledge (e.g. aromatic rings are flat) and experimental torsion angles
+    aren't used. if seed is given, the conformers should be more accurate, but then
+    the structures are rattled.'''
+
     useBasicKnowledge = True
     useExpTorsionAnglePrefs = True
     if seed is None:
@@ -299,57 +167,9 @@ def get_structure_to_optimise(smi, seed, stdev=0.1):
     return at
 
 
-
-
-def get_parallel_molpro_energies_forces(atoms, no_cores, mp_template='template_molpro.txt',
-                                wdir='MOLPRO', energy_from='RKS', extract_forces=True):
-
-    mp_path = '/opt/molpro/bin/molprop'
-    dfile = mp.MolproDatafile(mp_template)
-
-    if not os.path.isdir(wdir):
-        os.makedirs(wdir)
-
-    original_wdir = os.getcwd()
-    os.chdir(wdir)
-
-    all_atoms = []
-
-    for at_batch in util.grouper(atoms, no_cores):
-
-        at_batch = [at for at in at_batch if at is not None]
-        bash_call = ''
-
-        for idx, at in enumerate(at_batch):
-            input_name = f'input_{idx}.xyz'
-            template_name = f'template_{idx}.txt'
-            output_name = f'output_{idx}'
-
-            write(input_name, at)
-
-            dfile['GEOM'] = [f'={input_name}']
-            dfile.write(template_name)
-
-            bash_call += f'{mp_path} {template_name} -o {output_name}.txt &\n'
-
-        bash_call += 'wait \n'
-        subprocess.run(bash_call, shell=True)
-
-        for idx in range(no_cores):
-            at = mp.read_xml_output(f'output_{idx}.xml', energy_from=energy_from,
-                                    extract_forces=extract_forces)
-            print(f'Energy that was read out: {at.info["energy"]}')
-            # print(at)
-            all_atoms.append(at)
-
-    os.chdir(original_wdir)
-    print(f'lenght of all atoms after parallel calculation: {len(all_atoms)}')
-    return all_atoms
-
-
 def get_more_data_mp_par(atoms_to_compute, iter_no, template_path, no_cores):
 
-    atoms = get_parallel_molpro_energies_forces(atoms_to_compute, no_cores, mp_template=template_path)
+    atoms = qm.get_parallel_molpro_energies_forces(atoms_to_compute, no_cores, mp_template=template_path)
     for at in atoms:
         print(f'energy that gets assigned to dft_energy {at.info["energy"]}')
         at.info['dft_energy'] = at.info['energy']

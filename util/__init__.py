@@ -287,3 +287,27 @@ def desymbolise_force_dict(my_dict):
                 force_dict[config_type] = np.append(force_dict[config_type], values)
 
     return force_dict
+
+def write_generic_submission_script(script_fname, job_name, command, no_cores=1):
+
+    bash_script_start = '#!/bin/bash \n' + \
+                        f'#$ -pe smp {no_cores} \n' + \
+                        '#$ -l h_rt=8:00:00 \n' + \
+                        '#$ -q  "orinoco" \n' + \
+                        '#$ -S /bin/bash \n'
+    # '#$ -N namename '
+    bash_script_middle = '#$ -j yes \n' + \
+                         '#$ -cwd \n' + \
+                         'echo "-- New Job --"\n ' + \
+                         'export  OMP_NUM_THREADS=${NSLOTS} \n' + \
+                         'echo "running molpro" \n '
+    # molpro command
+    # 'echo "-- The End--"
+
+
+    with open(script_fname, 'w') as f:
+        f.write(bash_script_start)
+        f.write(f'#$ -N {job_name}\n')
+        f.write(bash_script_middle)
+        f.write(f'{command} \n')
+        f.write('echo "--- The End ---"')

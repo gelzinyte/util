@@ -11,6 +11,8 @@ import re
 import sys
 sys.path.append('/home/eg475/molpro_stuff/driver')
 from molpro import Molpro
+import molpro as mp
+import util
 
 
 def plot_curve(dimer_name, multiplicities, orca_blocks, labels, distances, iso_at_mult):
@@ -414,26 +416,49 @@ def make_optg_template(source_template, optg_template, input_fname, output_fname
         for line in new_file:
             f.write(line)
 
-def write_generic_submission_script(script_fname, job_name, command, no_cores=1):
-
-    bash_script_start = '#!/bin/bash \n' + \
-                        f'#$ -pe smp {no_cores} \n' + \
-                        '#$ -l h_rt=8:00:00 \n' + \
-                        '#$ -q  "orinoco" \n' + \
-                        '#$ -S /bin/bash \n'
-    # '#$ -N namename '
-    bash_script_middle = '#$ -j yes \n' + \
-                         '#$ -cwd \n' + \
-                         'echo "-- New Job --"\n ' + \
-                         'export  OMP_NUM_THREADS=${NSLOTS} \n' + \
-                         'echo "running molpro" \n '
-    # molpro command
-    # 'echo "-- The End--"
 
 
-    with open(script_fname, 'w') as f:
-        f.write(bash_script_start)
-        f.write(f'#$ -N {job_name}\n')
-        f.write(bash_script_middle)
-        f.write(f'{command} \n')
-        f.write('echo "--- The End ---"')
+
+def get_parallel_molpro_energies_forces(atoms, no_cores, mp_template='template_molpro.txt',
+                                wdir='MOLPRO', energy_from='RKS', extract_forces=True):
+
+    mp_path = '/opt/molpro/bin/molprop'
+    dfile = mp.MolproDatafile(mp_template)
+
+    if not os.path.isdir(wdir):
+        os.makedirs(wdir)
+
+    original_wdir = os.getcwd()
+    os.chdir(wdir)
+
+    all_atoms = []
+
+    for at_batch in util.grouper(atoms, no_cores):
+
+        at_batch = [at for at in at_batch if at is not None]
+        bash_call = ''
+
+        for idx, at in enumerate(at_batch):
+            input_name = f'input_{idx}.xyz'
+            template_name = f'template_{idx}.txt'
+            output_name = f'output_{idx}'
+
+            write(input_name, at)
+
+            dfile['GEOM'] = [f'={input_name}']
+            dfile.write(template_name)
+
+            bash_call += f'{mp_path} {template_name} -o {output_name}.txt &\n'
+
+        bash_call += 'wait \n'
+        subprocess.run(bash_call, shell=True)
+
+        for idx in range(len(at_batch)):
+            at = mp.read_xml_output(f'output_{idx}.xml', energy_from=energy_from,
+                                    extract_forces=extract_forces)
+            all_atoms.append(at)
+            # os.remove(f'output_{idx}.xml')
+            # os.remove(f'output_{idx}.txt')
+
+    os.chdir(original_wdir)
+    return all_atoms
