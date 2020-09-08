@@ -14,26 +14,29 @@ from util import shift0 as sft
 from util import urdkit
 import re
 import time
+import sys
+sys.path.append('/home/eg475/molpro_stuff/driver')
+import molpro as mp
 
 
-def get_more_data(source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None):
-    '''source_atoms - list of atoms to be rattled and added to dataset'''
-    atoms = []
-    for source_at in source_atoms:
-        for _ in range(n_dpoints):
-            at = source_at.copy()
-            at = util.rattle(at, stdev=stdev, natoms=n_rattle_atoms)
-            calc.reset()
-            at.set_calculator(calc)
-            at.info['dft_energy'] = at.get_potential_energy()
-            at.arrays['dft_forces'] = at.get_forces()
-            if template_path is not None:
-                if not util.has_converged(template_path=template_path, molpro_out_path='MOLPRO/molpro.out'):
-                    raise RuntimeError('Molpro has not converged')
-            at.info['config_type'] = f'iter_{iter_no}'
-            at.set_cell([20, 20, 20])
-            atoms.append(at)
-    return atoms
+# def get_more_data(source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None):
+#     '''source_atoms - list of atoms to be rattled and added to dataset'''
+#     atoms = []
+#     for source_at in source_atoms:
+#         for _ in range(n_dpoints):
+#             at = source_at.copy()
+#             at = util.rattle(at, stdev=stdev, natoms=n_rattle_atoms)
+#             calc.reset()
+#             at.set_calculator(calc)
+#             at.info['dft_energy'] = at.get_potential_energy()
+#             at.arrays['dft_forces'] = at.get_forces()
+#             if template_path is not None:
+#                 if not util.has_converged(template_path=template_path, molpro_out_path='MOLPRO/molpro.out'):
+#                     raise RuntimeError('Molpro has not converged')
+#             at.info['config_type'] = f'iter_{iter_no}'
+#             at.set_cell([20, 20, 20])
+#             atoms.append(at)
+#     return atoms
 
 
 def fit_gap(idx, descriptors, default_sigma, config_type_sigma=None):
@@ -65,18 +68,36 @@ def optimise_structure(iter_no, atoms, fmax=1e-2, steps=500):
     write(f'xyzs/optimisation_{iter_no}.xyz', traj, 'extxyz', write_results=False)
     return guess
 
+def get_structures(source_atoms, n_dpoints, n_rattle_atoms, stdev):
+    atoms = []
+    for source_at in source_atoms:
+        for _ in range(n_dpoints):
+            at = source_at.copy()
+            at = util.rattle(at, stdev=stdev, natoms=n_rattle_atoms)
+            atoms.append(at)
+    return atoms
 
 
-def extend_dset(iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None, stride=5):
+def extend_dset(iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None,
+                stride=5, no_cores=1):
+
     # take every stride-th structure from trajectory, and always the last one
     opt_traj_name = f'xyzs/optimisation_{iter_no}'
     traj = read(opt_traj_name+'.traj', ':')
-    # skipping first structure, which is just first guess
+    # skipping first structure, which is just first guess and reading every
+    # stride-th plus the last structure
     source_atoms = traj[stride::stride]
     if len(traj) % stride != 1:
         source_atoms.append(traj[-1])
 
-    more_atoms = get_more_data(source_atoms, iter_no=iter_no+1, n_dpoints=n_dpoints, n_rattle_atoms=n_rattle_atoms, stdev=stdev, calc=calc, template_path=template_path)
+    atoms_to_compute = get_structures(source_atoms=source_atoms, n_dpoints=n_dpoints,
+                        n_rattle_atoms=n_rattle_atoms, stdev=stdev)
+
+    if no_cores == 1:
+        more_atoms = get_more_data(atoms_to_compute, iter_no=iter_no+1, calc=calc)
+    elif no_cores > 1 and template_path is not None:
+        more_atoms = get_more_data_mp_par(atoms_to_compute, iter_no=iter_no+1, template_path=template_path, no_cores=no_cores)
+
     old_dset = read(f'xyzs/dset_{iter_no}.xyz', index=':')
     write(f'xyzs/more_atoms_{iter_no+1}.xyz', more_atoms, 'extxyz', write_results=False)
     new_dset = old_dset + more_atoms
@@ -116,11 +137,6 @@ def get_data(opt_fnames):
     all_es = []
     for file in opt_fnames:
         this_dict = {}
-        # print('reading:', file)
-        # if os.path.isfile(file):
-        #     print('file found by os.path.isfile')
-        # else:
-        #     print('file not found by os.path.isfile')
         ats = read(file, ':')
         this_dict['gap_es'] = [at.info['gap_energy'] / len(at) for at in ats]
         this_dict['gap_fmaxs'] = [max(at.arrays['gap_forces'].flatten()) for
@@ -255,29 +271,95 @@ def read_args(arg_file='fit_args.txt'):
     return arguments
 
 
-def get_more_data(source_atoms, iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None):
+
+def get_more_data(source_atoms, iter_no, calc):
     '''source_atoms - list of atoms to be rattled and added to dataset'''
-    atoms = []
-    for source_at in source_atoms:
-        for _ in range(n_dpoints):
-            at = source_at.copy()
-            at = util.rattle(at, stdev=stdev, natoms=n_rattle_atoms)
-            calc.reset()
-            at.set_calculator(calc)
-            at.info['dft_energy'] = at.get_potential_energy()
-            at.arrays['dft_forces'] = at.get_forces()
-            if template_path is not None:
-                if not util.has_converged(template_path=template_path, molpro_out_path='MOLPRO/molpro.out'):
-                    raise RuntimeError('Molpro has not converged')
-            at.info['config_type'] = f'iter_{iter_no}'
-            at.set_cell([20, 20, 20])
-            atoms.append(at)
-    return atoms
+    for at in source_atoms:
+        calc.reset()
+        at.set_calculator(calc)
+        at.info['dft_energy'] = at.get_potential_energy()
+        at.arrays['dft_forces'] = at.get_forces()
+        at.info['config_type'] = f'iter_{iter_no}'
+        at.set_cell([20, 20, 20])
+    return source_atoms
 
 def get_structure_to_optimise(smi, seed, stdev=0.1):
-    urdkit.smi_to_xyz(smi, 'xyzs/mol_3d.xyz')
+    
+    useBasicKnowledge = True
+    useExpTorsionAnglePrefs = True
+    if seed is None:
+        useBasicKnowledge = False
+        useExpTorsionAnglePrefs = False
+
+    urdkit.smi_to_xyz(smi, 'xyzs/mol_3d.xyz', useExpTorsionAnglePrefs=useExpTorsionAnglePrefs, useBasicKnowledge=useBasicKnowledge)
+
     at = read('xyzs/mol_3d.xyz')
     if seed is not None:
         at.rattle(stdev=stdev, seed=seed)
     return at
+
+
+
+
+def get_parallel_molpro_energies_forces(atoms, no_cores, mp_template='template_molpro.txt',
+                                wdir='MOLPRO', energy_from='RKS', extract_forces=True):
+
+    mp_path = '/opt/molpro/bin/molprop'
+    dfile = MolproDatafile(mp_template)
+
+    if not os.path.isdir(wdir):
+        os.makedirs(wdir)
+
+    original_wdir = os.getcwd()
+    os.chdir(wdir)
+
+    all_atoms = []
+
+    for at_batch in util.grouper(atoms, no_cores):
+
+        at_batch = [at for at in at_batch if at is not None]
+        bash_call = ''
+
+        for idx, at in enumerate(at_batch):
+            input_name = f'input_{idx}.xyz'
+            template_name = f'template_{idx}.txt'
+            output_name = f'output_{idx}'
+
+            write(input_name, at)
+
+            dfile['GEOM'] = [f'={input_name}']
+            dfile.write(template_name)
+
+            bash_call += f'{mp_path} {template_name} -o {output_name}.txt &\n'
+
+        bash_call += 'wait \n'
+        subprocess.run(bash_call, shell=True)
+
+        for idx in range(no_cores):
+            at = mp.read_xml_output(f'output_{idx}.xml', energy_from=energy_from,
+                                    extract_forces=extract_forces)
+            all_atoms.append(at)
+
+    os.chdir(original_wdir)
+    return all_atoms
+
+
+def get_more_data_mp_par(atoms_to_compute, iter_no, template_path, no_cores):
+
+    atoms = get_parallel_molpro_energies_forces(atoms_to_compute, no_cores, mp_template=template_path)
+    for at in atoms:
+        at.info['dft_energy'] = at.info['energy']
+        at.arrays['dft_forces'] = at.arrays['forces']
+        at.info['config_type'] = f'iter_{iter_no}'
+        at.set_cell([20, 20, 20])
+    return source_atoms
+
+
+
+
+
+
+
+
+
 

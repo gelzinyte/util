@@ -17,9 +17,9 @@ def write_rdkit_xyz(mol, filename):
         f.write(xyz_str)
 
 
-def smi_to_xyz(smi, fname):
+def smi_to_xyz(smi, fname, useBasicKnowledge=True, useExpTorsionAnglePrefs=True):
     """Converts smiles to 3D and writes to xyz file"""
     mol = Chem.MolFromSmiles(smi)
     mol = Chem.AddHs(mol)
-    out = AllChem.EmbedMolecule(mol)
+    out = AllChem.EmbedMolecule(mol, useBasicKnowledge=useBasicKnowledge, useExpTorsionAnglePrefs=useExpTorsionAnglePrefs)
     write_rdkit_xyz(mol, fname)
