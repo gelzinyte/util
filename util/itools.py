@@ -305,7 +305,7 @@ def get_parallel_molpro_energies_forces(atoms, no_cores, mp_template='template_m
                                 wdir='MOLPRO', energy_from='RKS', extract_forces=True):
 
     mp_path = '/opt/molpro/bin/molprop'
-    dfile = MolproDatafile(mp_template)
+    dfile = mp.MolproDatafile(mp_template)
 
     if not os.path.isdir(wdir):
         os.makedirs(wdir)
@@ -338,9 +338,12 @@ def get_parallel_molpro_energies_forces(atoms, no_cores, mp_template='template_m
         for idx in range(no_cores):
             at = mp.read_xml_output(f'output_{idx}.xml', energy_from=energy_from,
                                     extract_forces=extract_forces)
+            print(f'Energy that was read out: {at.info["energy"]}')
+            # print(at)
             all_atoms.append(at)
 
     os.chdir(original_wdir)
+    print(f'lenght of all atoms after parallel calculation: {len(all_atoms)}')
     return all_atoms
 
 
@@ -348,11 +351,13 @@ def get_more_data_mp_par(atoms_to_compute, iter_no, template_path, no_cores):
 
     atoms = get_parallel_molpro_energies_forces(atoms_to_compute, no_cores, mp_template=template_path)
     for at in atoms:
+        print(f'energy that gets assigned to dft_energy {at.info["energy"]}')
         at.info['dft_energy'] = at.info['energy']
         at.arrays['dft_forces'] = at.arrays['forces']
         at.info['config_type'] = f'iter_{iter_no}'
         at.set_cell([20, 20, 20])
-    return source_atoms
+        del at.info['RKS_Energy']
+    return atoms
 
 
 

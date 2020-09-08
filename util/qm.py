@@ -394,3 +394,46 @@ def plot_molpro_curve(dimer_name, template_paths, labels, distances, is_at_templ
     ax.set_ylim(top=sum(iso_ats_es)+10,  bottom=min_e-5)
     plt.savefig(f'{dimer_name}_dissociation_curve.png', dpi=300)
     plt.show()
+
+def make_optg_template(source_template, optg_template, input_fname, output_fname):
+    new_file = []
+    with open(source_template, 'r') as f:
+        for line in f.readlines():
+            if 'force' in line:
+                continue
+            # overrides
+            elif 'geom=' in line:
+                # add full path?
+                new_file.append(f'geom={input_fname}\n')
+                continue
+            new_file.append(line)
+
+    new_file.append(
+        f'optg, maxit=500\nput, xyz, {output_fname}\n')
+    with open(optg_template, 'w') as f:
+        for line in new_file:
+            f.write(line)
+
+def write_generic_submission_script(script_fname, job_name, command, no_cores=1):
+
+    bash_script_start = '#!/bin/bash \n' + \
+                        f'#$ -pe smp {no_cores} \n' + \
+                        '#$ -l h_rt=8:00:00 \n' + \
+                        '#$ -q  "orinoco" \n' + \
+                        '#$ -S /bin/bash \n'
+    # '#$ -N namename '
+    bash_script_middle = '#$ -j yes \n' + \
+                         '#$ -cwd \n' + \
+                         'echo "-- New Job --"\n ' + \
+                         'export  OMP_NUM_THREADS=${NSLOTS} \n' + \
+                         'echo "running molpro" \n '
+    # molpro command
+    # 'echo "-- The End--"
+
+
+    with open(script_fname, 'w') as f:
+        f.write(bash_script_start)
+        f.write(f'#$ -N {job_name}\n')
+        f.write(bash_script_middle)
+        f.write(f'{command} \n')
+        f.write('echo "--- The End ---"')
