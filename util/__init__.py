@@ -300,7 +300,9 @@ def write_generic_submission_script(script_fname, job_name, command, no_cores=1)
                          '#$ -cwd \n' + \
                          'echo "-- New Job --"\n ' + \
                          'export  OMP_NUM_THREADS=${NSLOTS} \n' + \
-                         'echo "running molpro" \n '
+                         'source /home/eg475/programs/miniconda3/etc/profile.d/conda.sh \n' + \
+                         'conda activate general \n' + \
+                         'echo "running script" \n '
     # molpro command
     # 'echo "-- The End--"
 
