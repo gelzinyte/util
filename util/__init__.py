@@ -292,8 +292,8 @@ def write_generic_submission_script(script_fname, job_name, command, no_cores=1)
 
     bash_script_start = '#!/bin/bash \n' + \
                         f'#$ -pe smp {no_cores} \n' + \
-                        '#$ -l h_rt=8:00:00 \n' + \
-                        '#$ -q  "orinoco" \n' + \
+                        '#$ -l h_rt=4:00:00 \n' + \
+                        '#$ -q  "orinoco|tomsk" \n' + \
                         '#$ -S /bin/bash \n'
     # '#$ -N namename '
     bash_script_middle = '#$ -j yes \n' + \

@@ -65,16 +65,36 @@ def dft_optimise_start_ats(no_runs, output_dir, molpro_wdir):
 
     os.chdir(orig_dir)
 
+def check_if_needed(no_runs):
+
+    for idx in range(no_runs):
+        if os.path.isfile(f'opt_traj_{idx}.xyz') and os.path.isfile(f'opt_traj_{idx}_dft.xyz'):
+            continue
+        else:
+            return True
+
+    return False
 
 def submit_gap_geo_opt_test(gap_no, no_runs, fmax, steps, dft_stride, no_cores):
+    '''if needed, submits the test, otherwise just plots the plots. TODO: change name'''
 
-    job_name = f'gopt_gap{gap_no}'
-    command = f'python ../test_gopt_main.py {gap_no} {no_runs} {fmax} {steps} {dft_stride} {no_cores}'
-    script_fname = 'gap_gopt_main.sh'
-    util.write_generic_submission_script(script_fname=script_fname, job_name=job_name,
-                                        command=command, no_cores=no_cores)
+    is_needed = check_if_needed(no_runs)
 
-    subprocess.run(f'qsub {script_fname}', shell=True)
+    if is_needed:
+        job_name = f'gopt_gap{gap_no}'
+        command = f'python ../test_gopt_main.py {gap_no} {no_runs} {fmax} {steps} {dft_stride} {no_cores}'
+        script_fname = 'gap_gopt_main.sh'
+        util.write_generic_submission_script(script_fname=script_fname, job_name=job_name,
+                                            command=command, no_cores=no_cores)
+
+        subprocess.run(f'qsub {script_fname}', shell=True)
+
+    else:
+        print(f'Found all {no_runs} gap trajectory and dft re-evaluation files, just re-plotting figure')
+        plot_gap_optg_results(gap_no, no_runs)
+
+
+
 
 def gap_optg_test(gap_no, mp_template,  no_runs, fmax, steps, dft_stride, no_cores):
     '''main function to do multiple gap optimisation runs and re-evaluates them. '''
@@ -127,9 +147,12 @@ def do_dft_reevaluation(traj_name, dft_stride, mp_template, no_cores):
         no_cores=no_cores, mp_template=mp_template)
 
     for idx, dft_in_at, dft_out_at in zip(dft_at_idx, dft_atoms, dft_out_atoms):
-        if (dft_in_at.positions != dft_out_at.positions).any():
+        if not (dft_in_at.positions == dft_out_at.positions).all():
             write('mixup_in.xyz', dft_in_at)
             write('mixup_out.xyz', dft_out_at)
+            print(f'dft_in_at.positions:\n{dft_in_at.positions}')
+            print(f'dft_out_at.positions:\n{dft_out_at.positions}')
+            print(f'comparison result: {not (dft_in_at.positions == dft_out_at.positions).all()}')
             raise RuntimeError('mp parallel in and out atom positions do not match, somethings mixed up')
 
         dft_out_at.info['gap_optg_step'] = idx
