@@ -8,14 +8,9 @@ import ase
 from collections import OrderedDict
 from quippy.potential import Potential
 import matplotlib.pyplot as plt
+from math import log10, floor
 
-# import submodules
-# import util.ugap
-# import util.itools
-# import util.md
-# import util.plot
-# import util.urdkit
-# import util.vib
+
 
 
 def hello():
@@ -84,6 +79,9 @@ def set_dft_vals(atoms):
         at.info['dft_energy'] = at.info['energy']
         at.arrays['dft_forces'] = at.arrays['forces']
     return atoms
+
+def round_sig(x, sig=2):
+  return round(x, sig-int(floor(log10(abs(x))))-1)
 
 
 def get_pair_dists(all_dists, at_nos, atno1, atno2):

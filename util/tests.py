@@ -162,9 +162,12 @@ def do_dft_reevaluation(traj_name, dft_stride, mp_template, no_cores):
     write(f'{traj_name}_dft.xyz', dft_out_atoms, 'extxyz', write_results=False)
 
 
-def do_gap_optimisation(at, gap_fname, traj_name, fmax, steps):
+def do_gap_optimisation(at, traj_name, fmax, steps, gap_fname=None, gap=None):
 
-    gap = Potential(param_filename=gap_fname)
+    if gap is None:
+        if gap_fname is not None:
+            raise Exception('Need to give either a gap potential or filename, not both')
+        gap = Potential(param_filename=gap_fname)
 
     at.set_calculator(gap)
     opt = PreconLBFGS(at, use_armijo=False, trajectory=f'{traj_name}.traj')

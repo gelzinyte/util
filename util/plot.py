@@ -12,8 +12,6 @@ from collections import OrderedDict
 import util
 from util import ugap
 from util.vib import Vibrations
-sys.path.append('/home/eg475/programs/ASAP')
-from scripts import kpca_for_projection_viewer as kpca
 
 
 # Specific imports
@@ -707,7 +705,7 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
     plt.savefig(picture_fname, dpi=300)
     plt.close(fig)
 
-
+'''
 def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
     atoms = read(xyz_fname, ':')
     cmap = mpl.cm.get_cmap('tab20')
@@ -840,14 +838,14 @@ def make_kpca_dset(training_set, all_opt_ats, first_guess, dft_optg, xyz_fname):
 def make_kpca_plots(training_set, all_opt_ats='xyzs/opt_all.xyz', first_guess='xyzs/first_guess.xyz', \
                     dft_optg='molpro_optg/optimized.xyz', xyz_fname='xyzs/for_kpca.xyz',  \
                     param_fname=None, output_dir='pictures'):
-    '''
-    arguments:
-        training set    last training set that has all the appropriate config_types 'dset_{i}'
-        all_opt_ats     optimised atoms from all iterations with config types 'opt_{i}'
-        first_guess     first_guess that was used to get the first dataset
-        dft_optg        structure optimised with dft
-        param_fname     one of the gaps' filename with the appropriate command for training gap, optional
-    '''
+'''
+    # arguments:
+    #     training set    last training set that has all the appropriate config_types 'dset_{i}'
+    #     all_opt_ats     optimised atoms from all iterations with config types 'opt_{i}'
+    #     first_guess     first_guess that was used to get the first dataset
+    #     dft_optg        structure optimised with dft
+    #     param_fname     one of the gaps' filename with the appropriate command for training gap, optional
+'''
 
     # set up a dataset for kpca
     print('Making up dataset for kpca')
@@ -880,6 +878,7 @@ def make_kpca_plots(training_set, all_opt_ats='xyzs/opt_all.xyz', first_guess='x
                 pic_name +='_by_energy'
             kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=colour_by_energy)
 
+'''
 
 def do_evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir='pictures/'):
     mx = dict()
