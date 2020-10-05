@@ -21,8 +21,10 @@ import subprocess
 @click.option('--max_steps', type=int, default=500, show_default=True,help='Maximum number of steps allowed in optimisation.')
 @click.option('--stds', type=str, default='[0.1]', help='list of standard deviations to test')
 @click.option('--quick', type=bool, default=False, help='if true, don\'t load GAP and don\'t do kpca')
+@click.option('--dft', type=bool, default=False, help='whether should be looking for and plotting dft-optimised structures')
+@click.option('--look_for_starts', type=bool, default=False, help='whether to start opt trajectories from given structures')
 def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz, no_runs, stds,
-                fmax, max_steps, quick):
+                fmax, max_steps, quick, dft, look_for_starts):
 
     # set up
     stds = stds.strip('][').split(', ')
@@ -44,39 +46,53 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz, no_runs, stds,
         gap = Potential(param_filename=gap_fname)
     dft_confs = read(dft_eq_xyz, ':')
 
-
     for std in stds:
 
         ends_fname = f'all_opt_ends_{std}A_std'
         all_traj_ends = []
 
-        for conf in dft_confs:
-            for idx in range(no_runs):
+        if not quick:
 
-                seed = int(time.time() * 1e7) % (2**32-1)
-                at = conf.copy()
-                traj_name = f'xyzs/{at.info["name"]}_{std}A_std_{idx}'
+            for conf in dft_confs:
 
-                if not os.path.isfile(f'{traj_name}.xyz'):
-                    at.rattle(stdev=std, seed=seed)
-                    tests.do_gap_optimisation(at, traj_name, fmax, max_steps, gap=gap)
+                if look_for_starts:
+                    start_at_fname = f'starts_{conf.info["name"]}_{std}A_std.xyz'
+                    start_ats = read(start_at_fname, ':')
+                    if len(start_ats) != no_runs:
+                        raise RuntimeError("number of start atoms found not equal to number of optimisation runs asked for; Figure out how to deal with this.")
 
-                traj = read(f'{traj_name}.xyz', ':')
-                start = traj[0]
-                start.info['config_type'] = f'start_{idx}'
-                finish = traj[-1]
-                finish.info['config_type'] = f'finish_{idx}'
+                for idx in range(no_runs):
 
-                all_traj_ends += [start, finish]
+                    if look_for_starts:
+                        at = start_ats[idx]
+                    else:
+                        seed = int(time.time() * 1e7) % (2**32-1)
+                        at = conf.copy()
+                        at.rattle(stdev=std, seed=seed)
 
-        write(f'{ends_fname}.xyz', all_traj_ends, 'extxyz', write_results=False)
+                    traj_name = f'xyzs/{at.info["name"]}_{std}A_std_{idx}'
 
-        make_kpca_picture(gap_fname, dft_eq_xyz, ends_fname, std, quick)
+                    if not os.path.isfile(f'{traj_name}.xyz'):
+                        tests.do_gap_optimisation(at, traj_name, fmax, max_steps, gap=gap)
+
+
+                    traj = read(f'{traj_name}.xyz', ':')
+                    start = traj[0]
+                    start.info['config_type'] = f'start_{idx}'
+                    finish = traj[-1]
+                    finish.info['config_type'] = f'finish_{idx}'
+
+                    all_traj_ends += [start, finish]
+
+            write(f'{ends_fname}.xyz', all_traj_ends, 'extxyz', write_results=False)
+
+        make_kpca_picture(gap_fname, dft_eq_xyz, ends_fname, std, dft)
 
     for dft_at in dft_confs:
-        make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds)
+        print(f'Summary plott for {dft_at.info["name"]}')
+        make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds, dft, look_for_starts)
 
-def make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds):
+def make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds, dft, look_for_starts):
 
     gap_no = int(re.findall('\d+', gap_fname)[0])
 
@@ -85,10 +101,27 @@ def make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds):
     plot_start_stds = []
     plot_finish_means = []
     plot_finish_stds = []
+    if dft:
+        plot_dft_means = []
+        plot_dft_stds = []
+        dft_stds = []
+
     for std in stds:
         ends = read(f'all_opt_ends_{std}A_std.xyz', ':')
-        starts = [at for at in ends if 'start' in at.info['config_type'] and struct_name == at.info['name']]
-        finishes = [at for at in ends if 'finish' in at.info['config_type'] and struct_name ==at.info['name']]
+        ends = [at for at in ends if struct_name == at.info['name']]
+        starts = [at for at in ends if 'start' in at.info['config_type']]
+        finishes = [at for at in ends if 'finish' in at.info['config_type']]
+
+        if dft:
+            dft_finishes_fname = f'dft_finishes_{dft_at.info["name"]}_{std}A_std.xyz'
+            dft_finishes = read(dft_finishes_fname, ':')
+            dft_finishes = [at for at in dft_finishes if not 'failed_dft_opt' in at.info['config_type']]
+
+
+        if not look_for_starts:
+            write(f'starts_{struct_name}_{std}A_std.xyz', starts, 'extxyz', write_results=False)
+        write(f'finishes_{struct_name}_{std}A_std.xyz', finishes, 'extxyz', write_results=False)
+        write(f'both_ends_{struct_name}_{std}A_std.xyz', ends, 'extxyz', write_results=False)
 
         if len(starts) != len(finishes):
             print(f'len(ends) should be four times that of starts and '
@@ -104,6 +137,14 @@ def make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds):
         plot_finish_means.append(np.mean(rmsds_finish))
         plot_finish_stds.append(np.std(rmsds_finish))
 
+        if dft:
+            rmsds_dft = [util.get_rmse(dft_at.positions, at.positions) for at in dft_finishes]
+            if len(rmsds_dft)!=0:
+                plot_dft_means.append(np.mean(rmsds_dft))
+                plot_dft_stds.append(np.std(rmsds_dft))
+                dft_stds.append(std)
+
+
 
     #Actual plot
     fig = plt.figure(figsize=(10, 7))
@@ -115,7 +156,18 @@ def make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds):
     plt.errorbar(stds, plot_finish_means, yerr=plot_finish_stds, c='tab:orange', **kw_args)
     plt.plot(stds, plot_finish_means, c='tab:orange', linewidth=0.8, linestyle='--', label='Opt. traj. end')
 
-    plt.title('Final structure\'s RMSD mean $\pm$ std.')
+    if dft:
+        plt.errorbar(dft_stds, plot_dft_means, yerr=plot_dft_means,
+                     c='tab:blue', **kw_args)
+        plt.plot(dft_stds, plot_dft_means, c='tab:blue', linewidth=0.8,
+                 linestyle='--', label='DFT-optimised')
+
+    plt.xscale('log')
+    plt.yscale('log')
+    # plt.ylim(bottom=0)
+    plt.grid(color='lightgrey', which='both')
+
+    plt.title(f'{struct_name} final structures\' RMSD mean $\pm$ std.')
     plt.xlabel('Random displacement\'s standard deviation, Å')
     plt.ylabel('RMSD, Å')
 
@@ -125,19 +177,18 @@ def make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds):
 
 
 
-def make_kpca_picture(gap_fname, dft_eq_xyz, ends_fname, std, quick):
+def make_kpca_picture(gap_fname, dft_eq_xyz, ends_fname, std, dft):
     '''main function to do the kpca'''
 
     kpca_in_name = f'{ends_fname}_for_kpca.xyz'
     kpca_out_name = "ASAP-lowD-map.xyz"
     # kpca_out_name = f'xyzs/{ends_fname}_out_of_kpca.xyz'
 
-    if not quick:
-        prepare_xyz_for_kpca(ends_fname, gap_fname, dft_eq_xyz, kpca_in_name)
-        do_kpca(kpca_in_name)
+    prepare_xyz_for_kpca(ends_fname, gap_fname, dft_eq_xyz, kpca_in_name, std, dft)
+    do_kpca(kpca_in_name)
 
-    ats_train, end_pairs, dft_min = sort_kpca_atoms(kpca_out_name)
-    plot_actual_kpca_plot(ats_train, end_pairs, dft_min, gap_fname, std)
+    ats_train, end_pairs, dft_min, dft_finishes = sort_kpca_atoms(kpca_out_name)
+    plot_actual_kpca_plot(ats_train, end_pairs, dft_min, dft_finishes, gap_fname, std)
 
 def do_kpca(kpca_in_name):
     gen_desc = f'asap gen_desc -f {kpca_in_name} --no-periodic soap'
@@ -148,7 +199,7 @@ def do_kpca(kpca_in_name):
 
 
 
-def prepare_xyz_for_kpca(ends_fname, gap_fname, dft_eq_xyz, kpca_in_name):
+def prepare_xyz_for_kpca(ends_fname, gap_fname, dft_eq_xyz, kpca_in_name, std, dft):
     # make kpca dataset
     training_ats = ugap.atoms_from_gap(gap_fname, 'tmp_ats.xyz')
     training_ats = [at for at in training_ats if len(at)!=1]
@@ -158,7 +209,13 @@ def prepare_xyz_for_kpca(ends_fname, gap_fname, dft_eq_xyz, kpca_in_name):
     for at in dft_eq_ats:
         at.info['config_type'] = at.info['name']
     opt_ends = read(f'{ends_fname}.xyz', ':')
-    write(kpca_in_name, training_ats + opt_ends + dft_eq_ats, 'extxyz',
+    dft_optimised_ats = []
+    if dft:
+        for dft_at in dft_eq_ats:
+            dft_optimised_ats += read(f'dft_finishes_{dft_at.info["name"]}_{std}A_std.xyz', ':')
+
+
+    write(kpca_in_name, training_ats + opt_ends + dft_eq_ats + dft_optimised_ats, 'extxyz',
           write_results=False)
     '''labels different datapoints and puts into a single xyz to do kpca on'''
 
@@ -170,6 +227,8 @@ def sort_kpca_atoms(kpca_out_name):
     starts = []
     finishes = []
     end_pairs = []
+    dft_finishes = []
+
 
     for at in atoms:
         if at.info['config_type'] == 'training':
@@ -182,6 +241,8 @@ def sort_kpca_atoms(kpca_out_name):
             starts.append(at)
         elif 'finish' in at.info['config_type']:
             finishes.append(at)
+        elif 'dft_optimised' in at.info['config_type'] or 'failed_dft_opt' in at.info['config_type']:
+            dft_finishes.append(at)
         else:
             raise RuntimeError(
                 'Couldn\'t assign an atom to either training, '
@@ -201,9 +262,11 @@ def sort_kpca_atoms(kpca_out_name):
         pair = (start_at, finish_at)
         end_pairs.append(pair)
 
-    return ats_train, end_pairs, dft_min
+    # TODO group dft in ends and beginnings
 
-def plot_actual_kpca_plot(ats_train, end_pairs, dft_min, gap_fname, std):
+    return ats_train, end_pairs, dft_min, dft_finishes
+
+def plot_actual_kpca_plot(ats_train, end_pairs, dft_min, dft_finishes, gap_fname, std):
     '''plots the pca of three groups of points from what's in ther at.ino['pca_coord']'''
 
     gap_no = int(re.findall('\d+', gap_fname)[0])
@@ -212,15 +275,21 @@ def plot_actual_kpca_plot(ats_train, end_pairs, dft_min, gap_fname, std):
     pcax = 0
     pcay = 1
 
-    marker_shapes = ['X', '^', 'o', 'D', 's', '*']
+    marker_shapes = ['X', '^', 'o', 'D', 's']
     dft_min_name_mareker_shape_dict = {}
 
-
-    # suspicious_ats = []
-    # for at in ats_train:
-    #     if at.info[pca_dict_key][pcax] < -1 and at.info[pca_dict_key][pcay] > 2:
-    #         suspicious_ats.append(at)
-    # write('suspicious_ats.xyz', suspicious_ats, 'extxyz', write_results=False)
+    # if std==0.01:
+    #     suspicious_ats = []
+    #     pcaxs = []
+    #     pcays = []
+    #     for at in ats_train:
+    #         if at.info[pca_dict_key][pcay] > 2:
+    #             suspicious_ats.append(at)
+    #         pcaxs.append(at.info[pca_dict_key][pcax])
+    #         pcays.append(at.info[pca_dict_key][pcay])
+    #     print(std, min(pcaxs), min(pcays))
+    #     write('suspicious_ats.xyz', suspicious_ats, 'extxyz', write_results=False)
+    #     raise RuntimeError('taa')
 
 
     fig = plt.figure(figsize=(10, 7))
@@ -245,8 +314,8 @@ def plot_actual_kpca_plot(ats_train, end_pairs, dft_min, gap_fname, std):
         x = at.info[pca_dict_key][pcax]
         y = at.info[pca_dict_key][pcay]
 
-        plt.scatter(x, y, marker=marker, color='tab:red', s=80, linewidth=0.5,
-                    linewidths=10, edgecolors='k', label=label, zorder=3)
+        plt.scatter(x, y, marker=marker, color='crimson', s=80, linewidth=0.5,
+                    linewidths=10, edgecolors='k', label=label, zorder=4)
 
 
     # optimisation ends
@@ -265,12 +334,22 @@ def plot_actual_kpca_plot(ats_train, end_pairs, dft_min, gap_fname, std):
         marker = dft_min_name_mareker_shape_dict[parent_dft_min_name]
 
 
-        plt.plot(xs, ys, c='k', linewidth=0.6, zorder=1)
+        plt.plot(xs, ys, c='grey', linewidth=0.4 , zorder=1)
         plt.scatter(xs[0], ys[0], color='tab:green', marker=marker, label=label_s, edgecolors='k', linewidth=0.4,  zorder=2)
-        plt.scatter(xs[1], ys[1], color='tab:orange', marker=marker, edgecolors='k',label=label_f, linewidth=0.4, zorder=2)
+        plt.scatter(xs[1], ys[1], color='tab:orange', marker=marker, edgecolors='k',label=label_f, linewidth=0.4, zorder=3)
 
+    # dft optimisation ends
 
+    successful_dft_x = [at.info[pca_dict_key][pcax] for at in dft_finishes if 'failed' not in at.info['config_type']]
+    successful_dft_y = [at.info[pca_dict_key][pcay] for at in dft_finishes if 'failed' not in at.info['config_type']]
 
+    failed_dft_x = [at.info[pca_dict_key][pcax] for at in dft_finishes if 'failed' in at.info['config_type']]
+    failed_dft_y = [at.info[pca_dict_key][pcay] for at in dft_finishes if 'failed' in at.info['config_type']]
+
+    if len(successful_dft_x)!=0:
+        plt.scatter(successful_dft_x, successful_dft_y, color='deepskyblue', edgecolors='k', linewidth=0.4, marker='*', s=50,  label='DFT-optimised', zorder=5)
+    if len(failed_dft_x)!=0:
+        plt.scatter(failed_dft_x, failed_dft_y, color='fuchsia', marker='*',edgecolors='k', linewidth=0.4,  s=50, label='DFT non-converged', zorder=5)
 
 
     plt.title(f'kPCA of GAP {gap_no} optimisation test, displacement std {std} Å')

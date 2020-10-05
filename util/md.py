@@ -9,6 +9,7 @@ from ase.constraints import FixBondLength
 # from ase.optimize.precon import PreconLBFGS
 from ase.optimize import FIRE
 from ase.neb import NEB
+from ase import units
 
 
 def make_end_images(sub, H_idx, separation):

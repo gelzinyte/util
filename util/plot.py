@@ -13,11 +13,11 @@ import util
 from util import ugap
 from util.vib import Vibrations
 
-
 # Specific imports
 import click
 from tqdm import tqdm
 from lxml import etree as et
+
 
 # Atomistic imports
 from quippy.potential import Potential
@@ -28,6 +28,10 @@ from ase.io.extxyz import key_val_dict_to_str
 from ase.optimize.precon import PreconLBFGS
 from ase.units import Ha
 from util import dict_to_vals
+
+from asaplib.data import ASAPXYZ
+from asaplib.reducedim import Dimension_Reducers
+
 
 ''' Interesting things:
         make_scatter_plots - scatter for given gap and train/test set
@@ -705,180 +709,199 @@ def rmse_line_plots(train_fname, gaps_dir='gaps', output_dir='pictures', prefix=
     plt.savefig(picture_fname, dpi=300)
     plt.close(fig)
 
-'''
-def kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=False):
+def kpca_plot(xyz_fname, pic_name, output_dir):
     atoms = read(xyz_fname, ':')
     cmap = mpl.cm.get_cmap('tab20')
+    cmap10 = mpl.cm.get_cmap('tab10')
+    color_idx = np.linspace(0, 1, 10)
+
+    # training set points
+    xs_train = [at.info[f'pca_0'] for at in atoms if
+                'iter' in at.info['config_type']]
+    ys_train = [at.info[f'pca_1'] for at in atoms if
+                'iter' in at.info['config_type']]
+
+
+    optimised_ats = []
+    non_optimised_ats = []
+    dft_opt_ats = []
+    for at in atoms:
+        if 'iter' in at.info['config_type']:
+            continue
+        elif 'non_opt' in at.info['config_type']:
+            non_optimised_ats.append(at)
+        elif 'opt' in at.info['config_type']:
+            optimised_ats.append(at)
+        else:
+            dft_opt_ats.append(at)
+
+    dft_opt_ats_config_types = [at.info['config_type'] for at in dft_opt_ats]
+    print(f'{len(xs_train)} training atoms, {len(non_optimised_ats)} non-optimised atoms, '
+          f'{len(optimised_ats)} optimised atoms, {len(dft_opt_ats)} dft minima')
+    print(f'DFT minima names:', dft_opt_ats_config_types)
+
+
 
     fig = plt.figure(figsize=(7, 4))
 
+    # training_points
+    colors_train_names = [at.info['config_type'] for at in atoms if 'iter' in at.info['config_type']]
+    color_mapping_train = {'iter_1': cmap(0.05), 'iter_2': cmap(0.15), 'iter_3': cmap(0.25), 'iter_4': cmap(0.35), \
+                       'iter_5': cmap(0.45), 'iter_6': cmap(0.55), 'iter_7':cmap(0.65), 'iter_8':cmap(0.75), 'iter_9':cmap(0.85), 'iter_10':cmap(0.95), \
+                       'iter_11': cmap(0.05), 'iter_12': cmap(0.15), 'iter_13': cmap(0.25), 'iter_14': cmap(0.35), \
+                       'iter_15': cmap(0.45), 'iter_16': cmap(0.55), 'iter_17': cmap(0.65), 'iter_18': cmap(0.75),\
+                       'iter_19': cmap(0.85), 'iter_20': cmap(0.95), 'iter_21':cmap(0.05)}
 
-    # training set points
-    xs_train = [at.info['pca_coord'][0] for at in atoms if 'iter' in at.info['config_type']]
-    ys_train = [at.info['pca_coord'][1] for at in atoms if 'iter' in at.info['config_type']]
+    colors_train = [color_mapping_train[c] for c in colors_train_names]
+    plt.scatter(xs_train, ys_train, color=colors_train, marker='.', label='training points')
 
-    if colour_by_energy:
-        energies = [at.info['dft_energy']/len(at) for at in atoms if 'iter' in at.info['config_type']]
-        plt.scatter(xs_train, ys_train, c=energies, cmap='inferno', label='training points')
-        cb = plt.colorbar()
-        cb.set_label('DFT energy, eV/atom')
+    # non_optimised structures
+    for idx, at in enumerate(non_optimised_ats):
+        label=None
+        if idx==0:
+            label='to be optimised'
+        plt.scatter(at.info['pca_0'], at.info['pca_1'], color=cmap10(color_idx[idx+1]),
+                    label=label, marker='o', linewidth=0.5, s=50, linewidths=10, edgecolors='k')
+        # print(f'{at.info["config_type"]} color idx: {idx+1}')
 
-    else:
-        colors_train_names = [at.info['config_type'] for at in atoms if 'iter' in at.info['config_type']]
+    # optimised structures
+    for idx, at in enumerate(optimised_ats):
+        label = None
+        if idx == 1:
+            label = 'optimised structures'
 
-        # TODO: smartify this
-        color_mapping_train = {'iter_1': cmap(0.05), 'iter_2': cmap(0.15), 'iter_3': cmap(0.25), 'iter_4': cmap(0.35), \
-                               'iter_5': cmap(0.45), 'iter_6': cmap(0.55), 'iter_7':cmap(0.65), 'iter_8':cmap(0.75), 'iter_9':cmap(0.85), 'iter_10':cmap(0.95), \
-                               'iter_11': cmap(0.05), 'iter_12': cmap(0.15), 'iter_13': cmap(0.25), 'iter_14': cmap(0.35), \
-                               'iter_15': cmap(0.45), 'iter_16': cmap(0.55), 'iter_17': cmap(0.65), 'iter_18': cmap(0.75),\
-                               'iter_19': cmap(0.85), 'iter_20': cmap(0.95), 'iter_21':cmap(0.05)}
-
-        colors_train = [color_mapping_train[c] for c in colors_train_names]
-        plt.scatter(xs_train, ys_train, color=colors_train, label='training points')
-
-
-
-    # optg_points
-    color_map_opt = {'first_guess': cmap(0), 'opt_1': cmap(0.1), 'opt_2': cmap(0.2), 'opt_3': cmap(0.3),\
-                     'opt_4': cmap(0.4), 'opt_5': cmap(0.5), 'opt_6':cmap(0.6), 'opt_7':cmap(0.7), 'opt_8':cmap(0.8), 'opt_9':cmap(0.9), 'opt_10':cmap(1), 'dft_optg': 'k',\
-                                             'opt_11': cmap(0.1), 'opt_12': cmap(0.2), 'opt_13': cmap(0.3),\
-                     'opt_14': cmap(0.4), 'opt_15': cmap(0.5), 'opt_16': cmap(0.6), 'opt_17': cmap(0.7), 'opt_18': cmap(0.8),\
-                     'opt_19': cmap(0.9), 'opt_20': cmap(1), 'opt_21':cmap(0.1)}
-
-    optg_pts = []
-    optg_ats = [at for at in atoms if 'iter' not in at.info['config_type']]
-    for at in optg_ats:
-        entry = {}
-        label = at.info['config_type']
-
-        # for nice plot in presentation
-        if label=='first_guess':
-            label_new = 'starting conformation'
-        elif label=='dft_optg':
-            label_new='DFT equilibrium'
-        elif 'opt' in label:
-            no = re.findall('\d', label)[0]
-            label_new = f'GAP{no}-optimised'
-
-
-
-        entry['label'] = label_new
-        # entry['label'] = label
-        entry['x'] = at.info['pca_coord'][0]
-        entry['y'] = at.info['pca_coord'][1]
-        entry['color'] = color_map_opt[label]
-        optg_pts.append(entry)
-
-    #  no annotation
-    annotate = False
-    for idx, pt in enumerate(optg_pts):
-
-        # if idx != 0 and idx != 1 and idx != len(optg_pts)-1:
-        #     label=None
-        # else:
-        #     label = pt['label']
-        label = pt['label']
-
-        plt.scatter(pt['x'], pt['y'], color=pt['color'], label=label, marker='X', linewidth=0.5, s=80, \
+        plt.scatter(at.info['pca_0'], at.info['pca_1'],
+                    color=cmap10(color_idx[idx]),
+                    label=label, marker='X', linewidth=0.5, s=80,
                     linewidths=10, edgecolors='k')
-        if annotate:
-            no = re.findall(r'\d+', pt['label'])
-            if len(no)>0:
-                plt.gca().annotate(int(no[0]), xy=(pt['x'], pt['y']))
+
+        # print(f'{at.info["config_type"]} color idx: {idx}')
+
+    # dft structures
+    for idx, at in enumerate(dft_opt_ats):
+        label=None
+        if idx==1:
+            label='dft equilibrium'
+
+        plt.scatter(at.info['pca_0'], at.info['pca_1'],
+                    color='k', marker='d', label=label)
 
 
-    # plt.legend()
-    which=''
-    if 'default' in pic_name:
-        which = 'default soap'
-    elif 'my_soap' in pic_name:
-        which = 'my soap'
+        x_pos = at.info['pca_0'] + 0.1 * np.abs(at.info['pca_0'])
+        y_pos = at.info['pca_1'] + 0.1 * np.abs(at.info['pca_1'])
+        plt.gca().annotate(at.info['config_type'], xy=(x_pos, y_pos), fontsize=8)
 
-    # plt.title(f'kPCA ({which}) on GAP_i training sets and GAP_i-optimised structures')
-    plt.title(f'kPCA of data gathered during GAP training cycles')
+
+
+    plt.legend()
+    plt.title(f'kPCA  on GAP_i training sets and GAP_i-optimised structures')
     plt.xlabel('Principal component 1')
     plt.ylabel('Principal component 2')
 
     if output_dir is not None:
         pic_name = os.path.join(output_dir, pic_name)
 
-    # plt.ylim(top=0.6)
     plt.tight_layout()
-    # plt.savefig(f'{pic_name}.png', dpi=300)
-    plt.savefig(f'{pic_name}.pdf')
+    plt.savefig(f'{pic_name}.png', dpi=300)
     plt.close(fig)
 
 
-def make_kpca_dset(training_set, all_opt_ats, first_guess, dft_optg, xyz_fname):
+def make_kpca_dset(training_set, all_opt_ats, non_opt_ats, dft_optg, xyz_fname):
     ## main training points
+    #  expect to have at.info['config_type'] = 'dset_{i}'
     kpca_ats = read(training_set, ':')
     kpca_ats = [at for at in kpca_ats if len(at) != 1]
 
-    ## all gap_i optimised atoms. expect dft_energy to be correct...
+    ## all atoms from which dsets were derived. i.e. first guesses and opt_i 
+    # and expect to have at.info['config_type'] = 'opt_{i}'
+    # confusingly opt_{0}
     gap_opt_ats = read(all_opt_ats, ':')
     if 'config_type' not in gap_opt_ats[0].info.keys():
-        for i, at in enumerate(gap_opt_ats):
-            at.info['config_type'] = f'opt_{i+1}'
-    elif gap_opt_ats[0].info['config_type'] != 'opt_1':
-        print("WARNING: GAP-optimised atoms have config, types, but they don't follow convention of opt_{i}, renaming")
-        for i, at in enumerate(gap_opt_ats):
-            at.info['config_type'] = f'opt_{i}'
+        print('WARNING: gap-optimised atoms do not have config_types')
 
-    ##label first_guess
-    first_guess = read(first_guess)
-    first_guess.info['config_type'] = 'first_guess'
+    # all optimisation starts
+    # expect to have at.info['config_type'] = 'non_opt_{i}'
+    non_opt_ats = read(non_opt_ats, ':')
 
-    ## dft-optimized structure
-    dft_optg = read(dft_optg)
-    dft_optg.info['config_type'] = 'dft_optg'
+    # all the relevant dft minima normally used for geometry optimisation test
+    # expect at.info['name'] to specify which one it is
+    dft_optg_atoms = []
+    if dft_optg is not None:
+        dft_optg_atoms = read(dft_optg, ':')
+        for at in dft_optg_atoms:
+            at.info['config_type'] = at.info['name']
 
-    write(xyz_fname, kpca_ats + [first_guess] + gap_opt_ats + [dft_optg], 'extxyz', write_results=False)
+    all_data =  kpca_ats + gap_opt_ats + non_opt_ats + dft_optg_atoms
+    write(xyz_fname, all_data, 'extxyz', write_results=False)
+
+def do_kpca(xyz_fname):
+
+    asapxyz = ASAPXYZ(xyz_fname, periodic=False)
+    soap_spec = {'soap1': {'type': 'SOAP',
+                           'cutoff': 4.0,
+                           'n': 6,
+                           'l': 6,
+                           'atom_gaussian_width': 0.5,
+                           'crossover': False,
+                           'rbf': 'gto'}}
 
 
-def make_kpca_plots(training_set, all_opt_ats='xyzs/opt_all.xyz', first_guess='xyzs/first_guess.xyz', \
-                    dft_optg='molpro_optg/optimized.xyz', xyz_fname='xyzs/for_kpca.xyz',  \
-                    param_fname=None, output_dir='pictures'):
-'''
+    reducer_spec = {'reducer1': {
+        'reducer_type': 'average',
+        # [average], [sum], [moment_average], [moment_sum]
+        'element_wise': False}}
+
+
+    desc_spec = {'avgsoap': {
+        'atomic_descriptor': soap_spec,
+        'reducer_function': reducer_spec}}
+
+    asapxyz.compute_global_descriptors(desc_spec_dict=desc_spec,
+                                       sbs=[],
+                                       keep_atomic=False,
+                                       tag='tio2')
+
+    reduce_dict = {}
+    reduce_dict['kpca'] = {"type": 'SPARSE_KPCA',
+                           'parameter': {"n_components": 10,
+                                         "n_sparse": -1,  # no sparsification
+                                         "kernel": {"first_kernel": {
+                                             "type": 'linear'}}}}
+
+    dreducer = Dimension_Reducers(reduce_dict)
+    dm = asapxyz.fetch_computed_descriptors(['avgsoap'])
+    proj = dreducer.fit_transform(dm)
+
+    atoms = read(xyz_fname, ':')
+    atoms_out = []
+    for coord, at in zip(proj, atoms):
+        at.info['pca_0'] = coord[0]
+        at.info['pca_1'] = coord[1]
+        atoms_out.append(at)
+
+    write(xyz_fname, atoms_out, 'extxyz', write_results=False)
+    # return(atoms_out)
+
+
+def make_kpca_plots(training_set, all_opt_ats='xyzs/opt_all.xyz', non_opt_ats='xyzs/to_opt_all.xyz', \
+                    dft_optg=None, xyz_fname='xyzs/for_kpca.xyz',  \
+                    output_dir='pictures'):
     # arguments:
     #     training set    last training set that has all the appropriate config_types 'dset_{i}'
     #     all_opt_ats     optimised atoms from all iterations with config types 'opt_{i}'
     #     first_guess     first_guess that was used to get the first dataset
     #     dft_optg        structure optimised with dft
     #     param_fname     one of the gaps' filename with the appropriate command for training gap, optional
-'''
 
     # set up a dataset for kpca
     print('Making up dataset for kpca')
-    make_kpca_dset(training_set, all_opt_ats, first_guess, dft_optg, xyz_fname)
+    make_kpca_dset(training_set, all_opt_ats, non_opt_ats, dft_optg, xyz_fname)
 
-    print('Kpca with default setings')
-    xyz_title = os.path.splitext(xyz_fname)[0]
-    kpca_default_xyz_fname = f'{xyz_title}_default.xyz'
+    do_kpca(xyz_fname)
+    pic_name = 'kpca_default'
 
-    kpca.main(xyz_fname, pbc=False, output_filename=kpca_default_xyz_fname)
+    kpca_plot(xyz_fname, pic_name, output_dir)
 
-    pic_names = ['kpca_default']
-    kpca_xyzs = [kpca_default_xyz_fname]
-
-    if param_fname:
-        print('Kpca with my soap settings')
-        kpca_my_soap_xyz_fname = f'{xyz_title}_my_soap.xyz'
-        s = ugap.get_soap_params(param_fname)
-        kpca.main(xyz_fname, pbc=False, output_filename=kpca_my_soap_xyz_fname, \
-                  cutoff=s['cutoff'], n_max=s['n_max'], l_max=s['l_max'], zeta=s['zeta'], \
-                  atom_sigma=s['atom_gaussian_width'])
-
-        kpca_xyzs.append(kpca_my_soap_xyz_fname)
-        pic_names.append('kpca_my_soap')
-
-    print('plotting plots')
-    for colour_by_energy in [True, False]:
-        for xyz_fname, pic_name in zip(kpca_xyzs, pic_names):
-            if colour_by_energy:
-                pic_name +='_by_energy'
-            kpca_plot(xyz_fname, pic_name, output_dir, colour_by_energy=colour_by_energy)
-
-'''
 
 def do_evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir='pictures/'):
     mx = dict()

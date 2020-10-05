@@ -64,17 +64,20 @@ def get_structures(source_atoms, n_dpoints, n_rattle_atoms, stdev):
     return atoms
 
 
-def extend_dset(iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None,
-                stride=5, no_cores=1):
+def extend_dset(iter_no, smiles_list, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None,
+                stride=5, no_cores=1, upper_energy_cutoff=None):
+
 
     # take every stride-th structure from trajectory, and always the last one
-    opt_traj_name = f'xyzs/optimisation_{iter_no}'
-    traj = read(opt_traj_name+'.traj', ':')
-    # skipping first structure, which is just first guess and reading every
-    # stride-th plus the last structure
-    source_atoms = traj[stride::stride]
-    if len(traj) % stride != 1:
-        source_atoms.append(traj[-1])
+    source_atoms = []
+    for smiles in smiles_list:
+        opt_traj_name = f'xyzs/optimisation_{iter_no}_{smiles}'
+        traj = read(opt_traj_name+'.xyz', ':')
+        # skipping first structure, which is just first guess and reading every
+        # stride-th plus the last structure
+        source_atoms += traj[stride::stride]
+        if len(traj) % stride != 1:
+            source_atoms.append(traj[-1])
 
     atoms_to_compute = get_structures(source_atoms=source_atoms, n_dpoints=n_dpoints,
                         n_rattle_atoms=n_rattle_atoms, stdev=stdev)
@@ -83,6 +86,10 @@ def extend_dset(iter_no, n_dpoints, n_rattle_atoms, stdev, calc, template_path=N
         more_atoms = get_more_data(atoms_to_compute, iter_no=iter_no+1, calc=calc)
     elif no_cores > 1 and template_path is not None:
         more_atoms = get_more_data_mp_par(atoms_to_compute, iter_no=iter_no+1, template_path=template_path, no_cores=no_cores)
+
+    if upper_energy_cutoff is not None:
+        more_atoms = remove_high_e_structs(more_atoms, upper_energy_cutoff)
+
 
     old_dset = read(f'xyzs/dset_{iter_no}.xyz', index=':')
     write(f'xyzs/more_atoms_{iter_no+1}.xyz', more_atoms, 'extxyz', write_results=False)
@@ -164,6 +171,7 @@ def get_structure_to_optimise(smi, seed, stdev=0.1):
     at = read('xyzs/mol_3d.xyz')
     if seed is not None:
         at.rattle(stdev=stdev, seed=seed)
+    at.info['smiles'] = smi
     return at
 
 
@@ -171,7 +179,6 @@ def get_more_data_mp_par(atoms_to_compute, iter_no, template_path, no_cores):
 
     atoms = qm.get_parallel_molpro_energies_forces(atoms_to_compute, no_cores, mp_template=template_path)
     for at in atoms:
-        print(f'energy that gets assigned to dft_energy {at.info["energy"]}')
         at.info['dft_energy'] = at.info['energy']
         at.arrays['dft_forces'] = at.arrays['forces']
         at.info['config_type'] = f'iter_{iter_no}'
@@ -180,7 +187,13 @@ def get_more_data_mp_par(atoms_to_compute, iter_no, template_path, no_cores):
     return atoms
 
 
-
+def remove_high_e_structs(atoms, upper_e_per_at):
+    new_ats = []
+    for at in atoms:
+        if at.info['dft_energy'] / len(at) < upper_e_per_at:
+           new_ats.append(at)
+    print(f'Removed {len(atoms) - len(new_ats)} structures with energies higher than {upper_e_per_at} eV/atom.')
+    return new_ats
 
 
 

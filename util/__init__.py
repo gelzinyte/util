@@ -83,6 +83,16 @@ def set_dft_vals(atoms):
 def round_sig(x, sig=2):
   return round(x, sig-int(floor(log10(abs(x))))-1)
 
+def clear_at_info(at):
+    positions = at.arrays['positions']
+    numbers = at.arrays['numbers']
+
+    at.info.clear()
+    at.arrays.clear()
+    at.arrays['positions'] = positions
+    at.arrays['numbers'] = numbers
+    return at
+
 
 def get_pair_dists(all_dists, at_nos, atno1, atno2):
     dists = []
@@ -136,6 +146,7 @@ def rattle(at, stdev, natoms):
     new_pos = pos + rng.normal(scale=stdev, size=pos.shape) * mask
     at.set_positions(new_pos)
     return at
+
 
 
 def has_converged(template_path, molpro_out_path='MOLPRO/molpro.out'):

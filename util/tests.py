@@ -24,10 +24,11 @@ def make_structures_to_optimise(smiles, no_runs, output_dir,  seed_shift):
             print(f'found structure {name}, not creating')
 
 
-def dft_optimise_start_ats(no_runs, output_dir, molpro_wdir):
+def dft_optimise_start_ats(no_runs, output_dir, molpro_wdir, source_template=None):
     '''makes molpro optg templates and submits them'''
     mp_command = '/opt/molpro/bin/molpro'
-    source_template = '../../template_molpro.txt'
+    if source_template is None:
+        source_template = '../../template_molpro.txt'
 
     orig_dir = os.getcwd()
     os.chdir(output_dir)

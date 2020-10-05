@@ -15,6 +15,33 @@ import molpro as mp
 import util
 
 
+
+def mp_optimise_at(at_fname, at_out_fname,  source_template):
+
+    mp_command = '/opt/molpro/bin/molpro'
+
+    base_name = os.path.splitext(at_fname)[0]
+    # at_out_fname = base_name + '_optg_out.xyz'
+    optg_template_fname = base_name + '_template.txt'
+
+    make_optg_template(source_template=source_template,
+                          optg_template=optg_template_fname,
+                          input_fname=at_fname,
+                          output_fname=at_out_fname)
+
+    submission_script_fname = f'{base_name}.sh'
+    job_name=f'{base_name}'
+    output_fname = f'{base_name}.out'
+    command = f'{mp_command} {optg_template_fname} -o {output_fname}'
+
+    util.write_generic_submission_script(
+        script_fname=submission_script_fname, job_name=job_name,
+        command=command)
+
+    subprocess.run(f'qsub {submission_script_fname}', shell=True)
+
+
+
 def plot_curve(dimer_name, multiplicities, orca_blocks, labels, distances, iso_at_mult):
     isolated_ats = isolated_at_data(dimer_name, multiplicities=iso_at_mult)
 
@@ -449,6 +476,12 @@ def get_parallel_molpro_energies_forces(atoms, no_cores, mp_template='template_m
             dfile.write(template_name)
 
             bash_call += f'{mp_path} {template_name} -o {output_name}.txt &\n'
+
+            if os.path.isfile(f'{output_name}.txt'):
+                os.remove(f'{output_name}.txt')
+
+            if os.path.isfile(f'{output_name}.xml'):
+                os.remove(f'{output_name}.xml')
 
         bash_call += 'wait \n'
         subprocess.run(bash_call, shell=True)
