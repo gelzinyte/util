@@ -322,3 +322,50 @@ def write_generic_submission_script(script_fname, job_name, command, no_cores=1)
         f.write(bash_script_middle)
         f.write(f'{command} \n')
         f.write('echo "--- The End ---"')
+
+def do_kpca(xyz_fname):
+
+    asapxyz = ASAPXYZ(xyz_fname, periodic=False)
+    soap_spec = {'soap1': {'type': 'SOAP',
+                           'cutoff': 4.0,
+                           'n': 6,
+                           'l': 6,
+                           'atom_gaussian_width': 0.5,
+                           'crossover': False,
+                           'rbf': 'gto'}}
+
+
+    reducer_spec = {'reducer1': {
+        'reducer_type': 'average',
+        # [average], [sum], [moment_average], [moment_sum]
+        'element_wise': False}}
+
+
+    desc_spec = {'avgsoap': {
+        'atomic_descriptor': soap_spec,
+        'reducer_function': reducer_spec}}
+
+    asapxyz.compute_global_descriptors(desc_spec_dict=desc_spec,
+                                       sbs=[],
+                                       keep_atomic=False,
+                                       tag='tio2')
+
+    reduce_dict = {}
+    reduce_dict['kpca'] = {"type": 'SPARSE_KPCA',
+                           'parameter': {"n_components": 10,
+                                         "n_sparse": -1,  # no sparsification
+                                         "kernel": {"first_kernel": {
+                                             "type": 'linear'}}}}
+
+    dreducer = Dimension_Reducers(reduce_dict)
+    dm = asapxyz.fetch_computed_descriptors(['avgsoap'])
+    proj = dreducer.fit_transform(dm)
+
+    atoms = read(xyz_fname, ':')
+    atoms_out = []
+    for coord, at in zip(proj, atoms):
+        at.info[f'pca_d_10'] = coord
+        atoms_out.append(at)
+
+    write(xyz_fname, atoms_out, 'extxyz', write_results=False)
+    # return(atoms_out)

@@ -185,17 +185,11 @@ def make_kpca_picture(gap_fname, dft_eq_xyz, ends_fname, std, dft):
     # kpca_out_name = f'xyzs/{ends_fname}_out_of_kpca.xyz'
 
     prepare_xyz_for_kpca(ends_fname, gap_fname, dft_eq_xyz, kpca_in_name, std, dft)
-    do_kpca(kpca_in_name)
+    util.do_kpca(kpca_in_name)
 
     ats_train, end_pairs, dft_min, dft_finishes = sort_kpca_atoms(kpca_out_name)
     plot_actual_kpca_plot(ats_train, end_pairs, dft_min, dft_finishes, gap_fname, std)
 
-def do_kpca(kpca_in_name):
-    gen_desc = f'asap gen_desc -f {kpca_in_name} --no-periodic soap'
-    map = "asap map -f ASAP-desc.xyz -dm '[*]' pca"
-
-    subprocess.run(gen_desc, shell=True)
-    subprocess.run(map, shell=True)
 
 
 
@@ -278,18 +272,6 @@ def plot_actual_kpca_plot(ats_train, end_pairs, dft_min, dft_finishes, gap_fname
     marker_shapes = ['X', '^', 'o', 'D', 's']
     dft_min_name_mareker_shape_dict = {}
 
-    # if std==0.01:
-    #     suspicious_ats = []
-    #     pcaxs = []
-    #     pcays = []
-    #     for at in ats_train:
-    #         if at.info[pca_dict_key][pcay] > 2:
-    #             suspicious_ats.append(at)
-    #         pcaxs.append(at.info[pca_dict_key][pcax])
-    #         pcays.append(at.info[pca_dict_key][pcay])
-    #     print(std, min(pcaxs), min(pcays))
-    #     write('suspicious_ats.xyz', suspicious_ats, 'extxyz', write_results=False)
-    #     raise RuntimeError('taa')
 
 
     fig = plt.figure(figsize=(10, 7))
