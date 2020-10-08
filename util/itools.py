@@ -22,7 +22,7 @@ import molpro as mp
 
 
 
-def fit_gap(idx, descriptors, default_sigma, config_type_sigma=None):
+def fit_gap(idx, descriptors, default_sigma, gap_fit_path=None, config_type_sigma=None):
 
     train_file = f'xyzs/dset_{idx}.xyz'
     gap_fname = f'gaps/gap_{idx}.xml'
@@ -32,7 +32,7 @@ def fit_gap(idx, descriptors, default_sigma, config_type_sigma=None):
 
     command = ugap.make_gap_command(gap_filename=gap_fname, training_filename=train_file, descriptors_dict=desc,
                                   default_sigma=default_sigma, output_filename=out_fname, glue_fname='glue_orca.xml',
-                                    config_type_sigma=config_type_sigma)
+                                    config_type_sigma=config_type_sigma, gap_fit_path=gap_fit_path)
 
     print(f'\n-------GAP {idx} command\n')
     print(command)
@@ -64,14 +64,15 @@ def get_structures(source_atoms, n_dpoints, n_rattle_atoms, stdev):
     return atoms
 
 
-def extend_dset(iter_no, smiles_list, n_dpoints, n_rattle_atoms, stdev, calc, template_path=None,
-                stride=5, no_cores=1, upper_energy_cutoff=None):
+def extend_dset(iter_no, smiles, n_dpoints, n_rattle_atoms, stdev, wfl_command,
+                stride=5, upper_energy_cutoff=None):
 
+    new_dset_name = f'xyzs/dset_{iter_no+1}.xyz'
 
     # take every stride-th structure from trajectory, and always the last one
     source_atoms = []
-    for smiles in smiles_list:
-        opt_traj_name = f'xyzs/optimisation_{iter_no}_{smiles}'
+    for smi in smiles:
+        opt_traj_name = f'xyzs/optimisation_{iter_no}_{smi}'
         traj = read(opt_traj_name+'.xyz', ':')
         # skipping first structure, which is just first guess and reading every
         # stride-th plus the last structure
@@ -82,10 +83,9 @@ def extend_dset(iter_no, smiles_list, n_dpoints, n_rattle_atoms, stdev, calc, te
     atoms_to_compute = get_structures(source_atoms=source_atoms, n_dpoints=n_dpoints,
                         n_rattle_atoms=n_rattle_atoms, stdev=stdev)
 
-    if no_cores == 1:
-        more_atoms = get_more_data(atoms_to_compute, iter_no=iter_no+1, calc=calc)
-    elif no_cores > 1 and template_path is not None:
-        more_atoms = get_more_data_mp_par(atoms_to_compute, iter_no=iter_no+1, template_path=template_path, no_cores=no_cores)
+
+    more_atoms = orca_par_data(atoms_in=atoms_to_compute, out_fname=new_dset_name,
+                               wfl_command=wfl_command, iter_no=iter_no)
 
     if upper_energy_cutoff is not None:
         more_atoms = remove_high_e_structs(more_atoms, upper_energy_cutoff)
@@ -94,7 +94,7 @@ def extend_dset(iter_no, smiles_list, n_dpoints, n_rattle_atoms, stdev, calc, te
     old_dset = read(f'xyzs/dset_{iter_no}.xyz', index=':')
     write(f'xyzs/more_atoms_{iter_no+1}.xyz', more_atoms, 'extxyz', write_results=False)
     new_dset = old_dset + more_atoms
-    write(f'xyzs/dset_{iter_no+1}.xyz', new_dset, 'extxyz', write_results=False)
+    write(new_dset_name, new_dset, 'extxyz', write_results=False)
 
 
 def do_opt(at, gap_fname, dft_calc, traj_name, dft_stride=5, fmax=0.01,
@@ -194,6 +194,29 @@ def remove_high_e_structs(atoms, upper_e_per_at):
            new_ats.append(at)
     print(f'Removed {len(atoms) - len(new_ats)} structures with energies higher than {upper_e_per_at} eV/atom.')
     return new_ats
+
+
+def orca_par_data(atoms_in, out_fname, wfl_command, iter_no):
+    '''calls workflow command to get orca energies and post-processes by
+    assigning prefix as always and returns atoms'''
+
+    in_fname = os.splitext(out_fname)[0] + '_precomputed.xyz'
+    write(in_fname, atoms_in, 'extxyz', write_results=False)
+
+    wfl_command += f' {out_fname}'
+    print('Workflow command:\n{wfl_command}')
+
+    subprocess.run(wfl_command, shell=True)
+
+    atoms_out = read(out_fname, ':')
+
+    for at in atoms_out:
+        at.info[f'{data_prefix}energy'] = at.info['energy']
+        at.arrays[f'{data_prefix}forces'] = at.arrays['forces']
+        at.info['config_type'] = f'iter_{iter_no}'
+        at.set_cell([20, 20, 20])
+
+    return atoms_out
 
 
 

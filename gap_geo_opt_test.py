@@ -12,6 +12,7 @@ from quippy.potential import Potential
 import matplotlib.pyplot as plt
 import numpy as np
 import subprocess
+import shutil
 
 @click.command()
 @click.option('--gap_fname', type=click.Path(exists=True), help='GAP xml to test.')
@@ -56,25 +57,49 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz, no_runs, stds,
             for conf in dft_confs:
 
                 if look_for_starts:
-                    start_at_fname = f'starts_{conf.info["name"]}_{std}A_std.xyz'
+                    start_at_fname = f'starts/starts_{conf.info["name"]}_{std}A_std.xyz'
                     start_ats = read(start_at_fname, ':')
                     if len(start_ats) != no_runs:
                         raise RuntimeError("number of start atoms found not equal to number of optimisation runs asked for; Figure out how to deal with this.")
 
                 for idx in range(no_runs):
+                    failed_opt = False
 
-                    if look_for_starts:
-                        at = start_ats[idx]
-                    else:
-                        seed = int(time.time() * 1e7) % (2**32-1)
-                        at = conf.copy()
-                        at.rattle(stdev=std, seed=seed)
-
-                    traj_name = f'xyzs/{at.info["name"]}_{std}A_std_{idx}'
-
+                    traj_name = f'xyzs/{conf.info["name"]}_{std}A_std_{idx}'
                     if not os.path.isfile(f'{traj_name}.xyz'):
-                        tests.do_gap_optimisation(at, traj_name, fmax, max_steps, gap=gap)
 
+                        max_attempts = 10
+                        for attempt in range(max_attempts):
+
+                            if look_for_starts:
+                                at = start_ats[idx]
+
+                            else:
+                                seed = int(time.time() * 1e7) % (2 ** 32 - 1)
+                                at = conf.copy()
+                                at.rattle(stdev=std, seed=seed)
+
+                            try:
+                                tests.do_gap_optimisation(at, traj_name, fmax, max_steps, gap=gap)
+                                print(f'successful opt idx {idx} attempt {attempt}')
+                            except RuntimeError as e:
+                                if not look_for_starts:
+                                    print(f'Failed to optimise, error:', e)
+                                    shutil.move(f'{traj_name}.traj',
+                                                f'failed_{traj_name}_seed_{seed}.traj')
+                                if look_for_starts:
+                                    print(f'Failed to optimise found structure {traj_name}.xyz, skipping')
+                                    failed_opt = True
+                                    break
+                                # continue
+                            break
+
+                        else:
+                            raise RuntimeError('Maxed out of attempts to optimise')
+
+                    if failed_opt:
+                        failed_opt = False
+                        continue
 
                     traj = read(f'{traj_name}.xyz', ':')
                     start = traj[0]
@@ -181,7 +206,7 @@ def make_kpca_picture(gap_fname, dft_eq_xyz, ends_fname, std, dft):
     '''main function to do the kpca'''
 
     kpca_in_name = f'{ends_fname}_for_kpca.xyz'
-    kpca_out_name = "ASAP-lowD-map.xyz"
+    kpca_out_name = kpca_in_name
     # kpca_out_name = f'xyzs/{ends_fname}_out_of_kpca.xyz'
 
     prepare_xyz_for_kpca(ends_fname, gap_fname, dft_eq_xyz, kpca_in_name, std, dft)
@@ -264,7 +289,7 @@ def plot_actual_kpca_plot(ats_train, end_pairs, dft_min, dft_finishes, gap_fname
     '''plots the pca of three groups of points from what's in ther at.ino['pca_coord']'''
 
     gap_no = int(re.findall('\d+', gap_fname)[0])
-    pca_dict_key = 'pca-d-10'
+    pca_dict_key = 'pca_d_10'
 
     pcax = 0
     pcay = 1

@@ -29,8 +29,6 @@ from ase.optimize.precon import PreconLBFGS
 from ase.units import Ha
 from util import dict_to_vals
 
-from asaplib.data import ASAPXYZ
-from asaplib.reducedim import Dimension_Reducers
 
 
 ''' Interesting things:
@@ -45,8 +43,6 @@ from asaplib.reducedim import Dimension_Reducers
         opt_summary_plots  - fmax and E error wrt dft optg vs iteration 
         eval_plot          - eigenvalue plot for all gaps
 '''
-
-
 
 
 
@@ -714,11 +710,12 @@ def kpca_plot(xyz_fname, pic_name, output_dir):
     cmap = mpl.cm.get_cmap('tab20')
     cmap10 = mpl.cm.get_cmap('tab10')
     color_idx = np.linspace(0, 1, 10)
+    kpca_name = 'pca_d_1o'
 
     # training set points
-    xs_train = [at.info[f'pca_0'] for at in atoms if
+    xs_train = [at.info[kpca_name][0] for at in atoms if
                 'iter' in at.info['config_type']]
-    ys_train = [at.info[f'pca_1'] for at in atoms if
+    ys_train = [at.info[kpca_name][1] for at in atoms if
                 'iter' in at.info['config_type']]
 
 
@@ -760,7 +757,7 @@ def kpca_plot(xyz_fname, pic_name, output_dir):
         label=None
         if idx==0:
             label='to be optimised'
-        plt.scatter(at.info['pca_0'], at.info['pca_1'], color=cmap10(color_idx[idx+1]),
+        plt.scatter(at.info[kpca_name][0], at.info[kpca_name][1], color=cmap10(color_idx[idx+1]),
                     label=label, marker='o', linewidth=0.5, s=50, linewidths=10, edgecolors='k')
         # print(f'{at.info["config_type"]} color idx: {idx+1}')
 
@@ -770,7 +767,7 @@ def kpca_plot(xyz_fname, pic_name, output_dir):
         if idx == 1:
             label = 'optimised structures'
 
-        plt.scatter(at.info['pca_0'], at.info['pca_1'],
+        plt.scatter(at.info[kpca_name][0], at.info[kpca_name][1],
                     color=cmap10(color_idx[idx]),
                     label=label, marker='X', linewidth=0.5, s=80,
                     linewidths=10, edgecolors='k')
@@ -783,12 +780,14 @@ def kpca_plot(xyz_fname, pic_name, output_dir):
         if idx==1:
             label='dft equilibrium'
 
-        plt.scatter(at.info['pca_0'], at.info['pca_1'],
+        plt.scatter(at.info[kpca_name][0], at.info[kpca_name][1],
                     color='k', marker='d', label=label)
 
 
-        x_pos = at.info['pca_0'] + 0.1 * np.abs(at.info['pca_0'])
-        y_pos = at.info['pca_1'] + 0.1 * np.abs(at.info['pca_1'])
+        pcax = at.info[kpca_name][0]
+        x_pos = pcax + 0.1 * np.abs(pcax)
+        pcay = at.info[kpca_name[1]]
+        y_pos = pcay + 0.1 * pcay
         plt.gca().annotate(at.info['config_type'], xy=(x_pos, y_pos), fontsize=8)
 
 
@@ -802,8 +801,11 @@ def kpca_plot(xyz_fname, pic_name, output_dir):
         pic_name = os.path.join(output_dir, pic_name)
 
     plt.tight_layout()
-    plt.savefig(f'{pic_name}.png', dpi=300)
-    plt.close(fig)
+    if output_dir is not None:
+        plt.savefig(f'{pic_name}.png', dpi=300)
+        plt.close(fig)
+    else:
+        plt.show()
 
 
 def make_kpca_dset(training_set, all_opt_ats, non_opt_ats, dft_optg, xyz_fname):
@@ -834,53 +836,7 @@ def make_kpca_dset(training_set, all_opt_ats, non_opt_ats, dft_optg, xyz_fname):
     all_data =  kpca_ats + gap_opt_ats + non_opt_ats + dft_optg_atoms
     write(xyz_fname, all_data, 'extxyz', write_results=False)
 
-def do_kpca(xyz_fname):
 
-    asapxyz = ASAPXYZ(xyz_fname, periodic=False)
-    soap_spec = {'soap1': {'type': 'SOAP',
-                           'cutoff': 4.0,
-                           'n': 6,
-                           'l': 6,
-                           'atom_gaussian_width': 0.5,
-                           'crossover': False,
-                           'rbf': 'gto'}}
-
-
-    reducer_spec = {'reducer1': {
-        'reducer_type': 'average',
-        # [average], [sum], [moment_average], [moment_sum]
-        'element_wise': False}}
-
-
-    desc_spec = {'avgsoap': {
-        'atomic_descriptor': soap_spec,
-        'reducer_function': reducer_spec}}
-
-    asapxyz.compute_global_descriptors(desc_spec_dict=desc_spec,
-                                       sbs=[],
-                                       keep_atomic=False,
-                                       tag='tio2')
-
-    reduce_dict = {}
-    reduce_dict['kpca'] = {"type": 'SPARSE_KPCA',
-                           'parameter': {"n_components": 10,
-                                         "n_sparse": -1,  # no sparsification
-                                         "kernel": {"first_kernel": {
-                                             "type": 'linear'}}}}
-
-    dreducer = Dimension_Reducers(reduce_dict)
-    dm = asapxyz.fetch_computed_descriptors(['avgsoap'])
-    proj = dreducer.fit_transform(dm)
-
-    atoms = read(xyz_fname, ':')
-    atoms_out = []
-    for coord, at in zip(proj, atoms):
-        at.info['pca_0'] = coord[0]
-        at.info['pca_1'] = coord[1]
-        atoms_out.append(at)
-
-    write(xyz_fname, atoms_out, 'extxyz', write_results=False)
-    # return(atoms_out)
 
 
 def make_kpca_plots(training_set, all_opt_ats='xyzs/opt_all.xyz', non_opt_ats='xyzs/to_opt_all.xyz', \
@@ -897,7 +853,7 @@ def make_kpca_plots(training_set, all_opt_ats='xyzs/opt_all.xyz', non_opt_ats='x
     print('Making up dataset for kpca')
     make_kpca_dset(training_set, all_opt_ats, non_opt_ats, dft_optg, xyz_fname)
 
-    do_kpca(xyz_fname)
+    util.do_kpca(xyz_fname)
     pic_name = 'kpca_default'
 
     kpca_plot(xyz_fname, pic_name, output_dir)

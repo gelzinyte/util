@@ -43,14 +43,14 @@ def make_config_type_sigma_str(dct):
 
 
 def make_gap_command(gap_filename, training_filename, descriptors_dict, default_sigma, config_type_sigma=None, \
-                     gap_path=None, output_filename=False, glue_fname=None):
+                     gap_fit_path=None, output_filename=False, glue_fname=None):
     """Makes GAP command to be called in shell"""
     descriptor_strs = [make_descr_str(descriptors_dict[key]) for key in descriptors_dict.keys()]
 
     default_sigma = f'{{{default_sigma[0]} {default_sigma[1]} {default_sigma[2]} {default_sigma[3]}}}'
 
-    if not gap_path:
-        gap_path = 'gap_fit'
+    if not gap_fit_path:
+        gap_fit_path = 'gap_fit'
 
     if glue_fname:
         glue_command = f' core_param_file={glue_fname} core_ip_args={{IP Glue}}'
@@ -64,7 +64,7 @@ def make_gap_command(gap_filename, training_filename, descriptors_dict, default_
             raise TypeError('config_type_sigma should be a dictionary of config_type(str):values(list of floats)')
         config_type_sigma = make_config_type_sigma_str(config_type_sigma)
 
-    gap_command = f'{gap_path} gp_file={gap_filename} atoms_filename={training_filename} energy_parameter_name=dft_energy force_parameter_name=dft_forces sparse_separate_file=F default_sigma='
+    gap_command = f'{gap_fit_path} gp_file={gap_filename} atoms_filename={training_filename} energy_parameter_name=dft_energy force_parameter_name=dft_forces sparse_separate_file=F default_sigma='
     gap_command += default_sigma + config_type_sigma + glue_command + ' gap={'
 
     for i, desc in enumerate(descriptor_strs):

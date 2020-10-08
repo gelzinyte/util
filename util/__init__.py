@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 from math import log10, floor
 
 
+from asaplib.data import ASAPXYZ
+from asaplib.reducedim import Dimension_Reducers
+
 
 
 def hello():
@@ -361,11 +364,11 @@ def do_kpca(xyz_fname):
     dm = asapxyz.fetch_computed_descriptors(['avgsoap'])
     proj = dreducer.fit_transform(dm)
 
-    atoms = read(xyz_fname, ':')
+    atoms = ase.io.read(xyz_fname, ':')
     atoms_out = []
     for coord, at in zip(proj, atoms):
         at.info[f'pca_d_10'] = coord
         atoms_out.append(at)
 
-    write(xyz_fname, atoms_out, 'extxyz', write_results=False)
+    ase.io.write(xyz_fname, atoms_out, 'extxyz', write_results=False)
     # return(atoms_out)
