@@ -710,7 +710,7 @@ def kpca_plot(xyz_fname, pic_name, output_dir):
     cmap = mpl.cm.get_cmap('tab20')
     cmap10 = mpl.cm.get_cmap('tab10')
     color_idx = np.linspace(0, 1, 10)
-    kpca_name = 'pca_d_1o'
+    kpca_name = 'pca_d_10'
 
     # training set points
     xs_train = [at.info[kpca_name][0] for at in atoms if

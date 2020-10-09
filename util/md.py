@@ -10,6 +10,7 @@ from ase.constraints import FixBondLength
 from ase.optimize import FIRE
 from ase.neb import NEB
 from ase import units
+from ase.build import molecule
 
 
 def make_end_images(sub, H_idx, separation):
@@ -29,17 +30,21 @@ def make_end_images(sub, H_idx, separation):
     idx_shift = len(methanol)
 
     meth_O_idx = np.where(methanol.get_atomic_numbers()==8)[0][0]
-    meth_C_idx = np.where(methanol.get_atomic_numbers()==6)[0][0]
+    # meth_C_idx = np.where(methanol.get_atomic_numbers()==6)[0][0]
+    meth_OH_H_idx = 3
 
     dists = sub.get_all_distances()[H_idx]
     sub_C_idx = np.argmin([d if d!= 0 else np.inf for d in dists])
 
-    OC = methanol.get_distance(meth_O_idx, meth_C_idx, vector=True)
+    # OC = methanol.get_distance(meth_O_idx, meth_C_idx, vector=True)
+    HO = methanol.get_distance(meth_OH_H_idx, meth_O_idx, vector=True)
     CH = sub.get_distance(sub_C_idx, H_idx, vector=True)
 
-    methanol.rotate(OC, CH, center=methanol.positions[1])
+    # methanol.rotate(OC, CH, center=methanol.positions[1])
+    methanol.rotate(HO, CH, center=methanol.positions[1])
 
-    methanol.positions -= methanol.positions[meth_O_idx]
+    # methanol.positions -= methanol.positions[meth_O_idx]
+    methanol.positions -= methanol.positions[meth_OH_H_idx]
     sub.positions -= sub.positions[sub_C_idx]
 
     at = methanol + sub

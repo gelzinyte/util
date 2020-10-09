@@ -36,7 +36,10 @@ def fit_gap(idx, descriptors, default_sigma, gap_fit_path=None, config_type_sigm
 
     print(f'\n-------GAP {idx} command\n')
     print(command)
-    out = subprocess.run(command, shell=True)
+    stdout, stderr  = util.shell_stdouterr(command)
+
+    print(f'---gap stdout:\n {stdout}')
+    print(f'---gap stderr:\n {stderr}')
 
 
 def optimise_structure(iter_no, atoms, fmax=1e-2, steps=500):
@@ -64,7 +67,7 @@ def get_structures(source_atoms, n_dpoints, n_rattle_atoms, stdev):
     return atoms
 
 
-def extend_dset(iter_no, smiles, n_dpoints, n_rattle_atoms, stdev, wfl_command,
+def extend_dset(iter_no, smiles, n_dpoints, n_rattle_atoms, stdev, wfl_command, orca_tmp_fname,
                 stride=5, upper_energy_cutoff=None):
 
     new_dset_name = f'xyzs/dset_{iter_no+1}.xyz'
@@ -84,7 +87,7 @@ def extend_dset(iter_no, smiles, n_dpoints, n_rattle_atoms, stdev, wfl_command,
                         n_rattle_atoms=n_rattle_atoms, stdev=stdev)
 
 
-    more_atoms = orca_par_data(atoms_in=atoms_to_compute, out_fname=new_dset_name,
+    more_atoms = orca_par_data(atoms_in=atoms_to_compute, out_fname=orca_tmp_fname,
                                wfl_command=wfl_command, iter_no=iter_no)
 
     if upper_energy_cutoff is not None:
@@ -200,19 +203,22 @@ def orca_par_data(atoms_in, out_fname, wfl_command, iter_no):
     '''calls workflow command to get orca energies and post-processes by
     assigning prefix as always and returns atoms'''
 
-    in_fname = os.splitext(out_fname)[0] + '_precomputed.xyz'
+    in_fname = os.path.splitext(out_fname)[0] + '_to_eval.xyz'
     write(in_fname, atoms_in, 'extxyz', write_results=False)
 
-    wfl_command += f' {out_fname}'
-    print('Workflow command:\n{wfl_command}')
+    wfl_command += f' {in_fname}'
+    print(f'Workflow command:\n{wfl_command}')
 
-    subprocess.run(wfl_command, shell=True)
+    stdout, stderr = util.shell_stdouterr(wfl_command)
+
+    print(f'---wfl stdout\n{stdout}')
+    print(f'---wfl stderr\n{stderr}')
 
     atoms_out = read(out_fname, ':')
 
     for at in atoms_out:
-        at.info[f'{data_prefix}energy'] = at.info['energy']
-        at.arrays[f'{data_prefix}forces'] = at.arrays['forces']
+        at.info[f'dft_energy'] = at.info['energy']
+        at.arrays[f'dft_forces'] = at.arrays['force']
         at.info['config_type'] = f'iter_{iter_no}'
         at.set_cell([20, 20, 20])
 

@@ -1,6 +1,7 @@
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from ase.io import read, write
 
 def get_xyz_str(mol):
     """For RDKit molecule, gets ase-compatable string with species and positions defined"""
@@ -23,3 +24,5 @@ def smi_to_xyz(smi, fname, useBasicKnowledge=True, useExpTorsionAnglePrefs=True)
     mol = Chem.AddHs(mol)
     out = AllChem.EmbedMolecule(mol, useBasicKnowledge=useBasicKnowledge, useExpTorsionAnglePrefs=useExpTorsionAnglePrefs)
     write_rdkit_xyz(mol, fname)
+    mol = read(fname)
+    return mol

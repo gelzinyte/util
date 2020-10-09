@@ -1,6 +1,7 @@
 # General imports
 import re
 import numpy as np
+import subprocess
 from itertools import zip_longest
 
 # Packages for atoms and molecules
@@ -372,3 +373,15 @@ def do_kpca(xyz_fname):
 
     ase.io.write(xyz_fname, atoms_out, 'extxyz', write_results=False)
     # return(atoms_out)
+
+
+def shell_stdouterr(raw_command, cwd=None):
+    """Abstracts the standard call of the commandline, when
+    we are only interested in the stdout and stderr
+    """
+    stdout, stderr = subprocess.Popen(raw_command,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      universal_newlines=True,
+                                      shell=True, cwd=cwd).communicate()
+    return stdout.strip(), stderr.strip()
