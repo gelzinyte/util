@@ -220,10 +220,10 @@ def make_kpca_picture(gap_fname, dft_eq_xyz, ends_fname, std, dft):
 
 def prepare_xyz_for_kpca(ends_fname, gap_fname, dft_eq_xyz, kpca_in_name, std, dft):
     # make kpca dataset
-    training_ats = ugap.atoms_from_gap(gap_fname, 'tmp_ats.xyz')
-    training_ats = [at for at in training_ats if len(at)!=1]
-    for at in training_ats:
-        at.info['config_type'] = 'training'
+    # training_ats = ugap.atoms_from_gap(gap_fname, 'tmp_ats.xyz')
+    # training_ats = [at for at in training_ats if len(at)!=1]
+    # for at in training_ats:
+    #     at.info['config_type'] = 'training'
     dft_eq_ats = read(dft_eq_xyz, ':')
     for at in dft_eq_ats:
         at.info['config_type'] = at.info['name']
