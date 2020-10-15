@@ -199,7 +199,7 @@ def remove_high_e_structs(atoms, upper_e_per_at):
     return new_ats
 
 
-def orca_par_data(atoms_in, out_fname, wfl_command, iter_no):
+def orca_par_data(atoms_in, out_fname, wfl_command, iter_no=None):
     '''calls workflow command to get orca energies and post-processes by
     assigning prefix as always and returns atoms'''
 
@@ -216,11 +216,12 @@ def orca_par_data(atoms_in, out_fname, wfl_command, iter_no):
 
     atoms_out = read(out_fname, ':')
 
-    for at in atoms_out:
-        at.info[f'dft_energy'] = at.info['energy']
-        at.arrays[f'dft_forces'] = at.arrays['force']
-        at.info['config_type'] = f'iter_{iter_no}'
-        at.set_cell([20, 20, 20])
+    if iter_no is not None:
+        for at in atoms_out:
+            at.info[f'dft_energy'] = at.info['energy']
+            at.arrays[f'dft_forces'] = at.arrays['force']
+            at.info['config_type'] = f'iter_{iter_no}'
+            at.set_cell([20, 20, 20])
 
     return atoms_out
 

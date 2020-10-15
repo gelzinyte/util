@@ -47,6 +47,7 @@ class Vibrations(ase.vibrations.Vibrations):
         self.combine()
         return atoms
 
+
     @property
     def evals(self):
         if 'hnu' not in dir(self):

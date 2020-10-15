@@ -1,0 +1,9 @@
+1
+Lattice="20.0 0.0 0.0 0.0 20.0 0.0 0.0 0.0 20.0" Properties=species:S:1:pos:R:3 config_type=isolated_atom dft_energy=-1029.5733730941022  pbc="F F F"
+C        0.00000000       0.00000000       0.00000000
+1
+Lattice="20.0 0.0 0.0 0.0 20.0 0.0 0.0 0.0 20.0" Properties=species:S:1:pos:R:3 config_type=isolated_atom dft_energy=-13.48177870136417 pbc="F F F"
+H        0.00000000       0.00000000       0.00000000
+1
+Lattice="20.0 0.0 0.0 0.0 20.0 0.0 0.0 0.0 20.0" Properties=species:S:1:pos:R:3 config_type=isolated_atom dft_energy=-2042.1347764516183  pbc="F F F"
+O        0.00000000       0.00000000       0.00000000

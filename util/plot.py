@@ -757,7 +757,10 @@ def kpca_plot(xyz_fname, pic_name, output_dir):
         label=None
         if idx==0:
             label='to be optimised'
-        plt.scatter(at.info[kpca_name][0], at.info[kpca_name][1], color=cmap10(color_idx[idx+1]),
+        color = cmap10(color_idx[idx+1])
+        if idx==10:
+            color='grey'
+        plt.scatter(at.info[kpca_name][0], at.info[kpca_name][1], color=color,
                     label=label, marker='o', linewidth=0.5, s=50, linewidths=10, edgecolors='k')
         # print(f'{at.info["config_type"]} color idx: {idx+1}')
 
