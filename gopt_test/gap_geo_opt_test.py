@@ -22,9 +22,10 @@ from os.path import join as pj
 @click.option('--max_steps', type=int, default=500, show_default=True,help='Maximum number of steps allowed in optimisation.')
 @click.option('--stds', type=str, default='[0.1]', help='list of standard deviations to test')
 @click.option('--dft', type=bool, default=False, help='whether should be looking for and plotting dft-optimised structures')
+@click.option('--no_cores', type=int, help='number of cores to parallelise over')
 @click.argument('smiles', nargs=-1)
 def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
-                fmax, max_steps,  dft, smiles):
+                fmax, max_steps,  dft, no_cores, smiles):
 
     # set up
     stds = stds.strip('][').split(', ')
@@ -34,7 +35,6 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
     print(f'SMILES for this run: {smiles}')
 
     db_path = '/home/eg475/programs/my_scripts/gopt_test/'
-    no_cores = os.environ['OMP_NUM_THREADS']
 
 
     print(f'Parameters: gap {gap_fname}, dft equilibrium fname {dft_eq_xyz}, '
@@ -46,113 +46,168 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
 
     dft_confs = read(pj(db_path, 'dft_minima', dft_eq_xyz), ':')
 
-    std_optimisations(stds, dft_confs, gap_fname, dft, db_path, fmax=fmax, max_steps=max_steps)
-    smi_optimisations(smiles, gap_fname, dft_confs, db_path, fmax=fmax, max_steps=max_steps)
+    opt_wdir = 'xyzs/opt_xyzs'
+    if not os.path.isdir(opt_wdir):
+        os.makedirs(opt_wdir)
 
-    for dft_at in dft_confs:
-        print(f'Summary plot for {dft_at.info["name"]}')
-        make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds, dft)
+    std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
+    smi_optimisations(smiles, gap_fname, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
+
+    #
+    # for dft_at in dft_confs:
+    #     print(f'Summary plot for {dft_at.info["name"]}')
+    #     make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds, dft)
 
 
-def smi_optimisations(smiles, gap_fname, dft_confs, db_path, fmax, max_steps):
+def geo_opt_in_batches(gap_fname, start_fnames, finish_fnames, traj_fnames, steps, fmax, no_cores):
 
-    ends_fname = f'all_opt_ends_smiles'
 
-    if not os.path.isfile(f'{ends_fname}.xyz'):
+    for batch in util.grouper(zip(start_fnames, finish_fnames, traj_fnames), no_cores):
 
-        gap = Potential(param_filename=gap_fname)
+        batch = [b for b in batch if b is not None]
+        bash_call = ''
 
-        all_traj_ends = []
+        for start_fname, finish_fname, traj_fname in batch:
 
-        for smi in smiles:
+           bash_call += f'python /home/eg475/programs/my_scripts/gopt_test/single_optimisation.py ' \
+                       f'--gap_fname {gap_fname} ' \
+                       f'--start_fname {start_fname} ' \
+                        f'--finish_fname {finish_fname} ' \
+                        f'--traj_name {traj_fname} ' \
+                        f'--steps {steps} ' \
+                        f'--fmax {fmax} ' \
+                        f'&\n'
+
+        bash_call += 'wait\n'
+
+        stdout, stderr = util.shell_stdouterr(bash_call)
+
+        print(f'---opt stdout:\n {stdout}')
+        print(f'---opt stderr:\n {stderr}')
+
+def shuffle_opt_trajs_around(start_fnames, finish_fnames, ends_fname, finishes_at_fname):
+
+    ends = []
+    finishes = []
+    for idx, (start_fn, finish_fn) in enumerate(zip(start_fnames, finish_fnames)):
+        at_s = read(start_fn)
+        #at_s should have all info already (e.g. start_4)
+
+        at_f = read(finish_fn)
+        at_f.info['config_type'] = f'finish_{idx}'
+
+        ends += [at_s, at_f]
+        finishes.append(at_f)
+
+    write(ends_fname, ends, 'extxyz', write_results=False)
+    write(finishes_at_fname, finishes, 'extxyz', write_results=False)
+
+
+def smi_optimisations(smiles, gap_fname, db_path, opt_wdir, fmax, max_steps, no_cores):
+
+    all_opt_ends_fnames = []
+
+    for smi in smiles:
+
+        ends_fname = f'xyzs/opt_ends_{smi}.xyz'
+        all_opt_ends_fnames.append(ends_fname)
+
+        if not os.path.isfile(ends_fname):
+
+            all_start_fnames = []
+            all_finish_fnames = []
+            all_traj_fnames = []
 
             start_at_fname = pj(db_path, f'starts/rdkit_starts_{smi}.xyz')
             start_ats = read(start_at_fname, ':')
 
+            finishes_at_fname = f'xyzs/rdkit_finishes_{smi}.xyz'
+
             for idx, at in enumerate(start_ats):
-                failed_opt = False
-
-                traj_name = f'xyzs/opt_{smi}_{idx}'
-                if not os.path.isfile(f'{traj_name}.xyz'):
-                    try:
-                        tests.do_gap_optimisation(at, traj_name, fmax,
-                                                  max_steps, gap=gap)
-                        print(f'successful opt idx {idx}')
-                    except RuntimeError as e:
-                        print(
-                            f'Failed to optimise found structure '
-                            f'{traj_name}.xyz, skipping')
-                        failed_opt = True
-
-                if failed_opt:
-                    failed_opt = False
-                    continue
-
-                traj = read(f'{traj_name}.xyz', ':')
-                start = traj[0]
-                start.info['config_type'] = f'start_{idx}'
-                finish = traj[-1]
-                finish.info['config_type'] = f'finish_{idx}'
-
-                all_traj_ends += [start, finish]
-
-        write(f'{ends_fname}.xyz', all_traj_ends, 'extxyz',
-              write_results=False)
-
-    make_kpca_picture(gap_fname, dft_confs, ends_fname, smiles=smiles)
+                start_at_fname = pj(opt_wdir, f'start_{smi}_{idx}.xyz')
+                finish_at_fname = pj(opt_wdir, f'finish_{smi}_{idx}.')
+                traj_name = pj(opt_wdir, f'opt_{smi}_{idx}')
 
 
-def std_optimisations(stds, dft_confs, gap_fname, dft, db_path, fmax, max_steps):
+                write(start_at_fname, at, 'extxyz', write_results=False)
 
-    gap = Potential(param_filename=gap_fname)
+                all_start_fnames.append(start_at_fname)
+                all_finish_fnames.append(finish_at_fname)
+                all_traj_fnames.append(traj_name)
+
+
+            print('running geometry optimisation in batches')
+            geo_opt_in_batches(gap_fname=gap_fname, start_fnames=all_start_fnames,
+                               finish_fnames=all_finish_fnames, traj_fnames=all_traj_fnames,
+                           steps=max_steps, fmax=fmax, no_cores=no_cores)
+            print('finished geometry optimisation in batches')
+
+            shuffle_opt_trajs_around(all_start_fnames, all_finish_fnames, ends_fname, finishes_at_fname)
+
+        else:
+            print(f'Found {ends_fname}, not re-optimising')
+
+    # make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fnames, smiles=smiles)
+
+
+def std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir, fmax, max_steps, no_cores):
+
 
     for std in stds:
 
-        ends_fname = f'all_opt_ends_{std}A_std'
-        if not os.path.isfile(f'{ends_fname}.xyz'):
-            all_traj_ends = []
+        all_opt_ends_fnames = []
 
-            for conf in dft_confs:
+        for conf in dft_confs:
 
-                conf_name = conf.info['name']
-                start_at_fname = pj(db_path, f'starts/{conf_name}/starts_{conf_name}_{std}A_std.xyz')
+            conf_name = conf.info['name']
+            ends_fname =  f'xyzs/opt_ends_{conf_name}_{std}A_std.xyz'
+            all_opt_ends_fnames.append(ends_fname)
+
+            if not os.path.isfile(ends_fname):
+
+                all_start_fnames = []
+                all_finish_fnames = []
+                all_traj_fnames = []
+
+                start_at_fname = pj(db_path, f'starts/starts_{conf_name}_{std}A_std.xyz')
                 start_ats = read(start_at_fname, ':')
 
+                finishes_at_fname = f'xyzs/finishes_{conf_name}_{std}A_std.xyz'
+
                 for idx, at in enumerate(start_ats):
-                    failed_opt = False
+                    start_at_fname = pj(opt_wdir, f'start_{conf_name}_{std}A_std_{idx}.xyz')
+                    finish_at_fname = pj(opt_wdir, f'finish_{conf_name}_{std}A_std_{idx}.xyz')
+                    traj_name = pj(opt_wdir, f'opt_{conf_name}_{std}A_std_{idx}')
 
-                    traj_name = f'xyzs/{conf_name}_{std}A_std_{idx}'
-                    if not os.path.isfile(f'{traj_name}.xyz'):
+                    write(start_at_fname, at, 'extxyz', write_results=False)
 
-                        try:
-                            tests.do_gap_optimisation(at, traj_name, fmax, max_steps, gap=gap)
-                            print(f'successful opt idx {idx}')
-                        except RuntimeError as e:
-                            print(f'Failed to optimise found structure {traj_name}.xyz, skipping')
-                            failed_opt = True
-                            # break
-
-                    if failed_opt:
-                        failed_opt = False
-                        continue
-
-                    traj = read(f'{traj_name}.xyz', ':')
-                    start = traj[0]
-                    start.info['config_type'] = f'start_{idx}'
-                    finish = traj[-1]
-                    finish.info['config_type'] = f'finish_{idx}'
-
-                    all_traj_ends += [start, finish]
-
-            write(f'{ends_fname}.xyz', all_traj_ends, 'extxyz', write_results=False)
-
-        make_kpca_picture(gap_fname, dft_confs, ends_fname, std=std, dft=dft)
+                    all_start_fnames.append(start_at_fname)
+                    all_finish_fnames.append(finish_at_fname)
+                    all_traj_fnames.append(traj_name)
 
 
-def make_kpca_picture(gap_fname, dft_eq_ats, ends_fname, std=None, smiles=None, dft=None):
+                geo_opt_in_batches(gap_fname=gap_fname,
+                                   start_fnames=all_start_fnames,
+                                   finish_fnames=all_finish_fnames,
+                                   traj_fnames=all_traj_fnames,
+                                   steps=max_steps, fmax=fmax, no_cores=no_cores)
+
+
+                shuffle_opt_trajs_around(all_start_fnames, all_finish_fnames,
+                                         ends_fname, finishes_at_fname)
+
+            else:
+                print(f'Found {ends_fname}, not re-optimising')
+
+
+        # make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fname, std=std, dft=dft)
+
+
+
+def make_kpca_picture(gap_fname, dft_eq_ats, all_opt_ends_fname, std=None, smiles=None, dft=None):
     '''main function to do the kpca'''
 
-    kpca_name = f'{ends_fname}_kpca.xyz'
+    kpca_name = os.path.splitext(ends_name)[0] + '_kpca.xyz'
 
     prepare_xyz_for_kpca(ends_fname, dft_eq_ats, kpca_name, std, dft)
 

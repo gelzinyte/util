@@ -88,7 +88,7 @@ def extend_dset(iter_no, smiles, n_dpoints, n_rattle_atoms, stdev, wfl_command, 
 
 
     more_atoms = orca_par_data(atoms_in=atoms_to_compute, out_fname=orca_tmp_fname,
-                               wfl_command=wfl_command, iter_no=iter_no)
+                               wfl_command=wfl_command, config_type=f'iter_{iter_no}')
 
     if upper_energy_cutoff is not None:
         more_atoms = remove_high_e_structs(more_atoms, upper_energy_cutoff)
