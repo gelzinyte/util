@@ -34,6 +34,8 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
     print(f'SMILES for this run: {smiles}')
 
     db_path = '/home/eg475/programs/my_scripts/gopt_test/'
+    no_cores = os.environ['OMP_NUM_THREADS']
+
 
     print(f'Parameters: gap {gap_fname}, dft equilibrium fname {dft_eq_xyz}, '
           f' fmax {fmax}, max_steps {max_steps}, stds for rattle: {stds}')
@@ -225,7 +227,10 @@ def sort_kpca_atoms(kpca_name):
 def plot_actual_kpca_plot(end_pairs, dft_min, dft_finishes, gap_fname, std=None, smiles=None):
     '''plots the pca of three groups of points from what's in ther at.ino['pca_coord']'''
 
-    gap_no = int(re.findall('\d+', gap_fname)[0])
+    try:
+        gap_no = int(re.findall('\d+', gap_fname)[0])
+    except IndexError:
+        gap_no = os.path.splitext(gap_fname)[0]
     pca_dict_key = 'pca_d_10'
 
     pcax = 0
@@ -313,7 +318,10 @@ def plot_actual_kpca_plot(end_pairs, dft_min, dft_finishes, gap_fname, std=None,
 
 def make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds, dft):
 
-    gap_no = int(re.findall('\d+', gap_fname)[0])
+    try:
+        gap_no = int(re.findall('\d+', gap_fname)[0])
+    except IndexError:
+        gap_no = os.path.splitext(gap_fname)[0]
 
     struct_name = dft_at.info['name']
     plot_start_means = []
