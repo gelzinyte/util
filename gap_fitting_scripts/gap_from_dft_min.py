@@ -72,7 +72,7 @@ def fit_gap_from_dft_minima(dft_min_fname, no_dpoints, stdev, n_rattle_atoms):
     maxiter = 200
     n_wfn_hop = 1
     task = 'gradient'
-    orcasimpleinput = 'UKS BLYP 6-31G slowconv'
+    orcasimpleinput = 'UKS B3LYP def2-SV(P) def2/J D3BJ'
     orcablocks =  f"%scf Convergence tight \n SmearTemp {smearing} \n maxiter {maxiter} end \n"
                   # f'%pal nprocs {no_cores} end'
 

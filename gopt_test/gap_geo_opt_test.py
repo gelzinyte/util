@@ -53,6 +53,9 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
     std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
     smi_optimisations(smiles, gap_fname, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
 
+    print(f'Removing working dir {opt_wdir}.')
+    shutil.rmtree(opt_wdir)
+
     #
     # for dft_at in dft_confs:
     #     print(f'Summary plot for {dft_at.info["name"]}')
@@ -69,14 +72,14 @@ def geo_opt_in_batches(gap_fname, start_fnames, finish_fnames, traj_fnames, step
 
         for start_fname, finish_fname, traj_fname in batch:
 
-           bash_call += f'python /home/eg475/programs/my_scripts/gopt_test/single_optimisation.py ' \
-                       f'--gap_fname {gap_fname} ' \
-                       f'--start_fname {start_fname} ' \
-                        f'--finish_fname {finish_fname} ' \
-                        f'--traj_name {traj_fname} ' \
-                        f'--steps {steps} ' \
-                        f'--fmax {fmax} ' \
-                        f'&\n'
+           bash_call += f"python /home/eg475/programs/my_scripts/gopt_test/single_optimisation.py " \
+                       f"--gap_fname {gap_fname} " \
+                       f"--start_fname '{start_fname}' " \
+                        f"--finish_fname '{finish_fname}' " \
+                        f"--traj_name '{traj_fname}' " \
+                        f"--steps {steps} " \
+                        f"--fmax {fmax} " \
+                        f"&\n"
 
         bash_call += 'wait\n'
 
@@ -85,22 +88,29 @@ def geo_opt_in_batches(gap_fname, start_fnames, finish_fnames, traj_fnames, step
         print(f'---opt stdout:\n {stdout}')
         print(f'---opt stderr:\n {stderr}')
 
-def shuffle_opt_trajs_around(start_fnames, finish_fnames, ends_fname, finishes_at_fname):
+def shuffle_opt_trajs_around(start_fnames, finish_fnames, ends_fname, finishes_at_fname, local_starts_fname):
 
     ends = []
     finishes = []
+    starts = []
     for idx, (start_fn, finish_fn) in enumerate(zip(start_fnames, finish_fnames)):
-        at_s = read(start_fn)
-        #at_s should have all info already (e.g. start_4)
+        if os.path.isfile(finish_fn):
+            at_s = read(start_fn)
+            # at_s.info['config_type'] = f'start_{idx}'
+            #at_s should have all info already (e.g. start_4)
 
-        at_f = read(finish_fn)
-        at_f.info['config_type'] = f'finish_{idx}'
+            at_f = read(finish_fn)
+            at_f.info['config_type'] = f'finish_{idx}'
 
-        ends += [at_s, at_f]
-        finishes.append(at_f)
+            ends += [at_s, at_f]
+            finishes.append(at_f)
+            starts.append(at_s)
+        else:
+            print(f'Do not have optimised file {finish_fn}, skipping')
 
     write(ends_fname, ends, 'extxyz', write_results=False)
     write(finishes_at_fname, finishes, 'extxyz', write_results=False)
+    write(local_starts_fname, starts, 'extxyz', write_results=False)
 
 
 def smi_optimisations(smiles, gap_fname, db_path, opt_wdir, fmax, max_steps, no_cores):
@@ -121,11 +131,12 @@ def smi_optimisations(smiles, gap_fname, db_path, opt_wdir, fmax, max_steps, no_
             start_at_fname = pj(db_path, f'starts/rdkit_starts_{smi}.xyz')
             start_ats = read(start_at_fname, ':')
 
-            finishes_at_fname = f'xyzs/rdkit_finishes_{smi}.xyz'
+            finishes_at_fname = f'xyzs/finishes_{smi}.xyz'
+            local_starts_fname = f'xyzs/starts_{smi}.xyz'
 
             for idx, at in enumerate(start_ats):
                 start_at_fname = pj(opt_wdir, f'start_{smi}_{idx}.xyz')
-                finish_at_fname = pj(opt_wdir, f'finish_{smi}_{idx}.')
+                finish_at_fname = pj(opt_wdir, f'finish_{smi}_{idx}.xyz')
                 traj_name = pj(opt_wdir, f'opt_{smi}_{idx}')
 
 
@@ -142,7 +153,7 @@ def smi_optimisations(smiles, gap_fname, db_path, opt_wdir, fmax, max_steps, no_
                            steps=max_steps, fmax=fmax, no_cores=no_cores)
             print('finished geometry optimisation in batches')
 
-            shuffle_opt_trajs_around(all_start_fnames, all_finish_fnames, ends_fname, finishes_at_fname)
+            shuffle_opt_trajs_around(all_start_fnames, all_finish_fnames, ends_fname, finishes_at_fname, local_starts_fname)
 
         else:
             print(f'Found {ends_fname}, not re-optimising')
@@ -173,6 +184,7 @@ def std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir, fmax, 
                 start_ats = read(start_at_fname, ':')
 
                 finishes_at_fname = f'xyzs/finishes_{conf_name}_{std}A_std.xyz'
+                local_starts_fname = f'xyzs/starts_{conf_name}_{std}A_std.xyz'
 
                 for idx, at in enumerate(start_ats):
                     start_at_fname = pj(opt_wdir, f'start_{conf_name}_{std}A_std_{idx}.xyz')
@@ -194,7 +206,7 @@ def std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir, fmax, 
 
 
                 shuffle_opt_trajs_around(all_start_fnames, all_finish_fnames,
-                                         ends_fname, finishes_at_fname)
+                                         ends_fname, finishes_at_fname, local_starts_fname)
 
             else:
                 print(f'Found {ends_fname}, not re-optimising')
