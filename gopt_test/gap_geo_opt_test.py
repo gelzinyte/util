@@ -45,6 +45,8 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
 
     if not os.path.exists('xyzs'):
         os.makedirs('xyzs')
+    if not os.path.exists('pictures'):
+        os.makedirs('pictures')
 
     dft_confs = read(pj(db_path, 'dft_minima', dft_eq_xyz), ':')
 
@@ -53,7 +55,7 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
         os.makedirs(opt_wdir)
 
     std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
-    smi_optimisations(smiles, gap_fname, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
+    smi_optimisations(smiles, gap_fname, dft_confs, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
     nm_optimisations(temps=temps, gap_fname=gap_fname, dft_confs=dft_confs, opt_wdir=opt_wdir,
                      db_path=db_path, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
 
@@ -61,10 +63,6 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
         print(f'Removing working dir {opt_wdir}.')
         shutil.rmtree(opt_wdir)
 
-    #
-    # for dft_at in dft_confs:
-    #     print(f'Summary plot for {dft_at.info["name"]}')
-    #     make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds, dft)
 
 def nm_optimisations(temps, gap_fname, dft_confs, opt_wdir, db_path, fmax, max_steps, no_cores):
 
@@ -115,7 +113,7 @@ def nm_optimisations(temps, gap_fname, dft_confs, opt_wdir, db_path, fmax, max_s
             else:
                 print(f'Found {ends_fname}, not re-optimising')
 
-        # make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fnames, smiles=smiles)
+        make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fnames, temp=temp)
 
 
 def geo_opt_in_batches(gap_fname, start_fnames, finish_fnames, traj_fnames, steps, fmax, no_cores):
@@ -169,7 +167,7 @@ def shuffle_opt_trajs_around(start_fnames, finish_fnames, ends_fname, finishes_a
     write(local_starts_fname, starts, 'extxyz', write_results=False)
 
 
-def smi_optimisations(smiles, gap_fname, db_path, opt_wdir, fmax, max_steps, no_cores):
+def smi_optimisations(smiles, gap_fname, dft_confs, db_path, opt_wdir, fmax, max_steps, no_cores):
 
     all_opt_ends_fnames = []
 
@@ -214,7 +212,7 @@ def smi_optimisations(smiles, gap_fname, db_path, opt_wdir, fmax, max_steps, no_
         else:
             print(f'Found {ends_fname}, not re-optimising')
 
-    # make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fnames, smiles=smiles)
+    make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fnames, smiles=smiles)
 
 
 def std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir, fmax, max_steps, no_cores):
@@ -268,107 +266,87 @@ def std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir, fmax, 
                 print(f'Found {ends_fname}, not re-optimising')
 
 
-        # make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fname, std=std, dft=dft)
+        make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fnames, std=std)
 
 
 
-def make_kpca_picture(gap_fname, dft_eq_ats, all_opt_ends_fname, std=None, smiles=None, dft=None):
+def make_kpca_picture(gap_fname, dft_eq_ats, all_opt_ends_fnames, std=None, smiles=None, temp=None):
     '''main function to do the kpca'''
 
-    kpca_name = os.path.splitext(ends_name)[0] + '_kpca.xyz'
+    if std is not None:
+        kpca_name = f'xyzs/kpca_{std}A_std.xyz'
+    elif smiles is not None:
+        kpca_name = f'xyzs/kpca_smiles.xyz'
+    elif temp is not None:
+        kpca_name = f'xyzs/kpca_{temp}K_nm.xyz'
+    else:
+        raise RuntimeError('give either smiles, temp or std please!')
 
-    prepare_xyz_for_kpca(ends_fname, dft_eq_ats, kpca_name, std, dft)
+
+    prepare_xyz_for_kpca(all_opt_ends_fnames, dft_eq_ats, kpca_name, std)
 
     util.do_kpca(kpca_name)
 
-    end_pairs, dft_min, dft_finishes = sort_kpca_atoms(kpca_name)
-    plot_actual_kpca_plot(end_pairs, dft_min, dft_finishes, gap_fname, std=std, smiles=smiles)
+    end_pairs, dft_min = sort_kpca_atoms(kpca_name)
+    plot_actual_kpca_plot(end_pairs, dft_min, gap_fname, std=std, smiles=smiles, temp=temp)
 
 
-def prepare_xyz_for_kpca(ends_fname, dft_eq_ats, kpca_name, std, dft):
-    # make kpca dataset
-    for at in dft_eq_ats:
-        at.info['config_type'] = at.info['name']
-    opt_ends = read(f'{ends_fname}.xyz', ':')
-
-    dft_optimised_ats = []
-    if dft:
-        for dft_at in dft_eq_ats:
-            dft_optimised_ats += read(f'dft_finishes_{dft_at.info["name"]}_{std}A_std.xyz', ':')
-
-    write(kpca_name,  opt_ends + dft_eq_ats + dft_optimised_ats, 'extxyz',
-          write_results=False)
+def prepare_xyz_for_kpca(all_opt_ends_fnames, dft_eq_ats, kpca_name, std):
     '''labels different datapoints and puts into a single xyz to do kpca on'''
+    # make kpca dataset
+
+    # Just set config_type to grab when plotting
+    for at in dft_eq_ats:
+        at.info['config_type'] = 'dft'
+
+    # collect all atoms together
+    opt_ends = []
+    for ends_fname in all_opt_ends_fnames:
+        opt_ends += read(ends_fname, ':')
+
+
+    write(kpca_name,  opt_ends + dft_eq_ats, 'extxyz',
+          write_results=False)
 
 def sort_kpca_atoms(kpca_name):
     '''sorts atoms with kpca coords into different groups for plotting'''
     atoms = read(kpca_name, ':')
-    dft_min = []
-    starts = []
-    finishes = []
+
+    dft_min = [at for at in atoms if 'dft' in at.info['config_type']]
+    starts = [at for at in atoms if 'start' in at.info['config_type'] ]
+    finishes = [at for at in atoms if 'finish' in at.info['config_type']]
+
+    if len(starts) != len(finishes):
+        raise Exception(f'Number of trajectory starts ({len(starts)}) differs from number of trajectory finishes ({len(finish)}')
+
     end_pairs = []
-    dft_finishes = []
+    for at_s, at_f in zip(starts, finishes):
+        no_start = int(re.findall('\d+', at_s.info['config_type'])[-1])
+        no_finish = int(re.findall('\d+', at_f.info['config_type'])[-1])
 
-
-    for at in atoms:
-        # if at.info['name'] == at.info['config_type']:
-        #     dft_min.append(at)
-        # TODO just make a config_type=dft
-        if 'name' in at.info.keys():
-            if at.info['name'] == at.info['config_type']:
-                dft_min.append(at)
-
-        elif 'start' in at.info['config_type']:
-            starts.append(at)
-        elif 'finish' in at.info['config_type']:
-            finishes.append(at)
-        elif 'dft_optimised' in at.info['config_type'] or 'failed_dft_opt' in at.info['config_type']:
-            dft_finishes.append(at)
-        else:
-            raise RuntimeError(
-                'Couldn\'t assign an atom to either training, '
-                'dft equilibrium '
-                'or gap optimisation start or finish')
-
-    # group pairs of start and finish
-    for start_at, finish_at in zip(starts, finishes):
-        no_start = int(re.findall('\d+', start_at.info['config_type'])[-1])
-        no_finish = int(re.findall('\d+', finish_at.info['config_type'])[-1])
         if no_start != no_finish:
-            print(f'no_start: {no_start}')
-            print(f'no_finish: {no_finish}')
-            raise RuntimeError(
-                'start and finish atoms\' indices do not match')
+            raise Exception(f'Start index ({no_start}) doesn\'t match finish index ({no_finish}')
 
-        pair = (start_at, finish_at)
+        pair = (at_s, at_f)
         end_pairs.append(pair)
 
-    # TODO group dft in ends and beginnings
 
-    return  end_pairs, dft_min, dft_finishes
+    return  end_pairs, dft_min
 
-def plot_actual_kpca_plot(end_pairs, dft_min, dft_finishes, gap_fname, std=None, smiles=None):
+def plot_actual_kpca_plot(end_pairs, dft_min, gap_fname, std=None, smiles=None, temp=None):
     '''plots the pca of three groups of points from what's in ther at.ino['pca_coord']'''
 
-    try:
-        gap_no = int(re.findall('\d+', gap_fname)[0])
-    except IndexError:
-        gap_no = os.path.splitext(gap_fname)[0]
+    gap_no = os.path.splitext(gap_fname)[0]
     pca_dict_key = 'pca_d_10'
-
     pcax = 0
     pcay = 1
-
     marker_shapes = ['X', '^', 'o', 'D', 's']
     dft_min_marker_shape_dict = {}
 
-
     fig = plt.figure(figsize=(10, 7))
-
 
     # dft minima
     for idx, at in enumerate(dft_min):
-
 
         dft_min_name = at.info['name']
         dft_min_smiles = at.info['smiles']
@@ -382,7 +360,6 @@ def plot_actual_kpca_plot(end_pairs, dft_min, dft_finishes, gap_fname, std=None,
 
         plt.scatter(x, y, marker=marker, color='crimson', s=80, linewidth=0.5,
                     linewidths=10, edgecolors='k', label=label, zorder=4)
-
 
     # optimisation ends
     for idx, (at_s, at_f) in enumerate(end_pairs):
@@ -410,118 +387,24 @@ def plot_actual_kpca_plot(end_pairs, dft_min, dft_finishes, gap_fname, std=None,
         plt.scatter(xs[0], ys[0], color='tab:orange', marker=marker, label=label_s, edgecolors='k', linewidth=0.4,  zorder=2)
         plt.scatter(xs[1], ys[1], color='tab:green', marker=marker, edgecolors='k',label=label_f, linewidth=0.4, zorder=3)
 
-    # dft optimisation ends
-
-    successful_dft_x = [at.info[pca_dict_key][pcax] for at in dft_finishes if 'failed' not in at.info['config_type']]
-    successful_dft_y = [at.info[pca_dict_key][pcay] for at in dft_finishes if 'failed' not in at.info['config_type']]
-
-    failed_dft_x = [at.info[pca_dict_key][pcax] for at in dft_finishes if 'failed' in at.info['config_type']]
-    failed_dft_y = [at.info[pca_dict_key][pcay] for at in dft_finishes if 'failed' in at.info['config_type']]
-
-    if len(successful_dft_x)!=0:
-        plt.scatter(successful_dft_x, successful_dft_y, color='deepskyblue', edgecolors='k', linewidth=0.4, marker='*', s=50,  label='DFT-optimised', zorder=5)
-    if len(failed_dft_x)!=0:
-        plt.scatter(failed_dft_x, failed_dft_y, color='fuchsia', marker='*',edgecolors='k', linewidth=0.4,  s=50, label='DFT non-converged', zorder=5)
 
     plt.xlabel('Principal component 1')
     plt.ylabel('Principal component 2')
     plt.legend()
     if std:
-        plt.title(f'kPCA of GAP {gap_no} optimisation test, displacement std {std} Å')
+        plt.title(f'kPCA of {gap_no} optimisation test, displacement std {std} Å')
         plt.tight_layout()
-        plt.savefig(f'GAP_{gap_no}_kpca_{std}A_std.png', dpi=300)
+        plt.savefig(f'pictures/kpca_{gap_no}_{std}A_std.png', dpi=300)
     elif smiles:
         plt.title(
-            f'kPCA of GAP {gap_no} optimisation test, RDKit conformers')
+            f'kPCA of {gap_no} opt test, RDKit conformers')
         plt.tight_layout()
-        plt.savefig(f'GAP_{gap_no}_kpca_rdkit_confs.png', dpi=300)
+        plt.savefig(f'pictures/kpca_{gap_no}_rdkit_confs.png', dpi=300)
+    elif temp:
+        plt.title(f'kPCA of {gap_no} opt test, temperature for NM {temp} K')
+        plt.tight_layout()
+        plt.savefig(f'pictures/kpca_{gap_no}_{temp}K_nm.png', dpi=300)
 
-
-
-
-def make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds, dft):
-
-    try:
-        gap_no = int(re.findall('\d+', gap_fname)[0])
-    except IndexError:
-        gap_no = os.path.splitext(gap_fname)[0]
-
-    struct_name = dft_at.info['name']
-    plot_start_means = []
-    plot_start_stds = []
-    plot_finish_means = []
-    plot_finish_stds = []
-    if dft:
-        plot_dft_means = []
-        plot_dft_stds = []
-        dft_stds = []
-
-    for std in stds:
-        ends = read(f'all_opt_ends_{std}A_std.xyz', ':')
-        ends = [at for at in ends if struct_name == at.info['name']]
-        starts = [at for at in ends if 'start' in at.info['config_type']]
-        finishes = [at for at in ends if 'finish' in at.info['config_type']]
-
-        if dft:
-            dft_finishes_fname = f'dft_finishes_{dft_at.info["name"]}_{std}A_std.xyz'
-            dft_finishes = read(dft_finishes_fname, ':')
-            dft_finishes = [at for at in dft_finishes if not 'failed_dft_opt' in at.info['config_type']]
-
-
-        # write(f'starts_{struct_name}_{std}A_std.xyz', starts, 'extxyz', write_results=False)
-        write(f'finishes_{struct_name}_{std}A_std.xyz', finishes, 'extxyz', write_results=False)
-        # write(f'both_ends_{struct_name}_{std}A_std.xyz', ends, 'extxyz', write_results=False)
-
-        if len(starts) != len(finishes):
-            print(f'len(ends) should be four times that of starts and '
-                f'finishes for conf*2_confs*2_ends')
-            print( f'len(ends): {len(ends)}; len(starts): {len(starts)}; len(finishes): {len(finishes)}')
-            raise RuntimeError("Have differing numbers of start and finish configurations, reconsider")
-
-        rmsds_start = [util.get_rmse(dft_at.positions, at.positions) for at in starts]
-        rmsds_finish = [util.get_rmse(dft_at.positions, at.positions) for at in finishes]
-
-        plot_start_means.append(np.mean(rmsds_start))
-        plot_start_stds.append(np.std(rmsds_start))
-        plot_finish_means.append(np.mean(rmsds_finish))
-        plot_finish_stds.append(np.std(rmsds_finish))
-
-        if dft:
-            rmsds_dft = [util.get_rmse(dft_at.positions, at.positions) for at in dft_finishes]
-            if len(rmsds_dft)!=0:
-                plot_dft_means.append(np.mean(rmsds_dft))
-                plot_dft_stds.append(np.std(rmsds_dft))
-                dft_stds.append(std)
-
-
-
-    #Actual plot
-    fig = plt.figure(figsize=(10, 7))
-
-    kw_args = {'fmt': 'X', 'ms': 6, 'capsize': 6, 'elinewidth': 1, 'capthick': 2, 'markeredgewidth': 2}
-    plt.errorbar(stds, plot_start_means, yerr=plot_start_stds, c='tab:orange', **kw_args)
-    plt.plot(stds, plot_start_means, c='tab:orange', linewidth=0.8, linestyle='--', label='Opt. traj. beginning')
-
-    plt.errorbar(stds, plot_finish_means, yerr=plot_finish_stds, c='tab:green', **kw_args)
-    plt.plot(stds, plot_finish_means, c='tab:green', linewidth=0.8, linestyle='--', label='Opt. traj. end')
-
-    if dft:
-        plt.errorbar(dft_stds, plot_dft_means, yerr=plot_dft_means,
-                     c='tab:blue', **kw_args)
-        plt.plot(dft_stds, plot_dft_means, c='tab:blue', linewidth=0.8,
-                 linestyle='--', label='DFT-optimised')
-
-    plt.xscale('log')
-    plt.yscale('log')
-    # plt.ylim(bottom=0)
-    plt.grid(color='lightgrey', which='both')
-
-    plt.title(f'{struct_name} final structures\' RMSD mean $\pm$ std.')
-    plt.xlabel('Random displacement\'s standard deviation, Å')
-    plt.ylabel('RMSD, Å')
-
-    plt.legend()
-    plt.savefig(f'GAP_{gap_no}_{struct_name}_test_summary.png', dpi=300)
 
 if __name__ == '__main__':
     do_gap_geometry_optimisation_test()

@@ -31,7 +31,6 @@ def soap_dist(at1, at2, desc=soap):
 
 def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
                       smiles=None, temps=None, stds=None, **end_kwargs):
-    #     db_dir = '/home/eg475/programs/my_scripts/gopt_test'
 
     given = [entry is not None for entry in [smiles, temps, stds]]
     if given.count(True) != 1:
@@ -174,6 +173,8 @@ def gopt_scatter_summary(ax, wdir, struct_names, start_label, task,
 
     original_label = scatter_kwargs['label']
     scatter_kwargs['label'] = f'{original_label} RDKit'
+    if not start_label:
+        scatter_kwargs['label'] = original_label
     scatter_kwargs['marker'] = '*'
     scatter_kwargs['facecolors'] = 'none'
     scatter_kwargs['edgecolors'] = scatter_kwargs['color']
@@ -192,6 +193,8 @@ def gopt_scatter_summary(ax, wdir, struct_names, start_label, task,
 
     scatter_kwargs['marker'] = 'o'
     scatter_kwargs['label'] = f'{original_label} Random'
+    if not start_label:
+        scatter_kwargs['label'] = None
     start_coords = []
     finish_coords = []
 
@@ -214,6 +217,9 @@ def gopt_scatter_summary(ax, wdir, struct_names, start_label, task,
     mins.append(min(start_coords + finish_coords))
 
     scatter_kwargs['label'] = f'{original_label} Normal modes'
+    if not start_label:
+        scatter_kwargs['label'] = None
+
     scatter_kwargs['marker'] = 'd'
     start_coords = []
     finish_coords = []
@@ -239,13 +245,12 @@ def gopt_scatter_summary(ax, wdir, struct_names, start_label, task,
     return min(mins), max(maxs)
 
 
-def compare_gopt(runs, task):
+def compare(runs, task):
     print(f'task: {task}')
 
     cmap = mpl.cm.get_cmap('tab10')
     db_path = '/home/eg475/programs/my_scripts/gopt_test/dft_minima'
 
-    label_start = True
     start_label = 'Opt. traj. start'
 
     # define plot layout
@@ -297,17 +302,15 @@ def compare_gopt(runs, task):
 
 
         elif 'scatter' in task:
-            min_lim, max_lim = gopt_scatter_summary(ax_sct, run_name,
-                                                    struct_names,
-                                                    start_label, task,
-                                                    dft_ats,
-                                                    smiles, temps, stds,
+            min_lim, max_lim = gopt_scatter_summary(ax=ax_sct, wdir=run_name,
+                                struct_names=struct_names, start_label=start_label,
+                                task=task, all_dft_ats=dft_ats,
+                                smiles=smiles, temps=temps, stds=stds,
                                                     **end_kwargs)
             min_lims.append(min_lim)
             max_lims.append(max_lim)
 
-        if label_start == True:
-            label_start = False
+        if bool(start_label):
             start_label = None
 
     if 'scatter' in task:
