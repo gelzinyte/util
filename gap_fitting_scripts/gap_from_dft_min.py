@@ -13,12 +13,20 @@ import datetime
 
 @click.command()
 @click.option('--dft_min_fname', type=click.Path(), help='Name of xyz with named dft minima')
-@click.option('--no_dpoints', type=int, help='No of samples to generate from each dft min at')
-@click.option('--stdev', type=float, default=0.1, show_default=True, help='standard deviation for normal distribution from which cartesian displacements are sampled')
-@click.option('--n_rattle_atoms', type=int, required=True, help='Number of atoms to rattle in the structure')
-def fit_gap_from_dft_minima(dft_min_fname, no_dpoints, stdev, n_rattle_atoms):
+@click.option('--no_dpoints', type=str, help='list of no of samples to generate from each dft min at for each standard deviation')
+@click.option('--stdev', type=str, help='list of standard deviations for normal distribution from which cartesian displacements are sampled')
+@click.option('--n_rattle_atoms', type=str, required=True, help='list of Number of atoms to rattle in the structure')
+@click.option('--n_sparse', type=int, help='GAP n_sparse')
+@click.option('--data_only', type=bool, default=False, help='if True, generates data, but doesnt fit GAP')
+def fit_gap_from_dft_minima(dft_min_fname, no_dpoints, stdev, n_rattle_atoms, n_sparse, data_only):
 
     print(f'Time: {datetime.datetime.now()}')
+
+    stdev = util.str_to_list(stdev)
+    no_dpoints = [int(n) for n in util.str_to_list(no_dpoints)]
+    n_rattle_atoms = [int(n) for n in util.str_to_list(n_rattle_atoms)]
+
+    print(f'standard deviations: {stdev} and corresponding no_dpoints: {no_dpoints}')
 
 
     db_path = '/home/eg475/programs/my_scripts/'
@@ -33,8 +41,8 @@ def fit_gap_from_dft_minima(dft_min_fname, no_dpoints, stdev, n_rattle_atoms):
 
     no_cores = os.environ['OMP_NUM_THREADS']
 
-    if not os.path.isdir('gaps'):
-        os.makedirs('gaps')
+    # if not os.path.isdir('gaps'):
+    #     os.makedirs('gaps')
 
     if not os.path.isdir('xyzs'):
         os.makedirs('xyzs')
@@ -58,7 +66,7 @@ def fit_gap_from_dft_minima(dft_min_fname, no_dpoints, stdev, n_rattle_atoms):
                            'delta': '0.5',
                            'covariance_type': 'dot_product',
                            'zeta': '4.0',
-                           'n_sparse': min([no_dpoints, 300]),
+                           'n_sparse': str(n_sparse),
                            'sparse_method': 'cur_points',
                            'atom_gaussian_width': '0.3',
                            'add_species': 'True'}
@@ -112,42 +120,46 @@ def fit_gap_from_dft_minima(dft_min_fname, no_dpoints, stdev, n_rattle_atoms):
 
     if not os.path.isfile(dset_name):
         dft_atoms = read(dft_min_fname, ':')
-        ats_to_fit = itools.get_structures(dft_atoms, n_dpoints=no_dpoints, stdev=stdev, n_rattle_atoms=n_rattle_atoms)
-        dset_1 = itools.orca_par_data(atoms_in=ats_to_fit,
+        all_ats_to_fit = []
+        for std, no_str, n_rtl in zip(stdev, no_dpoints, n_rattle_atoms):
+            ats_to_fit = itools.get_structures(dft_atoms, n_dpoints=int(no_str), stdev=std, n_rattle_atoms=n_rtl)
+            all_ats_to_fit += ats_to_fit
+
+        dset_1 = itools.orca_par_data(atoms_in=all_ats_to_fit,
                                       out_fname=orca_xyz,
                                       wfl_command=wfl_command, config_type='none')
         isolated_atoms = read(isolated_at_fname, ':')
         write(dset_name, dset_1 + isolated_atoms, 'extxyz', write_results=False)
 
 
+    if not data_only:
+        ###############
+        # fit gap
 
-    ###############
-    # fit gap
+        gap_name = 'gap.xml'
+        if not os.path.isfile(gap_name):
+            command = ugap.make_gap_command(gap_filename=gap_name, training_filename=dset_name, descriptors_dict=deepcopy(descriptors),
+                                          default_sigma=default_sigma, output_filename='out_gap.txt', glue_fname=glue_fname,
+                                            config_type_sigma=config_type_sigma, gap_fit_path=gap_fit_path)
 
-    gap_name = 'gap.xml'
-    if not os.path.isfile(gap_name):
-        command = ugap.make_gap_command(gap_filename=gap_name, training_filename=dset_name, descriptors_dict=deepcopy(descriptors),
-                                      default_sigma=default_sigma, output_filename='out_gap.txt', glue_fname=glue_fname,
-                                        config_type_sigma=config_type_sigma, gap_fit_path=gap_fit_path)
+            print(f'----GAP command\n {command}')
+            stdout, stderr  = util.shell_stdouterr(command)
 
-        print(f'----GAP command\n {command}')
-        stdout, stderr  = util.shell_stdouterr(command)
+            print(f'---gap stdout:\n {stdout}')
+            print(f'---gap stderr:\n {stderr}')
 
-        print(f'---gap stdout:\n {stdout}')
-        print(f'---gap stderr:\n {stderr}')
+        #########
+        # plt some plots
 
-    #########
-    # plt some plots
+        plot.make_scatter_plots_from_file(gap_name, output_dir='pictures/',
+                                          by_config_type=True)
+        plot.make_dimer_curves([gap_name],
+                               output_dir='pictures/', \
+                               plot_2b_contribution=False,
+                               glue_fname=glue_fname,
+                               isolated_atoms_fname=isolated_at_fname)
 
-    plot.make_scatter_plots_from_file(gap_name, output_dir='pictures/',
-                                      by_config_type=True)
-    plot.make_dimer_curves([gap_name],
-                           output_dir='pictures/', \
-                           plot_2b_contribution=False,
-                           glue_fname=glue_fname,
-                           isolated_atoms_fname=isolated_at_fname)
-
-    # plot.make_kpca_plots(training_set=dset_name)
+        # plot.make_kpca_plots(training_set=dset_name)
 
 
 if __name__=='__main__':

@@ -11,6 +11,8 @@ from quippy.potential import Potential
 import matplotlib.pyplot as plt
 from math import log10, floor
 
+from ase.optimize.precon import PreconLBFGS
+
 
 from asaplib.data import ASAPXYZ
 from asaplib.reducedim import Dimension_Reducers
@@ -96,6 +98,11 @@ def clear_at_info(at):
     at.arrays['positions'] = positions
     at.arrays['numbers'] = numbers
     return at
+
+def str_to_list(str_of_list):
+    list_of_str = str_of_list.strip('][').split(', ')
+    return [float(num) for num in list_of_str]
+
 
 
 def get_pair_dists(all_dists, at_nos, atno1, atno2):

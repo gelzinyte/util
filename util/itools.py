@@ -4,7 +4,7 @@ from ase.io import read, write
 import util
 from util import qm
 from util import ugap
-from util.vib import Vibrations
+from util.vibrations import Vibrations
 import subprocess
 from quippy.potential import Potential
 from copy import deepcopy

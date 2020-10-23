@@ -23,13 +23,15 @@ from os.path import join as pj
 @click.option('--stds', type=str, default='[0.1]', help='list of standard deviations to test')
 @click.option('--dft', type=bool, default=False, help='whether should be looking for and plotting dft-optimised structures')
 @click.option('--no_cores', type=int, help='number of cores to parallelise over')
+@click.option('--cleanup', type=bool, default=True, show_default=True, help='whether to delete all individual optimisation paths')
+@click.option('--temps', type=str, help='list of temps for normal mode displaceents')
 @click.argument('smiles', nargs=-1)
 def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
-                fmax, max_steps,  dft, no_cores, smiles):
+                fmax, max_steps,  dft, no_cores, cleanup, temps, smiles):
 
     # set up
-    stds = stds.strip('][').split(', ')
-    stds = [float(std) for std in stds]
+    stds = util.str_to_list(stds)
+    temps = [int(t) for t in util.str_to_list(temps)]
 
     print(f'Standard deviations for this run: {stds}')
     print(f'SMILES for this run: {smiles}')
@@ -52,14 +54,68 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
 
     std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
     smi_optimisations(smiles, gap_fname, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
+    nm_optimisations(temps=temps, gap_fname=gap_fname, dft_confs=dft_confs, opt_wdir=opt_wdir,
+                     db_path=db_path, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
 
-    print(f'Removing working dir {opt_wdir}.')
-    shutil.rmtree(opt_wdir)
+    if cleanup:
+        print(f'Removing working dir {opt_wdir}.')
+        shutil.rmtree(opt_wdir)
 
     #
     # for dft_at in dft_confs:
     #     print(f'Summary plot for {dft_at.info["name"]}')
     #     make_rmsd_vs_std_summary_plot(gap_fname, dft_at, stds, dft)
+
+def nm_optimisations(temps, gap_fname, dft_confs, opt_wdir, db_path, fmax, max_steps, no_cores):
+
+    for temp in temps:
+
+        all_opt_ends_fnames = []
+
+        for conf in dft_confs:
+
+            conf_name = conf.info['name']
+            ends_fname =  f'xyzs/opt_ends_{conf_name}_{temp}K.xyz'
+            all_opt_ends_fnames.append(ends_fname)
+
+            if not os.path.isfile(ends_fname):
+
+                all_start_fnames = []
+                all_finish_fnames = []
+                all_traj_fnames = []
+
+                start_at_fname = pj(db_path, f'starts/NM_starts_{conf_name}_{temp}K.xyz')
+                start_ats = read(start_at_fname, ':')
+
+                finishes_at_fname = f'xyzs/finishes_{conf_name}_{temp}K.xyz'
+                local_starts_fname = f'xyzs/starts_{conf_name}_{temp}K.xyz'
+
+                for idx, at in enumerate(start_ats):
+                    start_at_fname = pj(opt_wdir, f'start_{conf_name}_{temp}K_{idx}.xyz')
+                    finish_at_fname = pj(opt_wdir, f'finish_{conf_name}_{temp}K_{idx}.xyz')
+                    traj_name = pj(opt_wdir, f'opt_{conf_name}_{temp}K_{idx}')
+
+                    write(start_at_fname, at, 'extxyz', write_results=False)
+
+                    all_start_fnames.append(start_at_fname)
+                    all_finish_fnames.append(finish_at_fname)
+                    all_traj_fnames.append(traj_name)
+
+
+                geo_opt_in_batches(gap_fname=gap_fname,
+                                   start_fnames=all_start_fnames,
+                                   finish_fnames=all_finish_fnames,
+                                   traj_fnames=all_traj_fnames,
+                                   steps=max_steps, fmax=fmax, no_cores=no_cores)
+
+
+                shuffle_opt_trajs_around(all_start_fnames, all_finish_fnames,
+                                         ends_fname, finishes_at_fname, local_starts_fname)
+
+            else:
+                print(f'Found {ends_fname}, not re-optimising')
+
+        # make_kpca_picture(gap_fname, dft_confs, all_opt_ends_fnames, smiles=smiles)
 
 
 def geo_opt_in_batches(gap_fname, start_fnames, finish_fnames, traj_fnames, steps, fmax, no_cores):

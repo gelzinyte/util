@@ -26,6 +26,7 @@ def generate_starts(no_structures, smiles):
                 at = urdkit.smi_to_xyz(smi, useBasicKnowledge=False, useExpTorsionAnglePrefs=False)
                 # at = urdkit.smi_to_xyz(smi)
                 at.info['smiles'] = smi
+                at.info['config_type'] = f'start_{idx}'
                 starts.append(at)
 
         write(starts_name, starts, 'extxyz', write_results=False)

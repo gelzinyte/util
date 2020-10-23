@@ -12,14 +12,16 @@ import os
 @click.option('--prefix', help='prefix to label plots')
 @click.option('--by_config_type', type=bool, help='if structures should be coloured by config_type in plots')
 @click.option('--glue_fname', type=click.Path(exists=True), help='glue potential\'s xml to be evaluated for dimers')
-@click.option('--plot_2b_contribution', type=bool, default='True', show_default=True, help='whether to plot the 2b only bit of gap')
-@click.option('--plot_ref_curve', type=bool, default='True', show_default=True, help='whether to plot the reference DFT dimer curve')
-@click.option('--isolated_atoms_fname',  default='xyzs/isolated_atoms.xyz', show_default=True, help='isolated atoms to shift glue')
+@click.option('--plot_2b_contribution', type=bool, default=False, show_default=True, help='whether to plot the 2b only bit of gap')
+@click.option('--plot_ref_curve', type=bool, default=False, show_default=True, help='whether to plot the reference DFT dimer curve')
+@click.option('--isolated_atoms_fname',  default='/home/eg475/programs/my_scripts/source_files/isolated_atoms_orca.xyzj', show_default=True, help='isolated atoms to shift glue')
 @click.option('--ref_name', default='dft', show_default=True, help='prefix to \'_forces\' and \'_energy\' to take as a reference')
-# TODO take this out maybe
 @click.option('--dimer_scatter', help='dimer data in training set to be scattered on top of dimer curves')
-def make_plots(param_fname, test_fname=None, output_dir=None, prefix=None, by_config_type=None, glue_fname=False, \
-               plot_2b_contribution=True, plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None):
+@click.option('--scatter_plot',type=bool, default=True, show_default=True, help='whether to plot scatter plot')
+@click.option('--dimer_plot', type=bool, default=True, show_default=True, help='whether to plot dimer curves')
+def make_plots(param_fname, test_fname=None, output_dir=None, prefix=None, by_config_type=None, glue_fname=False,
+               plot_2b_contribution=True, plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None,
+               scatter_plot=True, dimer_plot=True):
     """Makes energy and force scatter plots and dimer curves"""
     # TODO get .xyz files from GAP xml file!!
 
@@ -30,13 +32,17 @@ def make_plots(param_fname, test_fname=None, output_dir=None, prefix=None, by_co
     if test_fname is None and by_config_type!=False:
         by_config_type=True
 
-    print('Scatter plotting')
-    plot.make_scatter_plots_from_file(param_fname=param_fname, test_fname=test_fname, \
-                       output_dir=output_dir, prefix=prefix, by_config_type=by_config_type, ref_name=ref_name)
-    print('Ploting dimers')
-    plot.make_dimer_curves(param_fnames=[param_fname],  output_dir=output_dir, prefix=prefix,\
-                      glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution, plot_ref_curve=plot_ref_curve,\
-                      isolated_atoms_fname=isolated_atoms_fname, ref_name=ref_name, dimer_scatter=dimer_scatter)
+
+    if scatter_plot:
+        print('Scatter plotting')
+        plot.make_scatter_plots_from_file(param_fname=param_fname, test_fname=test_fname, \
+                           output_dir=output_dir, prefix=prefix, by_config_type=by_config_type, ref_name=ref_name)
+
+    if dimer_plot:
+        print('Ploting dimers')
+        plot.make_dimer_curves(param_fnames=[param_fname],  output_dir=output_dir, prefix=prefix,\
+                          glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution, plot_ref_curve=plot_ref_curve,\
+                          isolated_atoms_fname=isolated_atoms_fname, ref_name=ref_name, dimer_scatter=dimer_scatter)
 
 
 

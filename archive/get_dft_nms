@@ -24,7 +24,7 @@ def calculate_NMs(dft_at_fname):
         maxiter = 200
         n_wfn_hop = 1
         task = 'gradient'
-        orcasimpleinput = 'UKS BLYP 6-31G slowconv'
+        orcasimpleinput = 'UKS B3LYP def2-SV(P) def2/J D3BJ'
         orcablocks = f"%scf Convergence tight \n SmearTemp {smearing} \n maxiter " \
                      f"{maxiter} end \n"
 

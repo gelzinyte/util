@@ -7,7 +7,9 @@ from ase.utils import opencew
 import pickle
 import sys
 from ase.parallel import world
-
+from ase import units
+import shutil
+import math
 
 
 class Vibrations(ase.vibrations.Vibrations):
@@ -35,7 +37,9 @@ class Vibrations(ase.vibrations.Vibrations):
                 forces = at.get_forces()
                 at.info['energy'] = energy
                 at.arrays['forces'] = forces
-                vib_name, displ_name = disp_name.split('.')
+                # vib_name, displ_name = disp_name.split('.')
+                vib_name, displ_name = os.path.splitext(disp_name)
+                displ_name = displ_name[1:]  # skips the '.' in the beginning of extensions
                 at.info['displacement'] = displ_name
                 at.info['config_type'] = vib_name
                 atoms.append(at.copy())
@@ -59,3 +63,39 @@ class Vibrations(ase.vibrations.Vibrations):
         if 'modes' not in dir(self):
             self.read()
         return self.modes
+
+    def displace_one_nm(self, temp, n, direction):
+        '''returns atoms displaced along normal mode n, in +/- direction (direction= pos/neg) for temperature temp'''
+
+        if 'hnu' not in dir(self):
+            self.read()
+
+        mode = self.get_mode(n) * math.sqrt(temp * units.kB / abs(self.hnu[n]))
+        p = self.atoms.positions.copy()
+
+        if direction == 'pos':
+            p += mode
+        elif direction == 'neg':
+            p -= mode
+        else:
+            raise RuntimeError('Set "direction" either as "pos" or "neg"')
+
+        at = self.atoms.copy()
+        at.set_positions(p)
+        return at
+
+    def displace_all_nms(self, temp):
+
+        all_nms = []
+        for n in range(len(self.atoms)*3):
+            for dir in ['pos', 'neg']:
+
+                at = self.displace_one_nm(temp, n, dir)
+                all_nms.append(at)
+
+        return all_nms
+
+
+
+
+

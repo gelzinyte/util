@@ -1,17 +1,21 @@
 
 # Standard imports
 import os, subprocess, re, sys
+import shutil
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib as mpl
 from collections import OrderedDict
+from os.path import join as pj
+
 
 # My imports
 import util
 from util import ugap
-from util.vib import Vibrations
+from util.vibrations import Vibrations
+from util import urdkit
 
 # Specific imports
 import click
@@ -28,6 +32,8 @@ from ase.io.extxyz import key_val_dict_to_str
 from ase.optimize.precon import PreconLBFGS
 from ase.units import Ha
 from util import dict_to_vals
+from quippy.descriptors import Descriptor
+
 
 
 
@@ -42,6 +48,7 @@ from util import dict_to_vals
         evec_plot          - eigenvector heatmap for given gap
         opt_summary_plots  - fmax and E error wrt dft optg vs iteration 
         eval_plot          - eigenvalue plot for all gaps
+        compare_gopt
 '''
 
 
@@ -194,7 +201,7 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     return lgd
 
 
-def make_scatter_plots(param_fname, test_ats=None, output_dir='pictures', prefix=None, by_config_type=False, ref_name='dft', close=True):
+def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None, by_config_type=False, ref_name='dft'):
 
     train_ats = ugap.atoms_from_gap(param_fname)
 
@@ -221,7 +228,7 @@ def make_scatter_plots(param_fname, test_ats=None, output_dir='pictures', prefix
     # plt.tight_layout()
     plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,), bbox_inches='tight')
     # plt.savefig(picture_fname, dpi=300)
-    if close:
+    if output_dir:
         plt.close(fig)
     else:
         plt.show()
@@ -894,49 +901,48 @@ def do_evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir=
     plt.savefig(name, dpi=300)
     plt.close(fig)
 
-def evec_plot(param_fname, first_guess='xyzs/first_guess.xyz', dft_optg='molpro_optg/optimized.xyz', fmax=1e-2, steps=1000, output_dir='pictures'):
-    gap_title = os.path.splitext(os.path.basename(param_fname))[0]
+def evec_plot(param_fname,  dft_eq_fname, smiles_to_opt=None, at_fname_to_opt=None, fmax=1e-2, steps=1000, output_dir='pictures'):
+
+
+    db_path = '/home/eg475/programs/my_scripts/gopt_test/'
+
+    if not os.path.exists('xyzs'):
+        os.makedirs('xyzs')
+
+    dft_eq_fname = os.path.join(db_path, 'dft_minima', dft_eq_fname)
+    if at_fname_to_opt=='dft':
+        at_fname_to_opt = dft_eq_fname
+
+    gap_name = os.path.basename(os.path.splitext(param_fname)[0])
     gap = Potential(param_filename=param_fname)
-    gap_no = int(re.findall(r'\d+', gap_title)[0])
 
-    gap_optg_name = f'xyzs/{gap_title}_optg_for_NM.xyz'
-    # might have optimised stuff with this gap for eval plot, check.
-    if not os.path.isfile(f'{gap_title}_optg.all.pckl'):
+    if smiles_to_opt is not None and at_fname_to_opt is None:
+        atoms = urdkit.smi_to_xyz(smiles_to_opt, useBasicKnowledge=False, useExpTorsionAnglePrefs=False)
+    elif smiles_to_opt is None and at_fname_to_opt is not None:
+        atoms = read(at_fname_to_opt)
+    else:
+        raise RuntimeError('Give one olny of smiles or xyz to be optimised')
 
-        if not os.path.isfile(f'xyzs/opt_at_{gap_no}.xyz'):
-            print(f'\n---Optimised structure xyzs/opt_at_{gap_no}.xyz not found, optimising first_guess with {gap_title} and getting Normal Modes\n')
-            atoms = read(first_guess)
-            atoms.set_calculator(gap)
+    atoms.set_calculator(gap)
 
-            # optimize
-            opt = PreconLBFGS(atoms, trajectory=f'xyzs/{gap_title}_optg_for_NM.traj')
-            opt.run(fmax=fmax, steps=steps)
-            write(gap_optg_name, atoms, 'extxyz', write_results=False)
-
-        else:
-            print(f'\n---Loading structure xyzs/opt_at_{gap_no}.xyz optimised with {gap_title} previously')
-            atoms = read(f'xyzs/opt_at_{gap_no}.xyz')
-            atoms.set_calculator(gap)
+    # optimize
+    if not os.path.isfile(f'{gap_name}.all.pckl'):
+        opt = PreconLBFGS(atoms, trajectory=f'xyzs/{gap_name}_opt_for_NM.traj')
+        opt.run(fmax=fmax, steps=steps)
 
         # get NM
-        vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
-        atoms_gap = vib_gap.run()
-        vib_gap.summary()
-    else:
-        print(f'Found .all.pckl for {gap_title}, loading stuff')
-        try:
-            atoms = read(f'xyzs/opt_at_{gap_no}.xyz')
-        except FileNotFoundError:
-            atoms = read(gap_optg_name)
-        vib_gap = Vibrations(atoms, name=f'{gap_title}_optg')
-        vib_gap.summary()
+    vib_gap = Vibrations(atoms, name=gap_name)
+    atoms_gap = vib_gap.run()
+    vib_gap.summary()
 
-    # dft NM
-    dft_atoms = read(dft_optg)
-    vib_dft = Vibrations(dft_atoms, name='dft_optg')
+
+    dft_atoms = read(dft_eq_fname)
+    dft_name = dft_atoms.info['name']
+    shutil.copy(os.path.join(db_path, f'dft_minima/normal_modes/{dft_name}.all.pckl'), '.')
+    vib_dft = Vibrations(dft_atoms, name=dft_name)
     vib_dft.summary()
 
-    do_evec_plot(vib_dft.evals, vib_dft.evecs, vib_gap.evals, vib_gap.evecs, gap_title, output_dir=output_dir)
+    do_evec_plot(vib_dft.evals, vib_dft.evecs, vib_gap.evals, vib_gap.evecs, gap_name, output_dir=output_dir)
 
 
 def opt_summary_plots(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimized.xyz', gaps_dir='gaps', \
@@ -1199,5 +1205,9 @@ def rmsd_plot(opt_all='xyzs/opt_all.xyz', dft_optg='molpro_optg/optimized.xyz', 
         name = os.path.join(output_dir, name)
     plt.savefig(name, dpi=300)
     plt.close(fig)
+
+
+
+#     -----------------------------------------------------------------------
 
 

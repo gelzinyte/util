@@ -133,20 +133,18 @@ def do_md(sub, traj_name, H_idx, separation=4, temp=None):
 
 
 
-def do_md_run(atoms, temp, time_step, no_steps, traj_name, at_fix=None):
+def do_md_run(atoms, temp, time_step, no_steps, traj_name, calc=None, at_fix=None):
     """Sets up and runs MD"""
-    # TODO add general potential
-    #     print('\n----Relaxing initial MD structure\n')
-    dftb = Potential(args_str='TB DFTB', param_filename='/home/eg475/reactions/tightbind.parms.DFTB.mio-0-1.xml')
-    atoms.set_calculator(dftb)
-    #     opt = PreconLBFGS(atoms, precon=None)
-    #     opt.run(fmax=5e-3)
+    if atoms.calc is None:
+        if calc is None:
+            print('Using DFTB as calculator')
+            calc = Potential(args_str='TB DFTB', param_filename='/home/eg475/reactions/tightbind.parms.DFTB.mio-0-1.xml')
+        atoms.set_calculator(calc)
 
     MaxwellBoltzmannDistribution(atoms, temp * units.kB)
     Stationary(atoms)
     ZeroRotation(atoms)
 
-    write(f'{traj_name}_1st_frame.xyz', atoms, 'extxyz')
 
     if at_fix:
         print(f"\n----Fixing bond between atoms {at_fix[0], at_fix[1]}\n")
@@ -166,3 +164,5 @@ def do_md_run(atoms, temp, time_step, no_steps, traj_name, at_fix=None):
     dyn.run(no_steps)
     traj = read(f'{traj_name}.traj', index=':')
     write(f'{traj_name}.xyz', traj, 'extxyz')
+
+    return traj
