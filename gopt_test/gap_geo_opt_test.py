@@ -336,7 +336,7 @@ def sort_kpca_atoms(kpca_name):
 def plot_actual_kpca_plot(end_pairs, dft_min, gap_fname, std=None, smiles=None, temp=None):
     '''plots the pca of three groups of points from what's in ther at.ino['pca_coord']'''
 
-    gap_no = os.path.splitext(gap_fname)[0]
+    gap_no = os.path.splitext(os.path.basename(gap_fname))[0]
     pca_dict_key = 'pca_d_10'
     pcax = 0
     pcay = 1

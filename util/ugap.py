@@ -131,7 +131,7 @@ def get_soap_params(param_fname):
 
 
 def atoms_from_gap(param_fname, tmp_atoms_fname='tmp_atoms.xyz'):
-    root = root = et.parse(param_fname).getroot()
+    root = et.parse(param_fname).getroot()
     xyz_string = root.find('GAP_params').find('XYZ_data').text[5:]
     with open(tmp_atoms_fname, 'w') as f:
         f.write(xyz_string)

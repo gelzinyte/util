@@ -223,6 +223,13 @@ def gradient_test(mol, calc, start=-3, stop=-7):
 
 
 def get_E_F_dict(atoms, calc_type, param_fname=None):
+    '''Returns {'energy': {'config1':[energies],
+                           'config2':[energies]},
+                'forces':{sym1:{'config1':[forces],
+                                'config2':[forces]},
+                          sym2:{'config1':[forces],
+                                'config2':[forces]}}}'''
+
 
     data = dict()
     data['energy'] = OrderedDict()

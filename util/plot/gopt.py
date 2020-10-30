@@ -123,7 +123,7 @@ def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
     if smiles is not None:
         ax.scatter(xs, plot_start_means, c='grey', s=200, marker='x')
     else:
-        ax.plot(xs, plot_start_means, c=end_kwargs['color'], linewidth=0.6,
+        ax.plot(xs, plot_start_means, c='k', linewidth=0.6,
                 linestyle=':', label=start_label)
     #         print(plot_start_means)
 
@@ -239,11 +239,12 @@ def gopt_scatter_summary(ax, wdir, struct_names, start_label, task,
             finish_coords += out_fn
 
     plt.scatter(start_coords, finish_coords, **scatter_kwargs)
-    maxs.append(max(start_coords + finish_coords))
-    mins.append(min(start_coords + finish_coords))
+    if len(start_coords + finish_coords)!=0:
+        maxs.append(max(start_coords + finish_coords))
+        mins.append(min(start_coords + finish_coords))
 
-    return min(mins), max(maxs)
-
+        return min(mins), max(maxs)
+    return None, None
 
 def compare(runs, task):
     print(f'task: {task}')
@@ -314,6 +315,8 @@ def compare(runs, task):
             start_label = None
 
     if 'scatter' in task:
+        min_lims = [val for val in min_lims if val is not None]
+        max_lims = [val for val in max_lims if val is not None]
         min_lim = min(min_lims)
         max_lim = max(max_lims)
         plt.plot([min_lim, max_lim], [min_lim, max_lim], linewidth=0.8,
