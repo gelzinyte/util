@@ -10,6 +10,8 @@ from ase.parallel import world
 from ase import units
 import shutil
 import math
+import os.path as op
+from scipy import stats
 
 
 class Vibrations(ase.vibrations.Vibrations):
@@ -100,17 +102,17 @@ class Vibrations(ase.vibrations.Vibrations):
         self.im = np.repeat(m[self.indices]**-0.5, 3)
         omega2, modes = np.linalg.eigh(self.im[:, None] * H * self.im)
         self.modes = modes.T.copy()
-        self.evals = omega2
+        self._evals = omega2
 
         # Conversion factor:
-        s = units._hbar * 1e10 / sqrt(units._e * units._amu)
+        s = units._hbar * 1e10 / math.sqrt(units._e * units._amu)
         self.hnu = s * omega2.astype(complex)**0.5
 
     @property
     def evals(self):
-        if 'evals' not in dir(self):
+        if '_evals' not in dir(self):
             self.read()
-        return np.array([np.real(val**2) for val in self.hnu])
+        return self._evals
 
     @property
     def evecs(self):
@@ -150,6 +152,27 @@ class Vibrations(ase.vibrations.Vibrations):
         return all_nms
 
 
+    def draw_nm_at_T(self, temp):
+        n = len(self.atoms)*3 - 6
+        # cov = np.eye(n) / self.evals[6:] * units.kB * temp / (6 * n)
+        cov = np.eye(n) / self.evals[6:] * units.kB * temp
+        # cov = np.eye(n) / self.evals[6:] * units.kB * temp / n
 
+        norm = stats.multivariate_normal(mean=np.zeros(n), cov=cov,
+                                         allow_singular=True)
+        alphas = norm.rvs()
+        individual_displacements = np.array(
+            [aa * evec for aa, evec in zip(alphas, self.evecs)])
 
+        mass_wt_displs = individual_displacements.sum(axis=0)
+        displacements = mass_wt_displs * self.im
+        displacements = displacements.reshape(len(self.atoms), 3)
 
+        at = self.atoms.copy()
+        p = at.positions.copy()
+        p += displacements
+        at.positions = p
+        return at
+
+    def draw_N_nm_at_T(self, temp, N):
+        return [self.draw_nm_at_T(temp=temp) for _ in range(N)]
