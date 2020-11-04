@@ -3,7 +3,7 @@ import ase
 import ase.vibrations
 import os
 import numpy as np
-from ase.utils import opencew
+from ase.utils import opencew, pickleload
 import pickle
 import sys
 from ase.parallel import world
@@ -51,10 +51,64 @@ class Vibrations(ase.vibrations.Vibrations):
         self.combine()
         return atoms
 
+    def read(self, method='standard', direction='central'):
+        ''' I'm only interested in and supporting 'standard' method and 'central' direction and nfree=2'''
+        self.method = method.lower()
+        self.direction = direction.lower()
+        assert self.method in ['standard']
+        assert self.direction in ['central']
+        assert self.nfree == 2
+
+        def load(fname, combined_data=None):
+            if combined_data is None:
+                with open(fname, 'rb') as fl:
+                    f = pickleload(fl)
+            else:
+                try:
+                    f = combined_data[op.basename(fname)]
+                except KeyError:
+                    f = combined_data[fname]  # Old version
+            if not hasattr(f, 'shape') and not hasattr(f, 'keys'):
+                # output from InfraRed
+                return f[0]
+            return f
+
+        n = 3 * len(self.indices)
+        H = np.empty((n, n))
+        r = 0
+        if op.isfile(self.name + '.all.pckl'):
+            # Open the combined pickle-file
+            combined_data = load(self.name + '.all.pckl')
+        else:
+            combined_data = None
+        for a in self.indices:
+            for i in 'xyz':
+                name = '%s.%d%s' % (self.name, a, i)
+                fminus = load(name + '-.pckl', combined_data)
+                fplus = load(name + '+.pckl', combined_data)
+                H[r] = .5 * (fminus - fplus)[self.indices].ravel()
+                H[r] /= 2 * self.delta
+                r += 1
+        H += H.copy().T
+        self.H = H
+        m = self.atoms.get_masses()
+        if 0 in [m[index] for index in self.indices]:
+            raise RuntimeError('Zero mass encountered in one or more of '
+                               'the vibrated atoms. Use Atoms.set_masses()'
+                               ' to set all masses to non-zero values.')
+
+        self.im = np.repeat(m[self.indices]**-0.5, 3)
+        omega2, modes = np.linalg.eigh(self.im[:, None] * H * self.im)
+        self.modes = modes.T.copy()
+        self.evals = omega2
+
+        # Conversion factor:
+        s = units._hbar * 1e10 / sqrt(units._e * units._amu)
+        self.hnu = s * omega2.astype(complex)**0.5
 
     @property
     def evals(self):
-        if 'hnu' not in dir(self):
+        if 'evals' not in dir(self):
             self.read()
         return np.array([np.real(val**2) for val in self.hnu])
 

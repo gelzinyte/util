@@ -70,7 +70,13 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
         n_groups = len(ref_values.keys())
 
         colors = np.arange(10)
-        cmap = mpl.cm.get_cmap('tab10')
+        if label=='Training:':
+            cmap = mpl.cm.get_cmap('tab10')
+        elif label=='Test':
+            cmap = mpl.cm.get_cmap('Dark2')
+        else:
+            print(f'Debugging, got label "{label}"')
+            cmap = mpl.cm.get_cmap('tab10')
 
         for ref_config_type, pred_config_type, idx in zip(ref_values.keys(), pred_values.keys(), range(n_groups)):
             if ref_config_type != pred_config_type:
@@ -80,7 +86,7 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
 
             rmse = util.get_rmse(ref_vals, pred_vals)
             std = util.get_std(ref_vals, pred_vals)
-            print_label = f'{ref_config_type}: {rmse:.3f} $\pm$ {std:.3f}'
+            print_label = f'{ref_config_type}: {rmse:.3f}'
             if idx < 10:
                 kws = {'marker': 'o', 'facecolors': 'none', 'edgecolors': cmap(colors[idx % 10])}
             elif idx < 20 and idx >=10:
@@ -89,6 +95,7 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
                 kws = {'marker': '+', 'facecolors': cmap(colors[idx % 10])}
             else:
                 kws = {'marker': '*', 'facecolors': 'none', 'edgecolors': cmap(colors[idx % 10])}
+
 
             ax.scatter(ref_vals, pred_vals, label=print_label, linewidth=0.9, **kws)
 
@@ -148,7 +155,7 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     this_ax.set_xlabel(f'{ref_name.upper()} energy / eV/atom')
     this_ax.set_ylabel(f'GAP energy / eV/atom')
     this_ax.set_title('Energies')
-    lgd = this_ax.legend(title='Set: RMSE $\pm$ STD, eV/atom', bbox_to_anchor=(2.9, 1.05))
+    lgd = this_ax.legend(title='Set: RMSE  eV/atom', bbox_to_anchor=(2.9, 1.05))
 
     this_ax = ax[1]
     do_plot(train_ref_es, error_dict(train_pred_es, train_ref_es), this_ax, 'Training', by_config_type)
@@ -187,7 +194,7 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
         this_ax.set_xlim(flim)
         this_ax.set_ylim(flim)
         this_ax.set_title(f'Force components on {sym}')
-        this_ax.legend(title='Set: RMSE $\pm$ STD, eV/Å', bbox_to_anchor=(2.9, 1.05))
+        this_ax.legend(title='Set: RMSE, eV/Å', bbox_to_anchor=(2.9, 1.05))
 
         this_ax = ax[2 * (idx + 1) + 1]
         do_plot(train_ref_fs, error_dict(train_pred_fs, train_ref_fs), this_ax, 'Training', by_config_type)
