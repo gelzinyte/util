@@ -120,59 +120,30 @@ class Vibrations(ase.vibrations.Vibrations):
             self.read()
         return self.modes
 
-    def displace_one_nm(self, temp, n, direction):
-        '''returns atoms displaced along normal mode n, in +/- direction (direction= pos/neg) for temperature temp'''
-
-        if 'hnu' not in dir(self):
-            self.read()
-
-        mode = self.get_mode(n) * math.sqrt(temp * units.kB / abs(self.hnu[n]))
-        p = self.atoms.positions.copy()
-
-        if direction == 'pos':
-            p += mode
-        elif direction == 'neg':
-            p -= mode
-        else:
-            raise RuntimeError('Set "direction" either as "pos" or "neg"')
-
-        at = self.atoms.copy()
-        at.set_positions(p)
-        return at
-
-    def displace_all_nms(self, temp):
-
-        all_nms = []
-        for n in range(len(self.atoms)*3):
-            for dir in ['pos', 'neg']:
-
-                at = self.displace_one_nm(temp, n, dir)
-                all_nms.append(at)
-
-        return all_nms
 
 
-    def draw_nm_at_T(self, temp):
-        n = len(self.atoms)*3 - 6
-        # cov = np.eye(n) / self.evals[6:] * units.kB * temp / (6 * n)
-        cov = np.eye(n) / self.evals[6:] * units.kB * temp
-        # cov = np.eye(n) / self.evals[6:] * units.kB * temp / n
+    def nm_displace(self, temp, nms='all'):
+        no_atoms = len(self.atoms)
+        if nms == 'all':
+            nms = np.arange(6, no_atoms * 3)
+
+        n = len(nms)
+
+        cov = np.eye(n) * units.kB * temp /(2 * n) / self.evals[nms]
 
         norm = stats.multivariate_normal(mean=np.zeros(n), cov=cov,
                                          allow_singular=True)
         alphas = norm.rvs()
         individual_displacements = np.array(
-            [aa * evec for aa, evec in zip(alphas, self.evecs)])
+            [aa * evec for aa, evec in zip(alphas, self.evecs[nms])])
 
         mass_wt_displs = individual_displacements.sum(axis=0)
         displacements = mass_wt_displs * self.im
         displacements = displacements.reshape(len(self.atoms), 3)
 
         at = self.atoms.copy()
-        p = at.positions.copy()
-        p += displacements
-        at.positions = p
+        at.positions += displacements
         return at
 
-    def draw_N_nm_at_T(self, temp, N):
-        return [self.draw_nm_at_T(temp=temp) for _ in range(N)]
+    def multi_at_nm_displace(self, temp, n, nms='all'):
+        return [self.draw_nm_at_temp(temp=temp, nms=nms) for _ in range(n)]

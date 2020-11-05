@@ -8,25 +8,7 @@ import util
 from ase.io import read
 from quippy.descriptors import Descriptor
 
-soap_param =  {'name': 'soap',
-               'l_max': '4',
-               'n_max': '8',
-               'cutoff': '3.0',
-               'atom_gaussian_width': '0.3',
-               'add_species': 'True',
-               'average':'True'}
-soap = Descriptor(args_str='SOAP', **soap_param)
 
-def get_soap(at, desc):
-    return desc.calc_descriptor(at)[0]
-
-def soap_sim(at1, at2, desc=soap):
-    return np.dot(get_soap(at1, desc), get_soap(at2, desc))
-
-def soap_dist(at1, at2, desc=soap):
-    sp1 = get_soap(at1, desc)
-    sp2 = get_soap(at2, desc)
-    return np.sqrt(2 - 2 * np.dot(sp1, sp2))
 
 
 def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
@@ -154,9 +136,9 @@ def get_metric_distances(starts, finishes, all_dft_ats, task):
 
         elif 'soap' in task.lower():
             metric_start.append(
-                min([soap_dist(dft_at, at_s) for dft_at in all_dft_ats]))
+                min([util.soap_dist(dft_at, at_s) for dft_at in all_dft_ats]))
             metric_finish.append(
-                min([soap_dist(dft_at, at_f) for dft_at in all_dft_ats]))
+                min([util.soap_dist(dft_at, at_f) for dft_at in all_dft_ats]))
 
     return metric_start, metric_finish
 

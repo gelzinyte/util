@@ -8,6 +8,7 @@ from itertools import zip_longest
 import ase
 from collections import OrderedDict
 from quippy.potential import Potential
+from quippy.descriptors import Descriptor
 import matplotlib.pyplot as plt
 from math import log10, floor
 
@@ -399,3 +400,24 @@ def shell_stdouterr(raw_command, cwd=None):
                                       universal_newlines=True,
                                       shell=True, cwd=cwd).communicate()
     return stdout.strip(), stderr.strip()
+
+
+soap_param =  {'name': 'soap',
+               'l_max': '4',
+               'n_max': '8',
+               'cutoff': '3.0',
+               'atom_gaussian_width': '0.3',
+               'add_species': 'True',
+               'average':'True'}
+soap = Descriptor(args_str='SOAP', **soap_param)
+
+def get_soap(at, desc):
+    return desc.calc_descriptor(at)[0]
+
+def soap_sim(at1, at2, desc=soap):
+    return np.dot(get_soap(at1, desc), get_soap(at2, desc))
+
+def soap_dist(at1, at2, desc=soap):
+    sp1 = get_soap(at1, desc)
+    sp2 = get_soap(at2, desc)
+    return np.sqrt(2 - 2 * np.dot(sp1, sp2))
