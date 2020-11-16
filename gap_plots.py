@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import click
-from util import plot
+from util.plot import rmse_scatter
 import os
 
 @click.command()
@@ -23,7 +23,6 @@ def make_plots(param_fname, test_fname=None, output_dir=None, prefix=None, by_co
                plot_2b_contribution=True, plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None,
                scatter_plot=True, dimer_plot=True):
     """Makes energy and force scatter plots and dimer curves"""
-    # TODO get .xyz files from GAP xml file!!
 
     if output_dir:
         if not os.path.exists(output_dir):
@@ -35,12 +34,12 @@ def make_plots(param_fname, test_fname=None, output_dir=None, prefix=None, by_co
 
     if scatter_plot:
         print('Scatter plotting')
-        plot.make_scatter_plots_from_file(param_fname=param_fname, test_fname=test_fname, \
+        rmse_scatter.make_scatter_plots_from_file(param_fname=param_fname, test_fname=test_fname, \
                            output_dir=output_dir, prefix=prefix, by_config_type=by_config_type, ref_name=ref_name)
 
     if dimer_plot:
         print('Ploting dimers')
-        plot.make_dimer_curves(param_fnames=[param_fname],  output_dir=output_dir, prefix=prefix,\
+        rmse_scatter.make_dimer_curves(param_fnames=[param_fname],  output_dir=output_dir, prefix=prefix,\
                           glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution, plot_ref_curve=plot_ref_curve,\
                           isolated_atoms_fname=isolated_atoms_fname, ref_name=ref_name, dimer_scatter=dimer_scatter)
 

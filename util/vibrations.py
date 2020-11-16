@@ -122,18 +122,22 @@ class Vibrations(ase.vibrations.Vibrations):
 
 
 
-    def nm_displace(self, temp, nms='all'):
+    def nm_displace(self, temp, nms='all', return_harm_e=False):
         no_atoms = len(self.atoms)
-        if nms == 'all':
-            nms = np.arange(6, no_atoms * 3)
+        if type(nms) == str:
+            if nms == 'all':
+                nms = np.arange(6, no_atoms * 3)
 
         n = len(nms)
 
-        cov = np.eye(n) * units.kB * temp /(2 * n) / self.evals[nms]
+        cov = np.eye(n) * units.kB * temp / (self.evals[nms])
 
         norm = stats.multivariate_normal(mean=np.zeros(n), cov=cov,
                                          allow_singular=True)
         alphas = norm.rvs()
+        if len(nms) == 1:
+            alphas = [alphas]
+
         individual_displacements = np.array(
             [aa * evec for aa, evec in zip(alphas, self.evecs[nms])])
 
@@ -143,7 +147,25 @@ class Vibrations(ase.vibrations.Vibrations):
 
         at = self.atoms.copy()
         at.positions += displacements
-        return at
 
-    def multi_at_nm_displace(self, temp, n, nms='all'):
-        return [self.draw_nm_at_temp(temp=temp, nms=nms) for _ in range(n)]
+        energy = sum([aa ** 2 * eigenval / 2  for aa, eigenval in
+                      zip(alphas, self.evals[nms])])
+        if return_harm_e:
+            return energy, at
+        else:
+            return at
+
+    def multi_at_nm_displace(self, temp, n_samples, nms='all', return_harm_e=False):
+        if return_harm_e:
+            at_list = []
+            en_list = []
+            for _ in range(n_samples):
+                e, at = self.nm_displace(temp=temp, nms=nms, return_harm_e=return_harm_e)
+                at_list.append(at)
+                en_list.append(e)
+
+            return en_list, at_list
+        else:
+            return [self.nm_displace(temp=temp, nms=nms, return_harm_e=return_harm_e) for _ in range(n_samples)]
+
+

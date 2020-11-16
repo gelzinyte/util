@@ -219,11 +219,14 @@ def orca_par_data(atoms_in, out_fname, wfl_command, config_type=None):
     for at in atoms_out:
         at.info[f'dft_energy'] = at.info['energy']
         at.arrays[f'dft_forces'] = at.arrays['force']
+        del at.info['energy']
+        del at.arrays['force']
         if config_type:
             at.info['config_type'] = config_type
         at.set_cell([20, 20, 20])
 
     write(out_fname, atoms_out, 'extxyz', write_results=False)
+    os.remove(in_fname)
 
     return atoms_out
 

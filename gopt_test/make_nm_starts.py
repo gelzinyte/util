@@ -10,7 +10,8 @@ import util
 @click.command()
 @click.option('--dft_min_fname', type=click.Path(), help='dft minima to generate structures for. Assumes a pickle file somewhere')
 @click.option('--temperatures', type=str, help='list of temperatures for normal mode displacements')
-def generate_starts(dft_min_fname, temperatures):
+@click.option('--no_structures', type=int, help='number of structures to generate per temperature per dft min file')
+def generate_starts(dft_min_fname, temperatures, no_structures):
 
     temperatures =  util.str_to_list(temperatures)
     temperatures = [int(t) for t in temperatures]
@@ -28,7 +29,7 @@ def generate_starts(dft_min_fname, temperatures):
                 if not os.path.isfile(f'{dft_name}.all.pckl'):
                     shutil.copy(pckl_name, '.')
                 vib = Vibrations(at, name=dft_name)
-                starts = vib.displace_all_nms(temp)
+                starts = vib.multi_at_nm_displace(temp=temp, n_samples=no_structures)
 
                 for idx, at in enumerate(starts):
                     at.info['config_type'] = f'start_{idx}'
