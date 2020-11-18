@@ -14,20 +14,13 @@ import matplotlib as mpl
 
 
 
-def make_scatter_plots_from_file(param_fname, test_fname=None, output_dir=None, prefix=None,
-                                 by_config_type=False, ref_name='dft'):
-
-    test_ats = None
-    if test_fname:
-        test_ats = read(test_fname, index=':')
-
-    make_scatter_plots(param_fname=param_fname,  test_ats=test_ats, output_dir=output_dir,
-                       prefix=prefix, by_config_type=by_config_type, ref_name=ref_name)
 
 
-def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None, by_config_type=False, ref_name='dft'):
+def make_scatter_plots_from_evaluated_atoms(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name, evaluated_train_fname, evaluated_test_fname,
+               output_dir, prefix, by_config_type):
 
-    train_ats = ugap.atoms_from_gap(param_fname)
+    train_ats = read(evaluated_train_fname, ':')
+    test_ats = read(evaluated_test_fname, ':')
 
     counts = util.get_counts(train_ats[0])
     no_unique_elements = len(counts.keys())
@@ -40,7 +33,9 @@ def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None,
     ax = [plt.subplot(g) for g in gs]
 
     #main plot
-    lgd = scatter_plot(param_fname=param_fname, train_ats=train_ats, ax=ax, test_ats=test_ats, by_config_type=by_config_type, ref_name=ref_name)
+    lgd = scatter_plot(train_ats=train_ats, ax=ax, test_ats=test_ats, by_config_type=by_config_type,
+                       ref_energy_name=ref_energy_name, pred_energy_name=pred_energy_name,
+                       ref_force_name=ref_force_name, pred_force_name=pred_force_name)
 
     if not prefix:
         prefix = os.path.basename(param_fname)
@@ -49,7 +44,7 @@ def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None,
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
-    plt.suptitle(prefix)
+    plt.suptitle(prefix, y=0.92)
     plt.tight_layout(rect=[0, 0, 1, 1.1])
 
     if output_dir:
@@ -60,18 +55,20 @@ def make_scatter_plots(param_fname, test_ats=None, output_dir=None, prefix=None,
         plt.show()
 
 
-def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False, ref_name='dft'):
-    '''ax - axes list'''
+def scatter_plot(train_ats, ax, test_ats, by_config_type,
+                       ref_energy_name, pred_energy_name,
+                       ref_force_name, pred_force_name):
+
     test_set = False
     if test_ats:
         test_set = True
 
-    train_ref_data = util.get_E_F_dict(train_ats, calc_type=ref_name)
-    train_pred_data = util.get_E_F_dict(train_ats, calc_type='gap', param_fname=param_fname)
+    train_ref_data = util.get_E_F_dict_evaled(train_ats, energy_name=ref_energy_name, force_name=ref_force_name)
+    train_pred_data = util.get_E_F_dict_evaled(train_ats, energy_name=pred_energy_name, force_name=pred_force_name)
 
     if test_set:
-        test_ref_data = util.get_E_F_dict(test_ats, calc_type=ref_name)
-        test_pred_data = util.get_E_F_dict(test_ats, calc_type='gap', param_fname=param_fname)
+        test_ref_data = util.get_E_F_dict_evaled(test_ats, energy_name=ref_energy_name, force_name=ref_force_name)
+        test_pred_data = util.get_E_F_dict_evaled(test_ats, energy_name=pred_energy_name, force_name=pred_force_name)
 
     #####################################################################
     # Energy plots
@@ -87,8 +84,8 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
         test_ref_es = test_ref_data['energy']
         test_pred_es = test_pred_data['energy']
         do_plot(test_ref_es, error_dict(test_pred_es, test_ref_es), this_ax, 'Test', by_config_type)
-    this_ax.set_xlabel(f'{ref_name.upper()} energy / eV/atom')
-    this_ax.set_ylabel(f'|E$_{{GAP}}$ - E$_{{{ref_name.upper()}}}$| / eV/atom')
+    this_ax.set_xlabel(f'{ref_energy_name} / eV/atom')
+    this_ax.set_ylabel(f'|{pred_energy_name} - {ref_energy_name}| / eV/atom')
     this_ax.set_yscale('log')
     this_ax.set_title('Energy errors')
 
@@ -104,10 +101,10 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
     lims = (min([left_lim, bottom_lim]), max(left_lim, top_lim))
     this_ax.plot(lims, lims, c='k', linewidth=0.8)
 
-    this_ax.set_xlabel(f'{ref_name.upper()} energy / eV/atom')
-    this_ax.set_ylabel(f'GAP energy / eV/atom')
+    this_ax.set_xlabel(f'{ref_energy_name} / eV/atom')
+    this_ax.set_ylabel(f'{pred_energy_name} / eV/atom')
     this_ax.set_title('Energies')
-    lgd = this_ax.legend(title='RMSE  eV/atom', bbox_to_anchor=(1,1), loc="upper left")
+    lgd = this_ax.legend(title='RMSE (eV/atom); RMSE/STD (%)', bbox_to_anchor=(1,1), loc="upper left")
 
 
     #####################################################################################
@@ -128,8 +125,8 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
         do_plot(train_ref_fs, error_dict(train_pred_fs, train_ref_fs), this_ax, 'Training', by_config_type)
         if test_set:
             do_plot(test_ref_fs, error_dict(test_pred_fs, test_ref_fs), this_ax, 'Test', by_config_type)
-        this_ax.set_xlabel(f'{ref_name.upper()} force / eV/Å')
-        this_ax.set_ylabel(f'|F$_{{GAP}}$ - F$_{{{ref_name.upper()}}}$| / eV/Å')
+        this_ax.set_xlabel(f'{ref_force_name} / eV/Å')
+        this_ax.set_ylabel(f'|{pred_force_name} - {ref_force_name}| / eV/Å')
         this_ax.set_yscale('log')
         this_ax.set_title(f'Force component errors on {sym}')
 
@@ -139,14 +136,14 @@ def scatter_plot(param_fname, train_ats, ax, test_ats=None, by_config_type=False
         if test_set:
             do_plot(test_ref_fs, test_pred_fs, this_ax, 'Test', by_config_type)
 
-        this_ax.set_xlabel(f'{ref_name.upper()} force / eV/Å')
-        this_ax.set_ylabel('GAP force / eV/Å')
+        this_ax.set_xlabel(f'{ref_force_name} / eV/Å')
+        this_ax.set_ylabel(f'{pred_force_name} / eV/Å')
         left_lim, right_lim = this_ax.get_xlim()
         bottom_lim, top_lim = this_ax.get_ylim()
         lims = (min([left_lim, bottom_lim]), max(left_lim, top_lim))
         this_ax.plot(lims, lims, c='k', linewidth=0.8)
         this_ax.set_title(f'Force components on {sym}')
-        this_ax.legend(title='Set: RMSE, eV/Å', bbox_to_anchor=(1,1), loc="upper left" )
+        this_ax.legend(title='RMSE (eV/Å); RMSE/STD (%)', bbox_to_anchor=(1,1), loc="upper left" )
     
     return lgd
 
@@ -170,8 +167,9 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
         rmse = util.get_rmse(ref_vals, pred_vals)
         std = util.get_std(ref_vals, pred_vals)
         # TODO make formatting nicer
-        print_label = f'{label}: {rmse:.3f} $\pm$ {std:.3f}'
-        ax.scatter(ref_vals, pred_vals, label=print_label, s=8, alpha=0.7)
+        performance = rmse / np.std(ref_vals) * 100
+        print_label = f'{label:<8} {rmse:.3f}; {performance:.1f} %'
+        ax.scatter(ref_vals, pred_vals, label=print_label, s=3)
 
     else:
         n_groups = len(ref_values.keys())

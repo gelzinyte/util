@@ -421,3 +421,46 @@ def soap_dist(at1, at2, desc=soap):
     sp1 = get_soap(at1, desc)
     sp2 = get_soap(at2, desc)
     return np.sqrt(2 - 2 * np.dot(sp1, sp2))
+
+def get_E_F_dict_evaled(atoms, energy_name, force_name):
+    '''Returns {'energy': {'config1':[energies],
+                           'config2':[energies]},
+                'forces':{sym1:{'config1':[forces],
+                                'config2':[forces]},
+                          sym2:{'config1':[forces],
+                                'config2':[forces]}}}'''
+
+    data = dict()
+    data['energy'] = OrderedDict()
+    data['forces'] = OrderedDict()
+
+
+    for atom in atoms:
+        at = atom.copy()
+        config_type='no_config_type'
+        if 'config_type' in at.info.keys():
+            config_type = at.info['config_type']
+
+
+        if len(at) != 1:
+
+            try:
+                data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name] / len(at))
+            except KeyError:
+                data['energy'][config_type] = np.array([])
+                data['energy'][config_type] = np.append(data['energy'][config_type], at.info[energy_name] / len(at))
+
+
+            forces = at.arrays[force_name]
+
+            sym_all = at.get_chemical_symbols()
+            for j, sym in enumerate(sym_all):
+                if sym not in data['forces'].keys():
+                    data['forces'][sym] = OrderedDict()
+                try:
+                    data['forces'][sym][config_type] = np.append(data['forces'][sym][config_type], forces[j])
+                except KeyError:
+                    data['forces'][sym][config_type] = np.array([])
+                    data['forces'][sym][config_type] = np.append(data['forces'][sym][config_type], forces[j])
+
+    return data

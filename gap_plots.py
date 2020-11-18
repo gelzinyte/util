@@ -2,6 +2,7 @@
 
 import click
 from util.plot import rmse_scatter
+from util import plot
 import os
 
 @click.command()
@@ -39,7 +40,7 @@ def make_plots(param_fname, test_fname=None, output_dir=None, prefix=None, by_co
 
     if dimer_plot:
         print('Ploting dimers')
-        rmse_scatter.make_dimer_curves(param_fnames=[param_fname],  output_dir=output_dir, prefix=prefix,\
+        plot.make_dimer_curves(param_fnames=[param_fname],  output_dir=output_dir, prefix=prefix,\
                           glue_fname=glue_fname, plot_2b_contribution=plot_2b_contribution, plot_ref_curve=plot_ref_curve,\
                           isolated_atoms_fname=isolated_atoms_fname, ref_name=ref_name, dimer_scatter=dimer_scatter)
 

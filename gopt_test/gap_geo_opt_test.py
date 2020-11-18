@@ -30,13 +30,20 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
                 fmax, max_steps,  dft, no_cores, cleanup, temps, smiles):
 
     # set up
-    stds = util.str_to_list(stds)
-    temps = [int(t) for t in util.str_to_list(temps)]
+    if stds is not None:
+        stds = util.str_to_list(stds)
+    else:
+        stds = []
+
+    if temps is not None:
+        temps = [int(t) for t in util.str_to_list(temps)]
+    else:
+        temps=[]
 
     print(f'Standard deviations for this run: {stds}')
     print(f'SMILES for this run: {smiles}')
 
-    db_path = '/home/eg475/programs/my_scripts/gopt_test/'
+    db_path = '/home/eg475/scripts/'
 
 
     print(f'Parameters: gap {gap_fname}, dft equilibrium fname {dft_eq_xyz}, '
@@ -82,7 +89,7 @@ def nm_optimisations(temps, gap_fname, dft_confs, opt_wdir, db_path, fmax, max_s
                 all_finish_fnames = []
                 all_traj_fnames = []
 
-                start_at_fname = pj(db_path, f'starts/NM_starts_{conf_name}_{temp}K.xyz')
+                start_at_fname = pj(db_path, f'gopt_test/starts/NM_starts_{conf_name}_{temp}K.xyz')
                 start_ats = read(start_at_fname, ':')
 
                 finishes_at_fname = f'xyzs/finishes_{conf_name}_{temp}K.xyz'
@@ -126,7 +133,7 @@ def geo_opt_in_batches(gap_fname, start_fnames, finish_fnames, traj_fnames, step
 
         for start_fname, finish_fname, traj_fname in batch:
 
-           bash_call += f"python /home/eg475/programs/my_scripts/gopt_test/single_optimisation.py " \
+           bash_call += f"python /home/eg475/scripts/gopt_test/single_optimisation.py " \
                        f"--gap_fname {gap_fname} " \
                        f"--start_fname '{start_fname}' " \
                         f"--finish_fname '{finish_fname}' " \
@@ -182,7 +189,7 @@ def smi_optimisations(smiles, gap_fname, dft_confs, db_path, opt_wdir, fmax, max
             all_finish_fnames = []
             all_traj_fnames = []
 
-            start_at_fname = pj(db_path, f'starts/rdkit_starts_{smi}.xyz')
+            start_at_fname = pj(db_path, f'gopt_test/starts/rdkit_starts_{smi}.xyz')
             start_ats = read(start_at_fname, ':')
 
             finishes_at_fname = f'xyzs/finishes_{smi}.xyz'
@@ -234,7 +241,7 @@ def std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir, fmax, 
                 all_finish_fnames = []
                 all_traj_fnames = []
 
-                start_at_fname = pj(db_path, f'starts/starts_{conf_name}_{std}A_std.xyz')
+                start_at_fname = pj(db_path, f'gopt_test/starts/starts_{conf_name}_{std}A_std.xyz')
                 start_ats = read(start_at_fname, ':')
 
                 finishes_at_fname = f'xyzs/finishes_{conf_name}_{std}A_std.xyz'

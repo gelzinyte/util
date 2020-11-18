@@ -54,7 +54,7 @@ from quippy.descriptors import Descriptor
 def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
 
     corr_desc = ugap.get_gap_2b_dict(param_fname)
-    atoms_fname = f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz'
+    atoms_fname = f'/home/eg475/scripts/data/dft_{dimer_name}_dimer.xyz'
     dimer = read(atoms_fname, index=':')
     distances = [at.get_distance(0, 1) for at in dimer]
 
@@ -110,7 +110,7 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
 
 
 def make_ref_plot(dimer_name, ax, calc_type='dft'):
-    atoms_fname=f'/home/eg475/programs/my_scripts/data/dft_{dimer_name}_dimer.xyz'
+    atoms_fname=f'/home/eg475/scripts/data/dft_{dimer_name}_dimer.xyz'
     dimer = read(atoms_fname, ':')
     distances = [at.get_distance(0, 1) for at in dimer]
     ref_data = util.get_E_F_dict(dimer, calc_type=calc_type)
@@ -721,7 +721,7 @@ def do_evec_plot(evals_dft, evecs_dft, evals_pred, evecs_pred, name, output_dir=
 def evec_plot(param_fname,  dft_eq_fname, smiles_to_opt=None, at_fname_to_opt=None, fmax=1e-2, steps=1000, output_dir='pictures'):
 
 
-    db_path = '/home/eg475/programs/my_scripts/gopt_test/'
+    db_path = '/home/eg475/scripts/gopt_test/'
 
     if not os.path.exists('xyzs'):
         os.makedirs('xyzs')

@@ -17,7 +17,7 @@ def generate_starts(dft_min_fname, temperatures, no_structures):
     temperatures = [int(t) for t in temperatures]
 
     dft_ats = read(dft_min_fname, ':')
-    db_path = '/home/eg475/programs/my_scripts/gopt_test'
+    db_path = '/home/eg475/scripts/gopt_test'
 
     for temp in temperatures:
         for at in dft_ats:
@@ -25,7 +25,7 @@ def generate_starts(dft_min_fname, temperatures, no_structures):
             starts_name = pj(db_path, f'starts/NM_starts_{dft_name}_{temp}K.xyz')
 
             if not os.path.exists(starts_name):
-                pckl_name = f'/home/eg475/programs/my_scripts/gopt_test/dft_minima/normal_modes/{dft_name}.all.pckl'
+                pckl_name = f'/home/eg475/scripts/dft_minima/normal_modes/{dft_name}.all.pckl'
                 if not os.path.isfile(f'{dft_name}.all.pckl'):
                     shutil.copy(pckl_name, '.')
                 vib = Vibrations(at, name=dft_name)

@@ -103,10 +103,10 @@ def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
 
     # plot starts
     if smiles is not None:
-        ax.scatter(xs, plot_start_means, c='grey', s=200, marker='x')
+        ax.scatter(xs, plot_start_means, c='k', s=200, marker='x')
     else:
         ax.plot(xs, plot_start_means, c='k', linewidth=0.6,
-                linestyle=':', label=start_label)
+                label=start_label)
     #         print(plot_start_means)
 
     # plot ends
@@ -232,13 +232,13 @@ def compare(runs, task):
     print(f'task: {task}')
 
     cmap = mpl.cm.get_cmap('tab10')
-    db_path = '/home/eg475/programs/my_scripts/gopt_test/dft_minima'
+    db_path = '/home/eg475/scripts/dft_minima'
 
     start_label = 'Opt. traj. start'
 
     # define plot layout
     if 'plot' in task:
-        fig = plt.figure(figsize=(15, 7))
+        fig = plt.figure(figsize=(14, 5))
         no_temps = len(runs[0][3])
         no_stds = len(runs[0][4])
         gs = gridspec.GridSpec(1, 3, width_ratios=[1, no_temps, no_stds])
@@ -247,7 +247,7 @@ def compare(runs, task):
         ax_rnd = plt.subplot(gs[2], sharey=ax_nm)
         axes = [ax_smi, ax_nm, ax_rnd]
     elif 'scatter' in task:
-        fig = plt.figure(figsize=(15, 7))
+        fig = plt.figure(figsize=(14, 5))
         ax_sct = plt.gca()
         axes = [ax_sct]
 
@@ -313,8 +313,8 @@ def compare(runs, task):
             plt.ylabel('End RMSD wrt the closest DFT minimum')
 
     elif 'plot' in task:
-        ax_rnd.set_xlabel('Random displacement\'s standard deviation, Å')
-        ax_nm.set_xlabel('Temperature for displacing along normal modes, K')
+        ax_rnd.set_xlabel('Random displacement size, Å')
+        ax_nm.set_xlabel('NM displacement temperature, K')
         ax_smi.set_xlabel('RDKit')
 
         ax_rnd.set_title('Random displacements')
@@ -333,7 +333,7 @@ def compare(runs, task):
         ax.grid(color='lightgrey')
 
     plt.suptitle(f'geometry optimisation test comparison')
-    plt.legend()
+    plt.legend(bbox_to_anchor=(1,1), loc="upper left")
     plt.tight_layout()
     plt.show()
 

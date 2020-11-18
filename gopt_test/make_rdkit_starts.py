@@ -14,7 +14,7 @@ from os.path import join as pj
 def generate_starts(no_structures, smiles):
     '''generates structures to be optimised with GAP for test'''
 
-    db_path = '/home/eg475/programs/my_scripts/gopt_test/'
+    db_path = '/home/eg475/scripts/gopt_test/'
 
 
     for smi in smiles:
