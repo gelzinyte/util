@@ -45,11 +45,20 @@ def get_counts(at):
     return dict(zip(unique, counts))
 
 
-def get_rmse(ar1, ar2):
+def get_rmse(ref_ar, pred_ar):
     sq_error = []
-    for val1, val2 in zip(ar1, ar2):
+    for val1, val2 in zip(ref_ar, pred_ar):
         sq_error.append((val1-val2)**2)
     return np.sqrt(np.mean(sq_error))
+
+def get_rmse_over_ref_std(pred_ar, ref_ar):
+    rmse = get_rmse(pred_ar, ref_ar)
+    std = np.std(ref_ar)
+    return rmse/std*100
+
+def get_mae(pred_ar, ref_ar):
+    absolute_errors = [np.abs(val1 - val2) for val1, val2 in zip(pred_ar, ref_ar)]
+    return np.mean(absolute_errors)
 
 
 def get_std(ar1, ar2):

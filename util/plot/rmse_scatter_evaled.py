@@ -13,29 +13,30 @@ import matplotlib as mpl
 
 
 
-
-
-
 def make_scatter_plots_from_evaluated_atoms(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name, evaluated_train_fname, evaluated_test_fname,
-               output_dir, prefix, by_config_type):
+               output_dir, prefix, by_config_type, force_by_element=True):
 
     train_ats = read(evaluated_train_fname, ':')
     test_ats = read(evaluated_test_fname, ':')
 
-    counts = util.get_counts(train_ats[0])
-    no_unique_elements = len(counts.keys())
+    counts = list(set(np.hstack([np.array(list(util.get_counts(at).keys())) for at in train_ats])))
+    no_unique_elements = len(counts)
     width = 14
-    height = width * 0.4
-    height *= no_unique_elements
+    height = width * 0.5
+    if force_by_element:
+        height *= (no_unique_elements + 1)
+        no_rows = no_unique_elements + 1
+    else:
+        no_rows = 2
 
     fig = plt.figure(figsize=(width, height))
-    gs = gridspec.GridSpec(no_unique_elements+1, 2)
+    gs = gridspec.GridSpec(no_rows, 2)
     ax = [plt.subplot(g) for g in gs]
 
     #main plot
     lgd = scatter_plot(train_ats=train_ats, ax=ax, test_ats=test_ats, by_config_type=by_config_type,
                        ref_energy_name=ref_energy_name, pred_energy_name=pred_energy_name,
-                       ref_force_name=ref_force_name, pred_force_name=pred_force_name)
+                       ref_force_name=ref_force_name, pred_force_name=pred_force_name, force_by_element=force_by_element)
 
     if not prefix:
         prefix = os.path.basename(param_fname)
@@ -57,7 +58,7 @@ def make_scatter_plots_from_evaluated_atoms(ref_energy_name, pred_energy_name, r
 
 def scatter_plot(train_ats, ax, test_ats, by_config_type,
                        ref_energy_name, pred_energy_name,
-                       ref_force_name, pred_force_name):
+                       ref_force_name, pred_force_name, force_by_element):
 
     test_set = False
     if test_ats:
@@ -66,9 +67,31 @@ def scatter_plot(train_ats, ax, test_ats, by_config_type,
     train_ref_data = util.get_E_F_dict_evaled(train_ats, energy_name=ref_energy_name, force_name=ref_force_name)
     train_pred_data = util.get_E_F_dict_evaled(train_ats, energy_name=pred_energy_name, force_name=pred_force_name)
 
+
+
+    if not force_by_element:
+        tmp_no_f_sym_data = util.desymbolise_force_dict(train_ref_data['forces'])
+        # print('returned keys:', tmp_no_f_sym_data.keys())
+        train_ref_data['forces'].clear()
+        train_ref_data['forces']['all elements'] = tmp_no_f_sym_data
+
+        tmp_no_f_sym_data = util.desymbolise_force_dict(train_pred_data['forces'])
+        train_pred_data['forces'].clear()
+        train_pred_data['forces']['all elements'] = tmp_no_f_sym_data
+
+
     if test_set:
         test_ref_data = util.get_E_F_dict_evaled(test_ats, energy_name=ref_energy_name, force_name=ref_force_name)
         test_pred_data = util.get_E_F_dict_evaled(test_ats, energy_name=pred_energy_name, force_name=pred_force_name)
+
+        if not force_by_element:
+            tmp_no_f_sym_data = util.desymbolise_force_dict(test_ref_data['forces'])
+            test_ref_data['forces'].clear()
+            test_ref_data['forces']['all elements'] = tmp_no_f_sym_data
+
+            tmp_no_f_sym_data = util.desymbolise_force_dict(test_pred_data['forces'])
+            test_pred_data['forces'].clear()
+            test_pred_data['forces']['all elements'] = tmp_no_f_sym_data
 
     #####################################################################
     # Energy plots
@@ -79,11 +102,12 @@ def scatter_plot(train_ats, ax, test_ats, by_config_type,
     train_pred_es = train_pred_data['energy']
 
     this_ax = ax[0]
-    do_plot(train_ref_es, error_dict(train_pred_es, train_ref_es), this_ax, 'Training', by_config_type)
     if test_set:
         test_ref_es = test_ref_data['energy']
         test_pred_es = test_pred_data['energy']
-        do_plot(test_ref_es, error_dict(test_pred_es, test_ref_es), this_ax, 'Test', by_config_type)
+        do_plot(test_ref_es, error_dict(test_pred_es, test_ref_es), this_ax,
+                'Test', by_config_type)
+    do_plot(train_ref_es, error_dict(train_pred_es, train_ref_es), this_ax, 'Training', by_config_type)
     this_ax.set_xlabel(f'{ref_energy_name} / eV/atom')
     this_ax.set_ylabel(f'|{pred_energy_name} - {ref_energy_name}| / eV/atom')
     this_ax.set_yscale('log')
@@ -91,10 +115,10 @@ def scatter_plot(train_ats, ax, test_ats, by_config_type,
 
     #### predicted vs reference
     this_ax = ax[1]
-    do_plot(train_ref_es, train_pred_es, this_ax, 'Training', by_config_type)
-
     if test_set:
         do_plot(test_ref_es, test_pred_es, this_ax, 'Test', by_config_type)
+
+    do_plot(train_ref_es, train_pred_es, this_ax, 'Training', by_config_type)
 
     left_lim, right_lim = this_ax.get_xlim()
     bottom_lim, top_lim = this_ax.get_ylim()
@@ -104,7 +128,7 @@ def scatter_plot(train_ats, ax, test_ats, by_config_type,
     this_ax.set_xlabel(f'{ref_energy_name} / eV/atom')
     this_ax.set_ylabel(f'{pred_energy_name} / eV/atom')
     this_ax.set_title('Energies')
-    lgd = this_ax.legend(title='RMSE (eV/atom); RMSE/STD (%)', bbox_to_anchor=(1,1), loc="upper left")
+    lgd = this_ax.legend(title='RMSE (meV/atom); RMSE/STD (%)', bbox_to_anchor=(1,1), loc="upper left")
 
 
     #####################################################################################
@@ -122,19 +146,24 @@ def scatter_plot(train_ats, ax, test_ats, by_config_type,
 
         # error
         this_ax = ax[2 * (idx + 1) ]
-        do_plot(train_ref_fs, error_dict(train_pred_fs, train_ref_fs), this_ax, 'Training', by_config_type)
+        # print(f'error: {sym}')
+
         if test_set:
             do_plot(test_ref_fs, error_dict(test_pred_fs, test_ref_fs), this_ax, 'Test', by_config_type)
+        do_plot(train_ref_fs, error_dict(train_pred_fs, train_ref_fs), this_ax, 'Training', by_config_type)
+        # print(f'element: {sym}, len(error_dict): {len(error_dict(train_pred_fs, train_ref_fs))}, len(fs): {len(train_pred_fs)}')
+        print(train_ref_fs.keys())
         this_ax.set_xlabel(f'{ref_force_name} / eV/Å')
         this_ax.set_ylabel(f'|{pred_force_name} - {ref_force_name}| / eV/Å')
         this_ax.set_yscale('log')
         this_ax.set_title(f'Force component errors on {sym}')
 
         this_ax = ax[2 * (idx + 1) + 1]
-        do_plot(train_ref_fs, train_pred_fs, this_ax, 'Training', by_config_type)
-
+        # print(f'correlation')
         if test_set:
             do_plot(test_ref_fs, test_pred_fs, this_ax, 'Test', by_config_type)
+        do_plot(train_ref_fs, train_pred_fs, this_ax, 'Training',
+                    by_config_type)
 
         this_ax.set_xlabel(f'{ref_force_name} / eV/Å')
         this_ax.set_ylabel(f'{pred_force_name} / eV/Å')
@@ -143,7 +172,7 @@ def scatter_plot(train_ats, ax, test_ats, by_config_type,
         lims = (min([left_lim, bottom_lim]), max(left_lim, top_lim))
         this_ax.plot(lims, lims, c='k', linewidth=0.8)
         this_ax.set_title(f'Force components on {sym}')
-        this_ax.legend(title='RMSE (eV/Å); RMSE/STD (%)', bbox_to_anchor=(1,1), loc="upper left" )
+        this_ax.legend(title='RMSE (meV/Å); RMSE/STD (%)', bbox_to_anchor=(1,1), loc="upper left" )
     
     return lgd
 
@@ -164,11 +193,14 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
         ref_vals = dict_to_vals(ref_values)
         pred_vals = dict_to_vals(pred_values)
 
+        # print(f'plotting no of compounds: {len(ref_vals)}')
+        # print(ref_vals)
+
         rmse = util.get_rmse(ref_vals, pred_vals)
         std = util.get_std(ref_vals, pred_vals)
         # TODO make formatting nicer
         performance = rmse / np.std(ref_vals) * 100
-        print_label = f'{label:<8} {rmse:.3f}; {performance:.1f} %'
+        print_label = f'{label:<8} {rmse*1000:.3f}; {performance:.1f} %'
         ax.scatter(ref_vals, pred_vals, label=print_label, s=3)
 
     else:
@@ -193,7 +225,7 @@ def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
             rmse = util.get_rmse(ref_vals, pred_vals)
             std = util.get_std(ref_vals, pred_vals)
             performance = rmse/np.std(ref_vals) * 100
-            print_label = f'{ref_config_type}: {rmse:.3f}, {performance:.1f} %'
+            print_label = f'{ref_config_type}: {rmse*1000:.3f}, {performance:.1f} %'
             kws = {'marker': '.', 's':4, 'color': cmap(colors[idx % 10])}
 
             ax.scatter(ref_vals, pred_vals, label=print_label,  **kws)

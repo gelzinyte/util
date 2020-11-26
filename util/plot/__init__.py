@@ -54,16 +54,22 @@ from quippy.descriptors import Descriptor
 def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
 
     corr_desc = ugap.get_gap_2b_dict(param_fname)
-    atoms_fname = f'/home/eg475/scripts/data/dft_{dimer_name}_dimer.xyz'
-    dimer = read(atoms_fname, index=':')
-    distances = [at.get_distance(0, 1) for at in dimer]
 
-    command = f"quip E=T F=T atoms_filename={atoms_fname} param_filename={param_fname} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
-                         | grep AT | sed 's/AT//' > ./tmp_atoms.xyz"
+    tmp_dimer_in_name = 'tmp_dimer_in.xyz'
+    tmp_dimer_out_name = 'tmp_dimer_out.xyz'
+    distances = np.linspace(0.2, 9, 50)
+    atoms = [Atoms(dimer_name, positions=[(0, 0, 0), (0, 0, d)]) for d in distances]
+    write(tmp_dimer_in_name, atoms, 'extxyz')
+
+    which_quip = '/home/eg475/programs/QUIPwo0/build/linux_x86_64_gfortran_openmp/quip'
+
+    command = f"{which_quip} E=T F=T atoms_filename={tmp_dimer_in_name} param_filename={param_fname} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
+                         | grep AT | sed 's/AT//' > {tmp_dimer_out_name}"
 
     subprocess.run(command, shell=True)
-    atoms = read('./tmp_atoms.xyz', index=':')
-    os.remove('./tmp_atoms.xyz')
+    atoms = read(tmp_dimer_out_name, index=':')
+    os.remove(tmp_dimer_out_name)
+    os.remove(tmp_dimer_in_name)
     es = [at.info['energy'] for at in atoms]
     if label is None:
         label = 'GAP: only 2b'

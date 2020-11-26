@@ -228,7 +228,7 @@ def gopt_scatter_summary(ax, wdir, struct_names, start_label, task,
         return min(mins), max(maxs)
     return None, None
 
-def compare(runs, task):
+def compare(runs, task, prefix):
     print(f'task: {task}')
 
     cmap = mpl.cm.get_cmap('tab10')
@@ -335,5 +335,8 @@ def compare(runs, task):
     plt.suptitle(f'geometry optimisation test comparison')
     plt.legend(bbox_to_anchor=(1,1), loc="upper left")
     plt.tight_layout()
-    plt.show()
+    if prefix:
+        plt.savefig(f'{prefix}_{task}.png', dpi=300)
+    else:
+        plt.show()
 

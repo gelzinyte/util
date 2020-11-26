@@ -15,7 +15,7 @@ import os
 @click.option('--glue_fname', type=click.Path(exists=True), help='glue potential\'s xml to be evaluated for dimers')
 @click.option('--plot_2b_contribution', type=bool, default=False, show_default=True, help='whether to plot the 2b only bit of gap')
 @click.option('--plot_ref_curve', type=bool, default=False, show_default=True, help='whether to plot the reference DFT dimer curve')
-@click.option('--isolated_atoms_fname',  default='/home/eg475/programs/my_scripts/source_files/isolated_atoms_orca.xyzj', show_default=True, help='isolated atoms to shift glue')
+@click.option('--isolated_atoms_fname',  default='/home/eg475/scripts/source_files/isolated_atoms_orca.xyz', show_default=True, help='isolated atoms to shift glue')
 @click.option('--ref_name', default='dft', show_default=True, help='prefix to \'_forces\' and \'_energy\' to take as a reference')
 @click.option('--dimer_scatter', help='dimer data in training set to be scattered on top of dimer curves')
 @click.option('--scatter_plot',type=bool, default=True, show_default=True, help='whether to plot scatter plot')
