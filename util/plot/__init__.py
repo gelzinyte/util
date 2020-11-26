@@ -57,7 +57,7 @@ def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
 
     tmp_dimer_in_name = 'tmp_dimer_in.xyz'
     tmp_dimer_out_name = 'tmp_dimer_out.xyz'
-    distances = np.linspace(0.2, 9, 50)
+    distances = np.linspace(0.05, 6, 50)
     atoms = [Atoms(dimer_name, positions=[(0, 0, 0), (0, 0, d)]) for d in distances]
     write(tmp_dimer_in_name, atoms, 'extxyz')
 
@@ -81,7 +81,7 @@ def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
 def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fname=None):
     init_dimer = Atoms(dimer_name, positions=[(0, 0, 0), (0, 0, 2)])
 
-    distances = np.linspace(0.2, 9, 50)
+    distances = np.linspace(0.05, 6, 50)
 
     dimer = []
     for d in distances:
@@ -124,7 +124,7 @@ def make_ref_plot(dimer_name, ax, calc_type='dft'):
 
 
 def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fname=None, plot_2b_contribution=True, \
-                      plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None, ylim=(15, 25), close=True):
+                      plot_ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None, close=True):
     # param_fname - list of param_fnames, most often one
 
     # train_ats = read(train_fname, index=':')
@@ -213,6 +213,7 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
                     y_vals.append(at.info[f'{ref_name}_energy'])
             ax.scatter(x_vals, y_vals, color='tab:red', marker='x', label='training points')
 
+
     isolated_atoms = read(isolated_atoms_fname, ':')
     for ax, dimer in zip(axes_main, dimers):
         ax.legend(loc='upper right')
@@ -225,11 +226,11 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
             for iso_at in isolated_atoms:
                 if sym in iso_at.symbols:
                     e_shift += iso_at.info['dft_energy']
-        ylimits = (e_shift-ylim[0], e_shift+ylim[1])
-        ylimits_default = ax.get_ylim()
+        # ylimits = (e_shift-ylim[0], e_shift+ylim[1])
+        # ylimits_default = ax.get_ylim()
         # ax.set_ylim(bottom=min(ylimits[0], ylimits_default[0]), top=max(ylimits_default[1], ylimits[1]))
         # ax.set_ylim(bottom=min(ylimits[0], ylimits_default[0]), top=ylimits[1])
-        ax.set_xlim(0.03, 9)
+        ax.set_xlim(0.03, 6)
 
     print('Plotting distance histogram')
     for ax, dimer in zip(axes_hist, dimers):

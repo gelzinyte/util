@@ -14,10 +14,11 @@ from quippy.potential import Potential
 
 sys.path.append('/home/eg475/molpro_stuff/driver')
 import util
-from util.vib import Vibrations
+from util.vibrations import Vibrations
 from util import itools
 from util import urdkit
 from util import plot
+from util.plot import rmse_scatter_evaled
 from molpro import Molpro
 from ase.calculators.orca import ORCA
 import time
@@ -61,8 +62,8 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
 
 
 
-    # if not os.path.isdir('gaps'):
-    #     os.makedirs('gaps')
+    if not os.path.isdir('gaps'):
+        os.makedirs('gaps')
 
     if not os.path.isdir('xyzs'):
         os.makedirs('xyzs')
@@ -76,15 +77,15 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
     ######################################################
 
 
-    default_sigma = [0.005, 0.025, 0.0, 0.0]
+    default_sigma = [0.0005, 0.01, 0.0, 0.0]
 
     config_type_sigma = {'isolated_atom': [0.0001, 0.0, 0.0, 0.0]}
 
     descriptors = dict()
     descriptors['soap'] = {'name': 'soap',
-                           'l_max': '4',
-                           'n_max': '8',
-                           'cutoff': '3.0',
+                           'l_max': '6',
+                           'n_max': '12',
+                           'cutoff': '5.0',
                            'delta': '0.5',
                            'covariance_type': 'dot_product',
                            'zeta': '4.0',
@@ -93,13 +94,56 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
                            'atom_gaussian_width': '0.3',
                            'add_species': 'True'}
 
+    descriptors['dist_HH'] = {'name': 'distance_2b',
+                           'cutoff': '5.0',
+                           'covariance_type': 'ard_se',
+                           'n_sparse': '20',
+                            'theta_uniform':'1.0',
+                            'cutoff_transition_width':'1.0',
+                            'Z1':'1',
+                            'Z2':'1',
+                            'delta':'0.5',
+                           'sparse_method': 'uniform',
+                            'add_species':'False'
+                              }
+
+
+    descriptors['dist_CH'] = {'name': 'distance_2b',
+                           'cutoff': '5.0',
+                           'covariance_type': 'ard_se',
+                           'n_sparse': '20',
+                            'theta_uniform':'1.0',
+                            'cutoff_transition_width':'1.0',
+                            'Z1':'6',
+                            'Z2':'1',
+                            'delta':'1.0',
+                           'sparse_method': 'uniform',
+                            'add_species':'False'
+                              }
+
+
+
+    descriptors['dist_CC'] = {'name': 'distance_2b',
+                           'cutoff': '5.0',
+                           'covariance_type': 'ard_se',
+                           'n_sparse': '20',
+                            'theta_uniform':'1.0',
+                            'cutoff_transition_width':'1.0',
+                            'Z1':'6',
+                            'Z2':'6',
+                            'delta':'1.0',
+                           'sparse_method': 'uniform',
+                            'add_species':'False'
+                              }
+
     ########################################################
     ## set up calculator
     ########################################################
 
     smearing = 2000
     maxiter = 200
-    n_wfn_hop = 1
+    nh = 1
+    nr = 1
     task = 'gradient'
     orcasimpleinput = 'UKS B3LYP def2-SV(P) def2/J D3BJ'
     orcablocks =  f"%scf Convergence tight \n SmearTemp {smearing} \n maxiter {maxiter} end \n"
@@ -124,8 +168,7 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
                 )
 
     # for calculating dataset energies
-    n_run_glob_op = 1
-    kw_orca = f'n_hop={n_wfn_hop} smearing={smearing} maxiter={maxiter}'
+    kw_orca = f'smearing={smearing} maxiter={maxiter}'
 
     ######################################################
     ## generate first dataset
@@ -142,35 +185,31 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
     write('xyzs/base_structs_for_dset_1.xyz', all_first_structures, 'extxyz', write_results=False)
 
 
-    if up_e_lim is not None:
-        mean_first_guess_energy_per_at = np.mean([at.info['dft_energy']/len(at) for at in all_first_structures])
-        print(f"Mean first guesses' energy per atom to use as a reference for upper limit: {mean_first_guess_energy_per_at} eV/atom")
-        upper_energy_cutoff = mean_first_guess_energy_per_at + up_e_lim # eV/atom
-        print(f"upper energy cutoff used to exclude structures above: {upper_energy_cutoff} eV/atom")
-    else:
-        upper_energy_cutoff = None
+    # if up_e_lim is not None:
+    #     mean_first_guess_energy_per_at = np.mean([at.info['dft_energy']/len(at) for at in all_first_structures])
+    #     print(f"Mean first guesses' energy per atom to use as a reference for upper limit: {mean_first_guess_energy_per_at} eV/atom")
+    #     upper_energy_cutoff = mean_first_guess_energy_per_at + up_e_lim # eV/atom
+    #     print(f"upper energy cutoff used to exclude structures above: {upper_energy_cutoff} eV/atom")
+    # else:
+    upper_energy_cutoff = None
 
 
     if not os.path.isfile(f'xyzs/dset_1.xyz'):
         print('Getting dataset 1')
         dset_name = 'xyzs/dset_1.xyz'
 
-        isolated_atoms = read(f'isolated_atoms_orca.xyz', index=':')
+        isolated_atoms = read(f'~/scripts/source_files/isolated_atoms_orca.xyz', index=':')
 
         dset_1_to_compute = itools.get_structures(all_first_structures, n_dpoints=first_n_dpoints,
                             n_rattle_atoms=n_rattle_atoms, stdev=stdev)
 
         orca_tmp_fname = f'xyzs/orca_out_dset_1.xyz'
-        wfl_command = f'wfl -v ref-method orca-eval -o {orca_tmp_fname} -tmp {scratch_dir} ' \
-                      f'-n {n_run_glob_op} -p {no_cores} --kw "{kw_orca}" ' \
+        wfl_command = f'wfl -v ref-method orca-eval --output-file {orca_tmp_fname} -tmp {scratch_dir} ' \
+                      f'-nr {nr}  --kw "{kw_orca}" -nh {nh} ' \
                       f'--orca-simple-input "{orcasimpleinput}"'
 
-        # 'wfl -v ref-method orca-eval -o dset_4_out2.xyz  -tmp /scratch/eg475 -n 1 -p 2 ' \
-        # '--kw "n_hop=1 smearing=200 maxiter=200 " --orca-simple-input ' \
-        # '"UHF B3LYP def2-SV(P) def2/J D3BJ slowconv" dset_4.xyz'
-
         dset_1 = itools.orca_par_data(atoms_in=dset_1_to_compute, out_fname=orca_tmp_fname,
-                                       wfl_command=wfl_command, iter_no=1)
+                                       wfl_command=wfl_command, config_type=f'iter_1')
 
         if upper_energy_cutoff is not None:
             dset_1 = itools.remove_high_e_structs(dset_1, upper_energy_cutoff)
@@ -188,15 +227,24 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
     for iter_no in range(1, n_iterations+1):
         print('---------------Iteration %d-----------------' % iter_no)
 
+        current_train_fname = f'xyzs/dset_{iter_no}.xyz'
+
         # Fit GAP
         gap_name = f'gaps/gap_{iter_no}.xml'
         if not os.path.isfile(gap_name):
             print(f'Iteration {iter_no}, fitting gap')
             itools.fit_gap(iter_no, descriptors=descriptors, default_sigma=default_sigma, gap_fit_path=gap_fit_path, config_type_sigma=config_type_sigma)
 
-            plot.make_scatter_plots_from_file(gap_name, output_dir='pictures/', by_config_type=True)
-            plot.make_dimer_curves([f'gaps/gap_{iter_no}.xml'], output_dir='pictures/',\
-                                        plot_2b_contribution=False, glue_fname='glue_orca.xml', isolated_atoms_fname=f'isolated_atoms_orca.xyz')
+            train_out = f'xyzs/gap_{iter_no}_on_train.xyz'
+            subprocess.run(f'/home/eg475/programs/QUIPwo0/build/linux_x86_64_gfortran_openmp/quip E=T F=T atoms_filename={current_train_fname} '
+                           f'param_filename=gaps/gap_{iter_no}.xml  | grep AT | sed "s/AT//" > {train_out}', shell=True)
+
+            rmse_scatter_evaled.make_scatter_plots_from_evaluated_atoms(ref_energy_name='dft_energy', pred_energy_name='energy',
+                ref_force_name='dft_forces', pred_force_name='force', evaluated_train_fname=train_out, evaluated_test_fname=None,
+               output_dir='pictures', prefix=f'iter_{iter_no}_scatter', by_config_type=False, force_by_element=True)
+
+            plot.make_dimer_curves([f'gaps/gap_{iter_no}.xml'], output_dir='pictures/', prefix=f'iter_{iter_no}_dimer',
+                      plot_2b_contribution=True, plot_ref_curve=False, isolated_atoms_fname='~/scripts/source_files/isolated_atoms_orca.xyz')
         else:
             print(f'Found GAP {iter_no}, not fitting')
 
@@ -238,8 +286,8 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
             # TODO do extend_dset with correct calculator
 
             orca_tmp_fname = f'xyzs/orca_tmp_dset_{iter_no+1}.xyz'
-            wfl_command =  f'wfl -v ref-method orca-eval -o {orca_tmp_fname} -tmp {scratch_dir} ' \
-                      f'-n {n_run_glob_op} -p {no_cores} --kw "{kw_orca}" ' \
+            wfl_command =  f'wfl -v ref-method orca-eval --output-file {orca_tmp_fname} -tmp {scratch_dir} ' \
+                      f'-nr {nr} -nh {nh} --kw "{kw_orca}" ' \
                       f'--orca-simple-input "{orcasimpleinput}"'
 
 
@@ -257,6 +305,9 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
     ########################################################
     ## post-processing
     ########################################################
+
+
+    #TODO learning curves
 
     # get all optimised atoms in one file
     all_opt_atoms = []
@@ -285,8 +336,8 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
 
 
     # summary plots
-    plot.dimer_summary_plot(glue_fname='glue_orca.xml', plot_2b_contribution=False,
-                           plot_ref_curve=False, isolated_atoms_fname='isolated_atoms_orca.xyz')
+    plot.dimer_summary_plot(plot_2b_contribution=True,
+                           plot_ref_curve=False)
 
     plot.rmse_heatmap(train_fname=f'xyzs/dset_{iter_no}.xyz')
 

@@ -17,7 +17,10 @@ def make_scatter_plots_from_evaluated_atoms(ref_energy_name, pred_energy_name, r
                output_dir, prefix, by_config_type, force_by_element=True):
 
     train_ats = read(evaluated_train_fname, ':')
-    test_ats = read(evaluated_test_fname, ':')
+    if evaluated_test_fname:
+        test_ats = read(evaluated_test_fname, ':')
+    else:
+        test_ats=None
 
     counts = list(set(np.hstack([np.array(list(util.get_counts(at).keys())) for at in train_ats])))
     no_unique_elements = len(counts)

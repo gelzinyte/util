@@ -31,7 +31,7 @@ def fit_gap(idx, descriptors, default_sigma, gap_fit_path=None, config_type_sigm
     desc = deepcopy(descriptors)
 
     command = ugap.make_gap_command(gap_filename=gap_fname, training_filename=train_file, descriptors_dict=desc,
-                                  default_sigma=default_sigma, output_filename=out_fname, glue_fname='glue_orca.xml',
+                                  default_sigma=default_sigma, output_filename=out_fname, glue_fname=None,
                                     config_type_sigma=config_type_sigma, gap_fit_path=gap_fit_path)
 
     print(f'\n-------GAP {idx} command\n')
@@ -218,9 +218,9 @@ def orca_par_data(atoms_in, out_fname, wfl_command, config_type=None):
 
     for at in atoms_out:
         at.info[f'dft_energy'] = at.info['energy']
-        at.arrays[f'dft_forces'] = at.arrays['force']
+        at.arrays[f'dft_forces'] = at.arrays['forces']
         del at.info['energy']
-        del at.arrays['force']
+        del at.arrays['forces']
         if config_type:
             at.info['config_type'] = config_type
         at.set_cell([20, 20, 20])
