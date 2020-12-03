@@ -30,6 +30,7 @@ def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
         metric_finish = []
 
         for smi in smiles:
+            # print(smi)
             ends = read(pj(wdir, 'xyzs', f'opt_ends_{smi}.xyz'), ':')
 
             out_st, out_fn = get_metric_distances(ends[0::2], ends[1::2],
@@ -37,12 +38,12 @@ def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
             metric_start += out_st
             metric_finish += out_fn
 
-        plot_start_means.append(np.mean(metric_start))
-        plot_finish_means.append(np.mean(metric_finish))
-        plot_start_stds.append(np.std(metric_start))
-        plot_finish_stds.append(np.std(metric_finish))
+            plot_start_means.append(np.mean(metric_start))
+            plot_finish_means.append(np.mean(metric_finish))
+            plot_start_stds.append(np.std(metric_start))
+            plot_finish_stds.append(np.std(metric_finish))
 
-        xs = [1]
+        xs = np.arange(len(plot_start_means))
 
     if temps is not None:
 
@@ -104,6 +105,8 @@ def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
     # plot starts
     if smiles is not None:
         ax.scatter(xs, plot_start_means, c='k', s=200, marker='x')
+        ax.set_xticks(xs)
+        ax.set_xticklabels(smiles)
     else:
         ax.plot(xs, plot_start_means, c='k', linewidth=0.6,
                 label=start_label)
@@ -154,73 +157,77 @@ def gopt_scatter_summary(ax, wdir, struct_names, start_label, task,
     finish_coords = []
 
     original_label = scatter_kwargs['label']
-    scatter_kwargs['label'] = f'{original_label} RDKit'
-    if not start_label:
-        scatter_kwargs['label'] = original_label
-    scatter_kwargs['marker'] = '*'
-    scatter_kwargs['facecolors'] = 'none'
-    scatter_kwargs['edgecolors'] = scatter_kwargs['color']
+    if smiles is not None:
+        scatter_kwargs['label'] = f'{original_label} RDKit'
+        if not start_label:
+            scatter_kwargs['label'] = original_label
+        scatter_kwargs['marker'] = '*'
+        scatter_kwargs['facecolors'] = 'none'
+        scatter_kwargs['edgecolors'] = scatter_kwargs['color']
 
-    # smiles
-    for smi in smiles:
-        ends = read(pj(wdir, 'xyzs', f'opt_ends_{smi}.xyz'), ':')
-        out_st, out_fn = get_metric_distances(ends[0::2], ends[1::2],
-                                              all_dft_ats, task)
-        start_coords += out_st
-        finish_coords += out_fn
-
-    plt.scatter(start_coords, finish_coords, **scatter_kwargs)
-    maxs.append(max(start_coords + finish_coords))
-    mins.append(min(start_coords + finish_coords))
-
-    scatter_kwargs['marker'] = 'o'
-    scatter_kwargs['label'] = f'{original_label} Random'
-    if not start_label:
-        scatter_kwargs['label'] = None
-    start_coords = []
-    finish_coords = []
-
-    for idx, struct_name in enumerate(struct_names):
-
-        for std in stds:
-            starts = read(
-                pj(wdir, 'xyzs', f'starts_{struct_name}_{std}A_std.xyz'), ':')
-            finishes = read(
-                pj(wdir, 'xyzs', f'finishes_{struct_name}_{std}A_std.xyz'),
-                ':')
-
-            out_st, out_fn = get_metric_distances(starts, finishes,
+        # smiles
+        for smi in smiles:
+            # print(smi)
+            ends = read(pj(wdir, 'xyzs', f'opt_ends_{smi}.xyz'), ':')
+            out_st, out_fn = get_metric_distances(ends[0::2], ends[1::2],
                                                   all_dft_ats, task)
             start_coords += out_st
             finish_coords += out_fn
 
-    plt.scatter(start_coords, finish_coords, **scatter_kwargs)
-    maxs.append(max(start_coords + finish_coords))
-    mins.append(min(start_coords + finish_coords))
+        plt.scatter(start_coords, finish_coords, **scatter_kwargs)
+        maxs.append(max(start_coords + finish_coords))
+        mins.append(min(start_coords + finish_coords))
 
-    scatter_kwargs['label'] = f'{original_label} Normal modes'
-    if not start_label:
-        scatter_kwargs['label'] = None
+    if stds is not None:
+        scatter_kwargs['marker'] = 'o'
+        scatter_kwargs['label'] = f'{original_label} Random'
+        if not start_label:
+            scatter_kwargs['label'] = None
+        start_coords = []
+        finish_coords = []
 
-    scatter_kwargs['marker'] = 'd'
-    start_coords = []
-    finish_coords = []
+        for idx, struct_name in enumerate(struct_names):
+            for std in stds:
+                starts = read(
+                    pj(wdir, 'xyzs', f'starts_{struct_name}_{std}A_std.xyz'), ':')
+                finishes = read(
+                    pj(wdir, 'xyzs', f'finishes_{struct_name}_{std}A_std.xyz'),
+                    ':')
 
-    for idx, struct_name in enumerate(struct_names):
+                out_st, out_fn = get_metric_distances(starts, finishes,
+                                                      all_dft_ats, task)
+                start_coords += out_st
+                finish_coords += out_fn
 
-        for temp in temps:
-            starts = read(
-                pj(wdir, 'xyzs', f'starts_{struct_name}_{temp}K.xyz'), ':')
-            finishes = read(
-                pj(wdir, 'xyzs', f'finishes_{struct_name}_{temp}K.xyz'),
-                ':')
+        ax.scatter(start_coords, finish_coords, **scatter_kwargs)
+        maxs.append(max(start_coords + finish_coords))
+        mins.append(min(start_coords + finish_coords))
 
-            out_st, out_fn = get_metric_distances(starts, finishes,
-                                                  all_dft_ats, task)
-            start_coords += out_st
-            finish_coords += out_fn
+    if temps is not None:
+        scatter_kwargs['label'] = f'{original_label} Normal modes'
+        if not start_label:
+            scatter_kwargs['label'] = None
 
-    plt.scatter(start_coords, finish_coords, **scatter_kwargs)
+        scatter_kwargs['marker'] = 'd'
+        start_coords = []
+        finish_coords = []
+
+        for idx, struct_name in enumerate(struct_names):
+
+            for temp in temps:
+                starts = read(
+                    pj(wdir, 'xyzs', f'starts_{struct_name}_{temp}K.xyz'), ':')
+                finishes = read(
+                    pj(wdir, 'xyzs', f'finishes_{struct_name}_{temp}K.xyz'),
+                    ':')
+
+                out_st, out_fn = get_metric_distances(starts, finishes,
+                                                      all_dft_ats, task)
+                start_coords += out_st
+                finish_coords += out_fn
+
+        plt.scatter(start_coords, finish_coords, **scatter_kwargs)
+
     if len(start_coords + finish_coords)!=0:
         maxs.append(max(start_coords + finish_coords))
         mins.append(min(start_coords + finish_coords))
@@ -241,7 +248,13 @@ def compare(runs, task, prefix):
         fig = plt.figure(figsize=(14, 5))
         no_temps = len(runs[0][3])
         no_stds = len(runs[0][4])
-        gs = gridspec.GridSpec(1, 3, width_ratios=[1, no_temps, no_stds])
+        no_smiles = len(runs[0][2])
+        no_panes = sum([1 if x else 0 for x in [no_temps, no_stds, no_smiles]])
+        ratios = []
+        for x in [no_temps, no_stds, no_smiles]:
+            if x:
+                ratios.append(x)
+        gs = gridspec.GridSpec(1, 3, width_ratios=[no_smiles, no_temps, no_stds])
         ax_smi = plt.subplot(gs[0])
         ax_nm = plt.subplot(gs[1], sharey=ax_smi)
         ax_rnd = plt.subplot(gs[2], sharey=ax_nm)
@@ -327,7 +340,7 @@ def compare(runs, task, prefix):
         elif 'rmsd' in task.lower():
             ax_smi.set_ylabel('RMSD, Å')
 
-    for ax in axes:
+    for ax in [ax_nm, ax_rnd]:
         ax.set_xscale('log')
         ax.set_yscale('log')
         ax.grid(color='lightgrey')
@@ -340,3 +353,96 @@ def compare(runs, task, prefix):
     else:
         plt.show()
 
+def rdkit_only(runs, task, prefix):
+    print(f'task: {task}')
+
+    cmap = mpl.cm.get_cmap('tab10')
+    db_path = '/home/eg475/scripts/dft_minima'
+
+    start_label = 'Opt. traj. start'
+
+    # define plot layout
+    if 'plot' in task:
+        fig = plt.figure(figsize=(14, 5))
+        no_smiles = len(runs[0][2])
+        ax_smi = plt.gca()
+        axes = [ax_smi]
+    elif 'scatter' in task:
+        fig = plt.figure(figsize=(14, 5))
+        ax_sct = plt.gca()
+        axes = [ax_sct]
+
+    min_lims = []
+    max_lims = []
+
+    for idx, (
+    run_name, dft_xyz, smiles, end_kwargs) in enumerate(runs):
+
+        dft_ats = read(pj(db_path, dft_xyz), ':')
+        struct_names = [at.info['name'] for at in dft_ats]
+
+        if 'label' not in end_kwargs.keys():
+            end_kwargs['label'] = run_name
+
+        if 'plot' in task:
+            gopt_plot_summary(ax=ax_smi, wdir=run_name,
+                              struct_names=struct_names,
+                              start_label=start_label,
+                              task=task, all_dft_ats=dft_ats,
+                              smiles=smiles, **end_kwargs)
+
+        elif 'scatter' in task:
+            min_lim, max_lim = gopt_scatter_summary(ax=ax_sct, wdir=run_name,
+                                struct_names=struct_names, start_label=start_label,
+                                task=task, all_dft_ats=dft_ats,
+                                smiles=smiles, **end_kwargs)
+
+
+            min_lims.append(min_lim)
+            max_lims.append(max_lim)
+
+        if bool(start_label):
+            start_label = None
+
+    if 'scatter' in task:
+        min_lims = [val for val in min_lims if val is not None]
+        max_lims = [val for val in max_lims if val is not None]
+        min_lim = min(min_lims)
+        max_lim = max(max_lims)
+        plt.plot([min_lim, max_lim], [min_lim, max_lim], linewidth=0.8,
+                 color='k')
+        plt.xlim(1e-4, 1)
+        plt.xscale('log')
+
+        if 'soap' in task.lower():
+            plt.xlabel('Starting SOAP distance from closest DFT minimum')
+            plt.ylabel('End SOAP distance from closest DFT minimum')
+
+        elif 'rmsd' in task.lower():
+            plt.xlabel('Starting RMSD wrt the closest DFT minimum')
+            plt.ylabel('End RMSD wrt the closest DFT minimum')
+
+    elif 'plot' in task:
+        ax_smi.set_xlabel('RDKit')
+        ax_smi.set_title('From RDKit')
+        ax_smi.set_ylim(1e-4, 1)
+
+        if 'soap' in task.lower():
+            ax_smi.set_ylabel('SOAP distance (mean += std)')
+
+        elif 'rmsd' in task.lower():
+            ax_smi.set_ylabel('RMSD, Å')
+
+    plt.grid(color='lightgrey')
+    plt.yscale('log')
+
+
+
+
+    plt.suptitle(f'geometry optimisation test comparison')
+    plt.legend(bbox_to_anchor=(1,1), loc="upper left")
+    plt.tight_layout()
+    if prefix:
+        plt.savefig(f'{prefix}_{task}.png', dpi=300)
+    else:
+        plt.show()

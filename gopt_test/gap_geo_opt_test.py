@@ -18,9 +18,9 @@ from os.path import join as pj
 @click.command()
 @click.option('--gap_fname', type=click.Path(exists=True), help='GAP xml to test.')
 @click.option('--dft_eq_xyz', type=click.Path(), help='.xyz of DFT equilibrium structures')
-@click.option('--fmax', type=float, default=0.01, show_default=True, help='Fmax for optimisation.')
+@click.option('--fmax', type=float, default=0.01, help='Fmax for optimisation.')
 @click.option('--max_steps', type=int, default=500, show_default=True,help='Maximum number of steps allowed in optimisation.')
-@click.option('--stds', type=str, default='[0.1]', help='list of standard deviations to test')
+@click.option('--stds', type=str,  help='list of standard deviations to test')
 @click.option('--dft', type=bool, default=False, help='whether should be looking for and plotting dft-optimised structures')
 @click.option('--no_cores', type=int, help='number of cores to parallelise over')
 @click.option('--cleanup', type=bool, default=True, show_default=True, help='whether to delete all individual optimisation paths')
@@ -61,9 +61,12 @@ def do_gap_geometry_optimisation_test(gap_fname, dft_eq_xyz,  stds,
     if not os.path.isdir(opt_wdir):
         os.makedirs(opt_wdir)
 
-    std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
-    smi_optimisations(smiles, gap_fname, dft_confs, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
-    nm_optimisations(temps=temps, gap_fname=gap_fname, dft_confs=dft_confs, opt_wdir=opt_wdir,
+    if stds:
+        std_optimisations(stds, dft_confs, gap_fname, dft, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
+    if smiles:
+        smi_optimisations(smiles, gap_fname, dft_confs, db_path, opt_wdir=opt_wdir, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
+    if temps:
+        nm_optimisations(temps=temps, gap_fname=gap_fname, dft_confs=dft_confs, opt_wdir=opt_wdir,
                      db_path=db_path, fmax=fmax, max_steps=max_steps, no_cores=no_cores)
 
     if cleanup:

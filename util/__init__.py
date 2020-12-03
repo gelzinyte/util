@@ -109,9 +109,15 @@ def clear_at_info(at):
     at.arrays['numbers'] = numbers
     return at
 
-def str_to_list(str_of_list):
+def str_to_list(str_of_list, type=float):
     list_of_str = str_of_list.strip('][').split(', ')
-    return [float(num) for num in list_of_str]
+    if type==str:
+        return [elem.strip("'") for elem in list_of_str]
+    elif type==float:
+        return [float(num) for num in list_of_str]
+    else:
+        return
+
 
 
 

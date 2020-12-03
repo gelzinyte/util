@@ -39,20 +39,21 @@ def calculate_NMs(dft_at_fname, wdir):
         orcasimpleinput = 'UKS B3LYP def2-SV(P) def2/J D3BJ'
         orcablocks = f"%scf Convergence tight \n SmearTemp {smearing} \n maxiter " \
                      f"{maxiter} end \n"
+        calc_rundir = 'ORCA_outputs'
 
         n_run_glob_op = 1
-        kw_orca = f'n_hop={n_wfn_hop} smearing={smearing} maxiter={maxiter}'
+        kw_orca = f'smearing={smearing}'
 
         orca_tmp_fname = f'orca_tmp.xyz'
-        wfl_command = f'wfl -v ref-method orca-eval -o {orca_tmp_fname} -tmp ' \
+        wfl_command = f'wfl -v ref-method orca-eval --output-file {orca_tmp_fname} -tmp ' \
                       f'{scratch_dir} ' \
-                      f'-n {n_run_glob_op} -p {no_cores} --kw "{kw_orca}" ' \
+                      f'-nr {n_run_glob_op} -nh {n_wfn_hop} --base-rundir {calc_rundir} --keep-files True --kw "{kw_orca}" ' \
                       f'--orca-simple-input "{orcasimpleinput}"'
 
 
-
-
         vib = Vibrations(at, name=dft_name)
+        print(f'getting vibrations for: dft_name: {dft_name}; at.info[name]: {at.info["name"]}')
+        
         displaced_ats = []
         names = []
         for name, at in vib.iterdisplace():

@@ -241,7 +241,7 @@ def fit(n_iterations, stdev, n_dpoints, n_rattle_atoms, first_n_dpoints, fmax, o
 
             rmse_scatter_evaled.make_scatter_plots_from_evaluated_atoms(ref_energy_name='dft_energy', pred_energy_name='energy',
                 ref_force_name='dft_forces', pred_force_name='force', evaluated_train_fname=train_out, evaluated_test_fname=None,
-               output_dir='pictures', prefix=f'iter_{iter_no}_scatter', by_config_type=False, force_by_element=True)
+               output_dir='pictures', prefix=f'iter_{iter_no}_scatter', by_config_type=True, force_by_element=True)
 
             plot.make_dimer_curves([f'gaps/gap_{iter_no}.xml'], output_dir='pictures/', prefix=f'iter_{iter_no}_dimer',
                       plot_2b_contribution=True, plot_ref_curve=False, isolated_atoms_fname='~/scripts/source_files/isolated_atoms_orca.xyz')

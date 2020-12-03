@@ -226,10 +226,19 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
             for iso_at in isolated_atoms:
                 if sym in iso_at.symbols:
                     e_shift += iso_at.info['dft_energy']
-        # ylimits = (e_shift-ylim[0], e_shift+ylim[1])
+
         # ylimits_default = ax.get_ylim()
-        # ax.set_ylim(bottom=min(ylimits[0], ylimits_default[0]), top=max(ylimits_default[1], ylimits[1]))
-        # ax.set_ylim(bottom=min(ylimits[0], ylimits_default[0]), top=ylimits[1])
+        # bottom_diff = e_shift - ylimits_default[0]
+        # top_diff = ylimits_default[1] - e_shift
+        # print('bottom difference:', bottom_diff)
+        # print('top difference:', top_diff)
+        # print(f'current_lims: {ylimits_default}')
+        # top_new =  min(ylimits_default[1], e_shift + bottom_diff * 2.5)
+        # print(top_new)
+
+        limits_dict = {'CC':(-2100, -1900), 'CH': (-1055, -900), 'HH': (-50, 10)}
+        ax.set_ylim(limits_dict[dimer])
+
         ax.set_xlim(0.03, 6)
 
     print('Plotting distance histogram')
