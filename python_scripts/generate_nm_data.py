@@ -21,7 +21,7 @@ import datetime
 @click.option('--prefix', type=str, help='prefix for the file to save structures to')
 @click.option('--config_type', type=str, help='config_type to add to (all) of the atoms')
 @click.option('--append_isolated_ats', type=bool, default=True, show_default=True, help = 'whether to append isolated atoms to the dataset for training')
-def gen_nm_data(dft_min_fname, pckl_fname, no_dpoints, temps, prefix, append_isolated_ats, config_type):
+def gen_nm_data(dft_min_fname, no_dpoints, temps, prefix, append_isolated_ats, config_type):
 
     print(f'Time: {datetime.datetime.now()}')
     temperatures = util.str_to_list(temps)

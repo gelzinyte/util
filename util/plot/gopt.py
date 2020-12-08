@@ -32,6 +32,8 @@ def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
         for smi in smiles:
             # print(smi)
             ends = read(pj(wdir, 'xyzs', f'opt_ends_{smi}.xyz'), ':')
+            if len(ends) == 0:
+                raise RuntimeError('Had no files in the optimisation ends trajectory')
 
             out_st, out_fn = get_metric_distances(ends[0::2], ends[1::2],
                                                   all_dft_ats, task)
@@ -346,7 +348,8 @@ def compare(runs, task, prefix):
         ax.grid(color='lightgrey')
 
     plt.suptitle(f'geometry optimisation test comparison')
-    plt.legend(bbox_to_anchor=(1,1), loc="upper left")
+    # plt.legend(bbox_to_anchor=(1,1), loc="upper left")
+    plt.legend()
     plt.tight_layout()
     if prefix:
         plt.savefig(f'{prefix}_{task}.png', dpi=300)

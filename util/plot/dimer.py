@@ -22,7 +22,7 @@ def dimer(dimer_fnames, isolated_fname, prefix):
         atoms = read(dimer_fname, ':')
         energies = [at.info['energy'] for at in atoms]
         distances = [at.get_distance(0, 1) for at in atoms]
-        plt.plot(distances, energies, label=f'{os.path.splitext(dimer_fname)[0]} = {energies[-1]:4f}')
+        plt.plot(distances, energies, marker='x', label=f'{os.path.splitext(dimer_fname)[0]} = {energies[-1]:4f}')
         plt.scatter(distances[-1], energies[-1])
         all_ends.append(energies[-1])
         all_mins.append(min(energies))

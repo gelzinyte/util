@@ -1,5 +1,7 @@
 # General imports
 import re
+import string
+import random
 import numpy as np
 import subprocess
 from itertools import zip_longest
@@ -81,6 +83,14 @@ def dict_to_vals(my_dict):
     all_values = np.concatenate(all_values)
     return all_values
 
+def rnd_string(length):
+    '''random string for unique temporary files'''
+    letters_and_digits = string.ascii_letters + string.digits
+    result_str = ''.join((random.choice(letters_and_digits) for i in range(length)))
+    # print("Random alphanumeric String is:", result_str)
+    return result_str
+
+
 def grouper(iterable, n, fillvalue=None):
     """groups a list/etc into chunks of n values, e.g.
     grouper('ABCDEFG', 3, 'x') --> 'ABC' 'DEF' 'Gxx'
@@ -115,6 +125,8 @@ def str_to_list(str_of_list, type=float):
         return [elem.strip("'") for elem in list_of_str]
     elif type==float:
         return [float(num) for num in list_of_str]
+    elif type==int:
+        return [int(num) for num in list_of_str]
     else:
         return
 

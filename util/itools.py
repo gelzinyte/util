@@ -2,7 +2,7 @@
 import os
 from ase.io import read, write
 import util
-from util import qm
+# from util import qm
 from util import ugap
 from util.vibrations import Vibrations
 import subprocess
@@ -18,7 +18,8 @@ import time
 import sys
 sys.path.append('/home/eg475/molpro_stuff/driver')
 import molpro as mp
-
+import random
+import string
 
 
 
@@ -178,16 +179,16 @@ def get_structure_to_optimise(smi, seed, stdev=0.1):
     return at
 
 
-def get_more_data_mp_par(atoms_to_compute, iter_no, template_path, no_cores):
-
-    atoms = qm.get_parallel_molpro_energies_forces(atoms_to_compute, no_cores, mp_template=template_path)
-    for at in atoms:
-        at.info['dft_energy'] = at.info['energy']
-        at.arrays['dft_forces'] = at.arrays['forces']
-        at.info['config_type'] = f'iter_{iter_no}'
-        at.set_cell([20, 20, 20])
-        del at.info['RKS_Energy']
-    return atoms
+# def get_more_data_mp_par(atoms_to_compute, iter_no, template_path, no_cores):
+#
+#     atoms = qm.get_parallel_molpro_energies_forces(atoms_to_compute, no_cores, mp_template=template_path)
+#     for at in atoms:
+#         at.info['dft_energy'] = at.info['energy']
+#         at.arrays['dft_forces'] = at.arrays['forces']
+#         at.info['config_type'] = f'iter_{iter_no}'
+#         at.set_cell([20, 20, 20])
+#         del at.info['RKS_Energy']
+#     return atoms
 
 
 def remove_high_e_structs(atoms, upper_e_per_at):
@@ -199,9 +200,9 @@ def remove_high_e_structs(atoms, upper_e_per_at):
     return new_ats
 
 
-def orca_par_data(atoms_in, out_fname, wfl_command, config_type=None):
-    '''calls workflow command to get orca energies and post-processes by
-    assigning prefix as always and returns atoms'''
+
+def orca_par_data(atoms_in, out_fname, wfl_command):
+    '''calls workflow command to get orca energies '''
 
     in_fname = os.path.splitext(out_fname)[0] + '_to_eval.xyz'
     write(in_fname, atoms_in, 'extxyz', write_results=False)
@@ -210,28 +211,91 @@ def orca_par_data(atoms_in, out_fname, wfl_command, config_type=None):
     print(f'Workflow command:\n{wfl_command}')
 
     stdout, stderr = util.shell_stdouterr(wfl_command)
-
     print(f'---wfl stdout\n{stdout}')
     print(f'---wfl stderr\n{stderr}')
 
     atoms_out = read(out_fname, ':')
-
-    for at in atoms_out:
-        at.info[f'dft_energy'] = at.info['energy']
-        at.arrays[f'dft_forces'] = at.arrays['forces']
-        del at.info['energy']
-        del at.arrays['forces']
-        if config_type:
-            at.info['config_type'] = config_type
-        at.set_cell([20, 20, 20])
-
-    write(out_fname, atoms_out, 'extxyz', write_results=False)
     os.remove(in_fname)
 
     return atoms_out
 
 
+def get_dft_energies(in_atoms, keep_files=False):
+    '''get dft energies via wfl'''
 
+    smearing = 2000
+    n_wfn_hop = 1
+    task = 'gradient'
+    orcasimpleinput = 'UKS B3LYP def2-SV(P) def2/J D3BJ'
+
+    # scratch_dir = '/scratch/eg475'
+    scratch_dir = '/tmp/eg475'
+
+    n_run_glob_op = 1
+    kw_orca = f'smearing={smearing}'
+
+    tmp_prefix='tmp_orca_'
+    tmp_suffix='.xyz'
+    tmp_dir = '.'
+
+    # os_handle, tmp_fname = tempfile.mkstemp(suffix=tmp_suffix, prefix=tmp_prefix, dir=tmp_dir)
+
+    tmp_fname = os.path.join(tmp_dir, tmp_prefix + util.rnd_string(8) + tmp_suffix)
+
+    wfl_command = f'wfl -v ref-method orca-eval --output-file {tmp_fname} ' \
+                  f'-tmp ' \
+                  f'{scratch_dir} --keep-files {keep_files} --base-rundir ' \
+                  f'orca_outputs_{util.rnd_string(8)} ' \
+                  f'-nr {n_run_glob_op} -nh {n_wfn_hop} --kw "{kw_orca}" ' \
+                  f'--orca-simple-input "{orcasimpleinput}"'
+
+
+    atoms_out = orca_par_data(in_atoms, tmp_fname, wfl_command)
+
+    if keep_files:
+        print(f'keeping {os.path.basename(tmp_fname)}')
+        if not os.path.isfile(os.path.basename(tmp_fname)):
+            shutil.move(tmp_fname, '.')
+            os.remove(tmp_fname)
+    else:
+        os.remove(tmp_fname)
+
+    return atoms_out
+
+
+
+def get_multiplicity(atoms):
+    # TODO very primitive, REDO
+    symbols = list(atoms.symbols)
+    no_H = symbols.count('H')
+    if no_H % 2 == 1:
+        return 2
+    else:
+        return 1
+
+
+def add_my_decorations(nm_data, at_info, del_ens_fs=True):
+    '''prepares data to go into gap_fit'''
+
+    for at in nm_data:
+        at.cell = [40, 40, 40]
+        at.info['dft_energy'] = at.info['energy']
+        at.arrays['dft_forces'] = at.arrays['forces']
+        if at_info:
+            for key, value in at_info.items():
+                at.info[key] = value
+
+        if del_ens_fs:
+            try:
+                del at.info['energy']
+            except:
+                print('Could not delete "energy"')
+            try:
+                del at.arrays['forces']
+            except:
+                print('Could not delete "forces"')
+
+    return nm_data
 
 
 

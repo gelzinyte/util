@@ -101,6 +101,7 @@ class Vibrations(ase.vibrations.Vibrations):
 
         self.im = np.repeat(m[self.indices]**-0.5, 3)
         omega2, modes = np.linalg.eigh(self.im[:, None] * H * self.im)
+
         self.modes = modes.T.copy()
         self._evals = omega2
 
