@@ -3,24 +3,32 @@ import numpy as np
 from ase.io import read, write
 import click
 import util
+import os
+from tabulate import tabulate
 
 @click.command()
-@click.command('--bde_start_fname')
+@click.option('--bde_start_fname')
 @click.option('--dft_bde_fname')
 @click.option('--gap_fname')
-def gap_bde_summary(bde_start_fname, dft_bde_fname, gap_fname):
+@click.option('--gap_bde_fname', help='.xyz with gap_energy for gap-optimised structures, either to save into or load')
+def gap_bde_summary(bde_start_fname, dft_bde_fname, gap_fname, gap_bde_fname):
 
     dft_ats = read(dft_bde_fname, ':')
-    bde_starts = read(bde_start_fname, ':')
-    gap = Potential(pram_fnme=gap_fname)
 
-
-    gap_ats = []
-    for at in bde_starts:
-        relaxed = util.relax(at, gap)
-        relaxed.info['gap_energy'] = relaxed.get_potential_energy()
-        gap_ats.append(relaxed)
-
+    if not os.path.exists(gap_bde_fname) and bde_start_fname:
+        print(f"Didn't find {gap_bde_fname}, optimising bde starts")
+        gap = Potential(param_filename=gap_fname)
+        bde_starts = read(bde_start_fname, ':')
+        gap_ats = []
+        for at in bde_starts:
+            relaxed = util.relax(at, gap)
+            relaxed.info['gap_energy'] = relaxed.get_potential_energy()
+            gap_ats.append(relaxed)
+        write(gap_bde_fname, gap_ats, 'extxyz')
+    elif os.path.exists(gap_bde_fname):
+        gap_ats = read(gap_bde_fname, ':')
+    else:
+        raise FileNotFoundError("Need either bde start file to optimise or gap_bde_fname with optimised structures")
 
 
     gap_mol = gap_ats[0]
@@ -31,33 +39,41 @@ def gap_bde_summary(bde_start_fname, dft_bde_fname, gap_fname):
     dft_h = dft_ats[1]
     dft_rads = dft_ats[2:]
 
-    print(f'{"Structure":<12} {"DFT energy":<12} {"GAP energy":<12} {"abs. error":<12}')
+    headers = [' ', "eV\nDFT E", "eV\nDFT BDE", "eV\nGAP E", "eV\nGAP BDE", "meV\nabs error"]
+    data = []
 
     dft_mol_e = dft_mol.info["dft_energy"]
     gap_mol_e = gap_mol.info["gap_energy"]
-    error = abs(dft_mol_e - gap_mol_e)
-    print(f'{"molecule":<10} {dft_mol_e:<12} {gap_mol_e:<12} {error:<12}')
+    error = abs(dft_mol_e - gap_mol_e)*1e3
+    data.append(['mol', dft_mol_e, np.nan, gap_mol_e, np.nan, error])
 
     dft_h_e = dft_h.info["dft_energy"]
     gap_h_e = gap_h.info["gap_energy"]
-    error = abs(dft_h_e - gap_h_e)
-    print(f'{"isolated H":<12} {dft_h_e:<12} {gap_h_e:<12} {error:<12}')
+    error = abs(dft_h_e - gap_h_e)*1e3
+    data.append(['H', dft_h_e, np.nan, gap_h_e, np.nan, error])
 
     bde_errors = []
     for idx, (dft_rad, gap_rad) in enumerate(zip(dft_rads, gap_rads)):
 
         dft_rad_e = dft_rad.info['dft_energy']
-        dft_bde = dft_mol_e - dft_rad_e - dft_h_e
+        dft_bde = - dft_mol_e + dft_rad_e + dft_h_e
 
         gap_rad_e = gap_rad.info['gap_energy']
-        gap_bde = gap_mol_e - gap_rad_e - gap_h_e
+        gap_bde = - gap_mol_e + gap_rad_e + gap_h_e
 
-        error = abs(dft_bde - gap_bde)
+        error = abs(dft_bde - gap_bde)*1e3
+        bde_errors.append(error)
 
-        label = f'radical {idx}'
-        print(f'{label:<12} {dft_bde:<12} {gap_bde:<12} {error:<12}')
+        if "config_type" in gap_rad.info.keys():
+            label = gap_rad.info["config_type"] + ' ' + str(idx)
+        else:
+            label = f'rad {idx}'
+        data.append([label, dft_rad_e, dft_bde, gap_rad_e, gap_bde, error])
 
-    print('-' * 12*4 + 3)
-    print(f'{"average abs. BDE error":<38} {np.average:<12}')
+    data.append(['mean BDE\nerror', np.nan, np.nan, np.nan, np.nan, np.mean(bde_errors)])
+
+    print(tabulate(data, headers=headers,  floatfmt=".3f" ))
 
 
+if __name__ == '__main__':
+    gap_bde_summary()

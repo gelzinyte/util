@@ -5,10 +5,10 @@ from ase.io import read, write
 import util
 import click
 
-@click.command()
-@click.option('--at_fname', type=click.Path(exists=True), help='frames to optimise with orca')
-@click.option('--combine', default=False, help='only gathers results to one place if True')
-@click.option('--cluster', default='wo0', show_default=True, help='wheter to run on womble or womble0')
+# @click.command()
+# @click.option('--at_fname', type=click.Path(exists=True), help='frames to optimise with orca')
+# @click.option('--combine', default=False, help='only gathers results to one place if True')
+# @click.option('--cluster', default='wo0', show_default=True, help='wheter to run on womble or womble0')
 def multi_orca_opts(at_fname, combine, cluster):
 
     atl = read(at_fname, ':')

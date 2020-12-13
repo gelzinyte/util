@@ -2,10 +2,11 @@ import subprocess
 import util
 import shutil
 import os
+from ase.io import read, write
+from ase.io.orca import read_geom_orcainp
 
 
-
-def orca_par_opt(at_list, no_cores):
+def orca_par_opt(at_list, no_cores, at_or_traj='at'):
 
     orca_header  =  '! UKS B3LYP def2-SV(P) def2/J D3BJ Opt\n' \
                '%scf Convergence VeryTight\n' \
@@ -15,49 +16,91 @@ def orca_par_opt(at_list, no_cores):
 
     orca_exec = '/home/eg475/programs/orca/orca_4_2_1_linux_x86-64_openmpi314/orca'
 
-    orca_wdir = f'orca_opt_{util.rnd_string(8)}'
+    orca_wdir = 'orca_optimisations'
     if not os.path.isdir(orca_wdir):
         os.makedirs(orca_wdir)
     home_dir = os.getcwd()
     os.chdir(orca_wdir)
 
-    opt_ats = []
+    unoptimised_at_list = []
+    for at_idx, at in enumerate(at_list):
+        orca_output = f'orca{at_idx}.out'
+        if os.path.exists(orca_output):
+            print(f'found {orca_output}, not re-optimising')
+            #check if input file matches current atoms
+            input_atoms = read_geom_orcainp(f'orca{at_idx}.inp')
+            if (at.positions != input_atoms.positions).all():
+                raise RuntimeError(f'found output for structure {at_idx}, but the input and atoms positions do not match')
+            #otherwise positions match and we can read out without optimisation later on.
+        else:
+            unoptimised_at_list.append((at_idx, at))
 
+    for unopt_at_group in util.grouper(unoptimised_at_list, no_cores):
+        unopt_at_group = [group for group in unopt_at_group if group is not None]
 
-    for at_group in util.grouper(at_list, no_cores):
-        at_group = [at for at in at_group if at is not None]
+        glob_at_idx_group = [group[0] for group in unopt_at_group]
+        at_group = [group[1] for group in unopt_at_group]
 
         sub = ''
+        for idx, atoms in zip(glob_at_idx_group, at_group):
+            if len(atoms) != 1:
 
-        for idx, atoms in enumerate(at_group):
+                mult = get_multiplicity(atoms)
+                orca_input = f'orca{idx}.inp'
+                orca_output = f'orca{idx}.out'
 
-            mult = get_multiplicity(atoms)
-            orca_input = f'orca{idx}.inp'
-            orca_output = f'orca{idx}.out'
+                with open(orca_input, 'w') as f:
+                    f.write(orca_header)
+                    f.write(f'*xyz 0 {mult}\n')
+                    for at in atoms:
+                        f.write(
+                            f'{at.symbol} {at.position[0]} {at.position[1]} '
+                            f'{at.position[2]}\n')
+                    f.write('*\n')
 
-            with open(orca_input, 'w') as f:
-                f.write(orca_header)
-                f.write(f'*xyz 0 {mult}\n')
-                for at in atoms:
-                    f.write(f'{at.symbol} {at.position[0]} {at.position[1]} {at.position[2]}\n')
-                f.write('*\n')
+                sub += f'{orca_exec} {orca_input} > {orca_output} &\n'
 
-            sub += f'{orca_exec} {orca_input} > {orca_output} &\n'
-
-        sub += 'wait\n'
+            sub += 'wait\n'
 
         print('submitting to optimise')
         subprocess.run(sub, shell=True)
 
-        for idx, at in enumerate(at_group):
-            opt_at = read(f'orca{idx}.xyz')
-            opt_at.info.clear()
-            pos = opt_at.arrays['positions']
-            num = opt_at.arrays['numbers']
-            opt_at.arrays.clear()
-            opt_at.arrays['positions'] = pos
-            opt_at.arrays['numbers'] = num
+
+    opt_ats = []
+    if at_or_traj == 'at':
+        for idx, at in enumerate(at_list):
+            if len(at)!=1:
+                opt_at = read(f'orca{idx}.xyz')
+                opt_at.info.clear()
+                pos = opt_at.arrays['positions']
+                num = opt_at.arrays['numbers']
+                opt_at.arrays.clear()
+                opt_at.arrays['positions'] = pos
+                opt_at.arrays['numbers'] = num
+            else:
+                opt_at = at
             opt_ats.append(opt_at)
+
+    elif at_or_traj == 'traj':
+        for idx, orig_at in enumerate(at_list):
+            if len(orig_at)!=1:
+                opt_traj = read(f'orca{idx}_trj.xyz', ':')
+                traj = []
+                for at in opt_traj:
+                    at.info.clear()
+                    pos = at.arrays['positions']
+                    num = at.arrays['numbers']
+                    at.arrays.clear()
+                    at.arrays['positions'] = pos
+                    at.arrays['numbers'] = num
+                    traj.append(at)
+                opt_ats.append(traj)
+            else:
+                opt_at = [orig_at]
+                opt_ats.append(opt_at)
+
+    else:
+        raise ValueError(f"Should have either 'at' or 'traj', not {at_or_traj}")
 
     os.chdir(home_dir)
 

@@ -18,7 +18,6 @@ def generate_bde_files(smiles, h_list, prefix):
     h_list = util.str_to_list(h_list, type=int)
     no_cores = int(os.environ['OMP_NUM_THREADS'])
 
-
     mol_start = urdkit.smi_to_xyz(smiles)
     mol_start.info['parent_smiles'] = smiles
 
@@ -32,7 +31,7 @@ def generate_bde_files(smiles, h_list, prefix):
     for h_idx in h_list:
         at = mol_start.copy()
         del at[h_idx]
-        at.info['config_type'] = 'rad'
+        at.info['config_type'] = f'rad_{h_idx}'
         to_optimise.append(at)
 
 
