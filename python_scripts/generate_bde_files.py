@@ -36,12 +36,13 @@ def generate_bde_files(smiles, h_list, prefix):
 
 
     write(f'{prefix}_non-optimised.xyz', to_optimise, 'extxyz')
+    at_infos = [{'config_type': at.info["config_type"]} for at in to_optimise]
 
     optimised = qm.orca_par_opt(to_optimise, no_cores)
     print('Optimised with orca, getting dft energies')
     optimised = qm.get_dft_energies(optimised)
     print('Got dft energies, almost there')
-    optimised = qm.add_my_decorations(optimised)
+    optimised = qm.add_my_decorations(optimised, at_info=at_infos)
 
     write(f'{prefix}_optimised.xyz', optimised, 'extxyz')
 

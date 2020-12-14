@@ -130,7 +130,27 @@ def str_to_list(str_of_list, type=float):
     else:
         return
 
+def get_bdes(bde_ats, e_key):
 
+    mol = bde_ats[0]
+    h = bde_ats[1]
+    rads = bde_ats[2:]
+
+    # assert mol.info['config_type'] == 'mol'
+    # assert h.info['config_type'] == 'iso_at'
+
+    mol_e = mol.info[e_key]
+    h_e = h.info[e_key]
+
+    bdes = []
+    for idx, rad in enumerate(rads):
+        # assert 'rad' in rad.info["config_type"]
+
+        rad_e = rad.info[e_key]
+        bde = - mol_e + rad_e + h_e
+        bdes.append(bde)
+
+    return bdes
 
 
 def get_pair_dists(all_dists, at_nos, atno1, atno2):

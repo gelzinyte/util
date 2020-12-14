@@ -94,7 +94,7 @@ def errors_summary(ref_energy_name, pred_energy_name, ref_force_name, pred_force
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', -1)
+    pd.set_option('display.max_colwidth', None)
     # pd.options.display.max_rows
     # pd.options.display.float_format = '{:.3f}'.format
     print(table)

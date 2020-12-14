@@ -7,9 +7,7 @@ from os.path import join as pj
 import util
 from ase.io import read
 from quippy.descriptors import Descriptor
-
-
-
+import click
 
 def gopt_plot_summary(ax, wdir, struct_names, start_label, task, all_dft_ats,
                       smiles=None, temps=None, stds=None, **end_kwargs):
@@ -449,3 +447,4 @@ def rdkit_only(runs, task, prefix):
         plt.savefig(f'{prefix}_{task}.png', dpi=300)
     else:
         plt.show()
+

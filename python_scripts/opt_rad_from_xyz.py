@@ -13,6 +13,7 @@ import opt_with_orca as opt
 @click.option('--in_fname', type=str, help='dft equilibrium geometry')
 @click.option('--h_list', type=str, help='list of hydrogen indices to remove')
 @click.option('--prefix', type=click.Path())
+@click.option('--optimise_mol', is_flag=True, help='whether to optimise the input molecule too')
 def optimise_radicals(in_fname, h_list, prefix):
 
 
@@ -29,6 +30,8 @@ def optimise_radicals(in_fname, h_list, prefix):
     h.info['config_type'] = 'iso_at'
 
     to_optimise = []
+    if optimise_mol:
+        to_optimise.append(mol)
     for h_idx in h_list:
         at = mol_start.copy()
         del at[h_idx]

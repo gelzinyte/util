@@ -118,13 +118,17 @@ def get_multiplicity(atoms):
         return 1
 
 def add_my_decorations(nm_data, at_info=None, del_ens_fs=True):
-    '''prepares data to go into gap_fit'''
+    '''prepares data to go into gap_fit
+
+    at_info = either dict or list of dictionaries'''
+
+
 
     for at in nm_data:
         at.cell = [40, 40, 40]
         at.info['dft_energy'] = at.info['energy']
         at.arrays['dft_forces'] = at.arrays['forces']
-        if at_info:
+        if type(at_info) == dict:
             for key, value in at_info.items():
                 at.info[key] = value
 
@@ -137,6 +141,11 @@ def add_my_decorations(nm_data, at_info=None, del_ens_fs=True):
                 del at.arrays['forces']
             except:
                 print('Could not delete "forces"')
+
+    if type(at_info) == list:
+        for inf, at in zip(at_info, nm_data):
+            for key, value in inf.items():
+                at.info[key] = value
 
     return nm_data
 
