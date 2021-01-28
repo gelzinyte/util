@@ -1,9 +1,0 @@
-! UKS B3LYP def2-SV(P) def2/J D3BJ IRC
- 
-%scf Convergence VeryTight
-SmearTemp 2000 
-maxiter 500
-end
-
-
-*xyzfile 0 2 dft_ts.xyz 

@@ -21,14 +21,10 @@ from asaplib.data import ASAPXYZ
 from asaplib.reducedim import Dimension_Reducers
 
 
-
-def hello():
-    print('Utils say hi')
-
 def relax(at, calc, fmax=1e-3, steps=0):
     """Relaxes at with given calc with PreconLBFGS"""
     at.set_calculator(calc)
-    opt = PreconLBFGS(at)
+    opt = PreconLBFGS(at, use_armijo=False)
     opt.run(fmax=fmax, steps=steps)
     return at
 
@@ -62,7 +58,6 @@ def get_mae(pred_ar, ref_ar):
     absolute_errors = [np.abs(val1 - val2) for val1, val2 in zip(pred_ar, ref_ar)]
     return np.mean(absolute_errors)
 
-
 def get_std(ar1, ar2):
     sq_error = []
     for val1, val2 in zip(ar1, ar2):
@@ -75,13 +70,6 @@ def natural_sort(l):
     alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
     return sorted(l, key=alphanum_key)
 
-
-def dict_to_vals(my_dict):
-    all_values = []
-    for type, values in my_dict.items():
-        all_values.append(values)
-    all_values = np.concatenate(all_values)
-    return all_values
 
 def rnd_string(length):
     '''random string for unique temporary files'''
@@ -99,15 +87,6 @@ def grouper(iterable, n, fillvalue=None):
     return zip_longest(*args, fillvalue=fillvalue)
 
 
-def set_dft_vals(atoms):
-    '''sets at.info.'dft_energy' to 'energy' '''
-    for at in atoms:
-        at.info['dft_energy'] = at.info['energy']
-        at.arrays['dft_forces'] = at.arrays['forces']
-    return atoms
-
-def round_sig(x, sig=2):
-  return round(x, sig-int(floor(log10(abs(x))))-1)
 
 def clear_at_info(at):
     positions = at.arrays['positions']
@@ -205,30 +184,6 @@ def rattle(at, stdev, natoms):
     new_pos = pos + rng.normal(scale=stdev, size=pos.shape) * mask
     at.set_positions(new_pos)
     return at
-
-
-
-def has_converged(template_path, molpro_out_path='MOLPRO/molpro.out'):
-    with open(molpro_out_path, 'r') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            if 'Final alpha occupancy' in line or 'Final occupancy' in line:
-                final_iteration_no = int(re.search(r'\d+', lines[i - 2]).group())
-
-    # print(final_iteration_no)
-    maxit = 60  # the default
-    with open(template_path, 'r') as f:
-        for line in f:
-            if 'maxit' in line:
-                maxit = line.rstrip().split('maxit=')[1]  # take the non-default if present in the input
-                break
-
-    # print(maxit)
-    if maxit == final_iteration_no:
-        print(f'Final iteration no was found to be {maxit}, optimisation has not converged')
-        return False
-    else:
-        return True
 
 
 def gradient_test(mol, calc, start=-3, stop=-7):
@@ -376,7 +331,7 @@ def write_generic_submission_script(script_fname, job_name, command, no_cores=1)
                          'echo "-- New Job --"\n ' + \
                          'export  OMP_NUM_THREADS=${NSLOTS} \n' + \
                          'source /home/eg475/programs/miniconda3/etc/profile.d/conda.sh \n' + \
-                         'conda activate general \n' + \
+                         'conda activate wo0 \n' + \
                          'echo "running script" \n '
     # molpro command
     # 'echo "-- The End--"

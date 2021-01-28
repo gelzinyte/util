@@ -6,7 +6,7 @@ from ase.io import read, write
 from ase.io.orca import read_geom_orcainp
 
 
-def orca_par_opt(at_list, no_cores, at_or_traj='at'):
+def orca_par_opt(at_list, no_cores, at_or_traj='at', orca_wdir='orca_optimisations'):
 
     orca_header  =  '! UKS B3LYP def2-SV(P) def2/J D3BJ Opt\n' \
                '%scf Convergence VeryTight\n' \
@@ -16,7 +16,6 @@ def orca_par_opt(at_list, no_cores, at_or_traj='at'):
 
     orca_exec = '/home/eg475/programs/orca/orca_4_2_1_linux_x86-64_openmpi314/orca'
 
-    orca_wdir = 'orca_optimisations'
     if not os.path.isdir(orca_wdir):
         os.makedirs(orca_wdir)
     home_dir = os.getcwd()
@@ -26,12 +25,23 @@ def orca_par_opt(at_list, no_cores, at_or_traj='at'):
     for at_idx, at in enumerate(at_list):
         orca_output = f'orca{at_idx}.out'
         if os.path.exists(orca_output):
-            print(f'found {orca_output}, not re-optimising')
+            print(f'found {orca_output}')
             #check if input file matches current atoms
             input_atoms = read_geom_orcainp(f'orca{at_idx}.inp')
-            if (at.positions != input_atoms.positions).all():
-                raise RuntimeError(f'found output for structure {at_idx}, but the input and atoms positions do not match')
-            #otherwise positions match and we can read out without optimisation later on.
+
+            if len(at) != len(input_atoms):
+                print(
+                    f'found output for structure {at_idx}, but the input '
+                    f'positions {input_atoms.positions.shape}'
+                    f' and atoms positions {at.positions.shape} do not '
+                    f'match, re-optimising')
+                unoptimised_at_list.append((at_idx, at))
+            elif (at.positions != input_atoms.positions).all():
+                print(f'found output for structure {at_idx}, but the input positions {input_atoms.positions.shape}'
+                      f' and atoms positions {at.positions.shape} do not match, re-optimising')
+                unoptimised_at_list.append((at_idx, at))
+            else:
+                print(f'atoms positions match, not re-optimising')
         else:
             unoptimised_at_list.append((at_idx, at))
 
@@ -111,8 +121,9 @@ def orca_par_opt(at_list, no_cores, at_or_traj='at'):
 def get_multiplicity(atoms):
     # TODO very primitive, REDO
     symbols = list(atoms.symbols)
-    no_H = symbols.count('H')
-    if no_H % 2 == 1:
+    el_dict = {'H':1, 'N':1, 'Cl':1, 'F':1, 'Br':1, 'O':0, 'C':0, 'I':1, 'S':0}
+    no_els = sum([el_dict[sym] for sym in symbols])
+    if no_els % 2 == 1:
         return 2
     else:
         return 1
@@ -121,8 +132,6 @@ def add_my_decorations(nm_data, at_info=None, del_ens_fs=True):
     '''prepares data to go into gap_fit
 
     at_info = either dict or list of dictionaries'''
-
-
 
     for at in nm_data:
         at.cell = [40, 40, 40]
@@ -151,63 +160,3 @@ def add_my_decorations(nm_data, at_info=None, del_ens_fs=True):
 
 
 
-def get_dft_energies(in_atoms, keep_files=False):
-    '''get dft energies via wfl'''
-
-    smearing = 2000
-    n_wfn_hop = 1
-    task = 'gradient'
-    orcasimpleinput = 'UKS B3LYP def2-SV(P) def2/J D3BJ'
-
-    # scratch_dir = '/scratch/eg475'
-    scratch_dir = '/tmp/eg475'
-
-    n_run_glob_op = 1
-    kw_orca = f'smearing={smearing}'
-
-    tmp_prefix='tmp_orca_'
-    tmp_suffix='.xyz'
-    tmp_dir = '.'
-
-    # os_handle, tmp_fname = tempfile.mkstemp(suffix=tmp_suffix, prefix=tmp_prefix, dir=tmp_dir)
-
-    tmp_fname = os.path.join(tmp_dir, tmp_prefix + util.rnd_string(8) + tmp_suffix)
-
-    wfl_command = f'wfl -v ref-method orca-eval --output-file {tmp_fname} ' \
-                  f'-tmp ' \
-                  f'{scratch_dir} --keep-files {keep_files} --base-rundir ' \
-                  f'orca_outputs_{util.rnd_string(8)} ' \
-                  f'-nr {n_run_glob_op} -nh {n_wfn_hop} --kw "{kw_orca}" ' \
-                  f'--orca-simple-input "{orcasimpleinput}"'
-
-
-    atoms_out = orca_par_data(in_atoms, tmp_fname, wfl_command)
-
-    if keep_files:
-        print(f'keeping {os.path.basename(tmp_fname)}')
-        if not os.path.isfile(os.path.basename(tmp_fname)):
-            shutil.move(tmp_fname, '.')
-            os.remove(tmp_fname)
-    else:
-        os.remove(tmp_fname)
-
-    return atoms_out
-
-
-def orca_par_data(atoms_in, out_fname, wfl_command):
-    '''calls workflow command to get orca energies '''
-
-    in_fname = os.path.splitext(out_fname)[0] + '_to_eval.xyz'
-    write(in_fname, atoms_in, 'extxyz', write_results=False)
-
-    wfl_command += f' {in_fname}'
-    print(f'Workflow command:\n{wfl_command}')
-
-    stdout, stderr = util.shell_stdouterr(wfl_command)
-    print(f'---wfl stdout\n{stdout}')
-    print(f'---wfl stderr\n{stderr}')
-
-    atoms_out = read(out_fname, ':')
-    os.remove(in_fname)
-
-    return atoms_out

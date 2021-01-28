@@ -495,3 +495,64 @@ def get_parallel_molpro_energies_forces(atoms, no_cores, mp_template='template_m
 
     os.chdir(original_wdir)
     return all_atoms
+
+def get_dft_energies(in_atoms, keep_files=False):
+    '''get dft energies via wfl'''
+
+    smearing = 2000
+    n_wfn_hop = 1
+    task = 'gradient'
+    orcasimpleinput = 'UKS B3LYP def2-SV(P) def2/J D3BJ'
+
+    # scratch_dir = '/scratch/eg475'
+    scratch_dir = '/tmp/eg475'
+
+    n_run_glob_op = 1
+    kw_orca = f'smearing={smearing}'
+
+    tmp_prefix='tmp_orca_'
+    tmp_suffix='.xyz'
+    tmp_dir = '.'
+
+    # os_handle, tmp_fname = tempfile.mkstemp(suffix=tmp_suffix, prefix=tmp_prefix, dir=tmp_dir)
+
+    tmp_fname = os.path.join(tmp_dir, tmp_prefix + util.rnd_string(8) + tmp_suffix)
+
+    wfl_command = f'wfl -v ref-method orca-eval --output-file {tmp_fname} ' \
+                  f'-tmp ' \
+                  f'{scratch_dir} --keep-files {keep_files} --base-rundir ' \
+                  f'orca_outputs_{util.rnd_string(8)} ' \
+                  f'-nr {n_run_glob_op} -nh {n_wfn_hop} --kw "{kw_orca}" ' \
+                  f'--orca-simple-input "{orcasimpleinput}"'
+
+
+    atoms_out = orca_par_data(in_atoms, tmp_fname, wfl_command)
+
+    if keep_files:
+        print(f'keeping {os.path.basename(tmp_fname)}')
+        if not os.path.isfile(os.path.basename(tmp_fname)):
+            shutil.move(tmp_fname, '.')
+            os.remove(tmp_fname)
+    else:
+        os.remove(tmp_fname)
+
+    return atoms_out
+
+
+def orca_par_data(atoms_in, out_fname, wfl_command):
+    '''calls workflow command to get orca energies '''
+
+    in_fname = os.path.splitext(out_fname)[0] + '_to_eval.xyz'
+    write(in_fname, atoms_in, 'extxyz', write_results=False)
+
+    wfl_command += f' {in_fname}'
+    print(f'Workflow command:\n{wfl_command}')
+
+    stdout, stderr = util.shell_stdouterr(wfl_command)
+    print(f'---wfl stdout\n{stdout}')
+    print(f'---wfl stderr\n{stderr}')
+
+    atoms_out = read(out_fname, ':')
+    os.remove(in_fname)
+
+    return atoms_out
