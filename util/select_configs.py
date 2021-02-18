@@ -4,13 +4,6 @@ import random
 
 
 
-@click.command()
-@click.argument('input_fn')
-@click.option('--output-fname', '-o', help='where_to_put_sampled configs')
-@click.option('--n-configs', '-n', type=click.INT, help='number of configs')
-@click.option('--sample-type', '-t', help='either "per_config",  "total" or "all" - how to count configs')
-@click.option('--include-config-type',  help='whih config_type to return (if sample_type==all)')
-@click.option('--exclude-config-type', help='string of config_types to exclude')
 def sample_configs(input_fn, output_fname, n_configs, sample_type, include_config_type, exclude_config_type):
     """takes a number of structures evenly from each config"""
 
@@ -45,8 +38,9 @@ def sample_configs(input_fn, output_fname, n_configs, sample_type, include_confi
 
             for at_list in at_by_config.values():
                 ats_out += at_list
+            counter = len(at_by_config.keys())
 
-        print(f'number of included config_types: {len(at_by_config.keys())}')
+        print(f'number of included config_types: {counter}')
         write(output_fname, ats_out)
         return
 
@@ -89,5 +83,3 @@ def atoms_to_dict(atoms_in):
 
     return atoms_dict
 
-if __name__ == '__main__':
-    sample_configs()

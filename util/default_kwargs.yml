@@ -1,0 +1,8 @@
+# default DFT parameters, etc that are universal across machiness but may change
+orca:
+  smearing: 2000
+  n_run: 1
+  n_hop: 1
+  scratch_path: /tmp/eg475
+  orcasimpleinput: UKS B3LYP def2-SV(P) def2/J D3BJ
+

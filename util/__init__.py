@@ -16,7 +16,6 @@ from math import log10, floor
 
 from ase.optimize.precon import PreconLBFGS
 
-
 from asaplib.data import ASAPXYZ
 from asaplib.reducedim import Dimension_Reducers
 
@@ -466,3 +465,34 @@ def get_E_F_dict_evaled(atoms, energy_name, force_name):
                     data['forces'][sym][config_type] = np.append(data['forces'][sym][config_type], forces[j])
 
     return data
+
+
+def swap(atoms_in, n, ns_c, move_along, h, hs_c):
+    """ swaps n and h, including rotation and bond distance changes"""
+    atoms = atoms_in.copy()
+
+    ch_dist = atoms.get_distance(h, hs_c)
+    nc_dist = atoms.get_distance(n, ns_c)
+
+    atoms.set_distance(hs_c, h, nc_dist, fix=0)
+    atoms.set_distance(ns_c, n, ch_dist, fix=0)
+
+    orig_h_pos = atoms[h].position.copy()
+    orig_n_pos = atoms[n].position.copy()
+
+    cn_vec = atoms.get_distance(ns_c, n, vector=True)
+    ch_vec = atoms.get_distance(hs_c, h, vector=True)
+
+    rotated = atoms.copy()
+    rotated.rotate(cn_vec, ch_vec, center=rotated[ns_c].position)
+
+    atoms[h].position += -orig_h_pos + orig_n_pos
+
+    for idx in move_along:
+        atoms[idx].position = rotated[idx].position.copy()
+
+    current_n_pos = atoms[n].position.copy()
+    for idx in move_along:
+        atoms[idx].position += -current_n_pos + orig_h_pos
+
+    return atoms

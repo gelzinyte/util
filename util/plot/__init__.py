@@ -116,11 +116,13 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
 
 
 def make_ref_plot(dimer_name, ax, calc_type='dft'):
-    atoms_fname=f'/home/eg475/scripts/data/dft_{dimer_name}_dimer.xyz'
+    atoms_fname=f'/home/eg475/reactions/dimer_curves/orca_hannes_params/{dimer_name}/{dimer_name}_out.xyz'
     dimer = read(atoms_fname, ':')
     distances = [at.get_distance(0, 1) for at in dimer]
     ref_data = util.get_E_F_dict(dimer, calc_type=calc_type)
-    ax.plot(distances, dict_to_vals(ref_data['energy'])*2, label='(RKS) reference', linestyle='--', color='k')
+    ax.plot(distances, dict_to_vals(ref_data['energy'])*2, label='DFT reference', linestyle='--', color='tab:red')
+    # ax.plot(distances, dict_to_vals(ref_data['energy']) ,
+    #         label='DFT reference', linestyle='--', color='k')
 
 
 def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fname=None, plot_2b_contribution=True, \
@@ -199,8 +201,8 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
     if plot_ref_curve:
         print('Plotting reference dimer curves (to be fixed still)')
         for ax, dimer in zip(axes_main, dimers):
-            if dimer!='OO':
-                make_ref_plot(dimer, ax, calc_type=ref_name)
+            make_ref_plot(dimer, ax, calc_type=ref_name)
+
 
     if dimer_scatter:
         dimer_scatter_ats = read(dimer_scatter, ':')
@@ -213,6 +215,9 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
                     y_vals.append(at.info[f'{ref_name}_energy'])
             ax.scatter(x_vals, y_vals, color='tab:red', marker='x', label='training points')
 
+    limits_dict = {'CC':(-2100, -1950), 'CH': (-1055, -980), 'HH': (-35, 10),
+                       'CO':(-3100, -3000), 'HO':(-2060, -2020),
+                        'OO':(-4100, -4000)}
 
     isolated_atoms = read(isolated_atoms_fname, ':')
     for ax, dimer in zip(axes_main, dimers):
@@ -227,6 +232,8 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
                 if sym in iso_at.symbols:
                     e_shift += iso_at.info['dft_energy']
 
+        ax.axhline(y=e_shift, ls='--', lw=0.8, color='k')
+
         # ylimits_default = ax.get_ylim()
         # bottom_diff = e_shift - ylimits_default[0]
         # top_diff = ylimits_default[1] - e_shift
@@ -236,8 +243,10 @@ def make_dimer_curves(param_fnames, output_dir='pictures', prefix=None, glue_fna
         # top_new =  min(ylimits_default[1], e_shift + bottom_diff * 2.5)
         # print(top_new)
 
-        limits_dict = {'CC':(-2100, -1900), 'CH': (-1055, -900), 'HH': (-50, 10)}
-        ax.set_ylim(limits_dict[dimer])
+
+        if 'dftb' not in ref_name:
+            if dimer in limits_dict.keys():
+                ax.set_ylim(limits_dict[dimer])
 
         ax.set_xlim(0.03, 6)
 

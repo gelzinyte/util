@@ -1,11 +1,8 @@
-from quippy.potential import Potential
 from wfl.configset import ConfigSet_in, ConfigSet_out
 import re
-import shutil
 import numpy as np
 from ase.io import read, write
 from ase import Atoms
-import click
 import util
 from util import iter_tools as it
 import pandas as pd
@@ -13,37 +10,90 @@ import os
 import matplotlib.pyplot as plt
 from tabulate import tabulate
 from wfl.utils.parallel import construct_calculator_picklesafe
+import matplotlib.ticker as mticker
 
 
-def multi_bde_summaries(dft_dir, gap_dir=None, calculator=None, start_dir=None, dft_only=False,
-                        precision=3):
+
+def dirs_to_fnames(dft_dir, gap_dir=None, start_dir=None, exclude=None):
+    dft_basenames = util.natural_sort(os.listdir(dft_dir))
+
+    if exclude is not None:
+        if isinstance(exclude, str):
+            exclude = exclude.split(' ')
+        dft_basenames = [bn for bn in dft_basenames if bn not in exclude]
+
+    dft_fnames = [os.path.join(dft_dir, fname) for fname in dft_basenames]
+    if gap_dir is not None:
+        gap_fnames = [
+            os.path.join(gap_dir, basename.replace('optimised', 'gap_optimised'))
+            for basename in dft_basenames]
+
+    if start_dir is not None:
+        start_fnames = [os.path.join(start_dir, basename.replace('optimised',
+                                                                 'non_optimised'))
+                        for
+                        basename in dft_basenames]
+    else:
+        start_fnames = [None for _ in dft_fnames]
+
+    return dft_fnames, gap_fnames, start_fnames
+
+
+def multi_bde_summaries(dft_dir, gap_dir=None, calculator=None, start_dir=None,
+                         precision=3, printing=True, dft_prefix='dft_',
+                        exclude=None):
+
     """BDEs for all files in the directory"""
     if gap_dir is not None:
         if not os.path.isdir(gap_dir):
             os.makedirs(gap_dir)
 
     dft_basenames = util.natural_sort(os.listdir(dft_dir))
+    if exclude is not None:
+        exclude = exclude.split(' ')
+        dft_basenames = [bn for bn in dft_basenames if bn not in exclude]
+
     dft_fnames = [os.path.join(dft_dir, fname) for fname in dft_basenames]
-    if not dft_only:
-        gap_fnames = [os.path.join(gap_dir, basename.replace('optimised', 'gap_optimised')) for
+    if gap_dir is not None :
+        gap_fnames = [os.path.join(gap_dir, basename.replace('optimised',
+                                                             'gap_optimised'))
+                      for
                       basename in dft_basenames]
-        start_fnames = [os.path.join(start_dir, basename.replace('optimised', 'non_optimised')) for
-                        basename in dft_basenames]
+        if start_dir is not None:
+            start_fnames = [basename.replace('optimised', 'non_optimised')
+                            for basename in dft_basenames]
+            start_fnames = [os.path.join(start_dir, start_fname)
+                            for start_fname in start_fnames]
+        else:
+            start_fnames = [None for _ in dft_basenames]
+
+        if calculator:
+            gap_optimise(start_fnames, gap_fnames, calculator)
+            calculator=None
+
     else:
         gap_fnames = [None for _ in dft_fnames]
         start_fnames = [None for _ in dft_fnames]
 
-    for dft_fname, gap_fname, start_fname in zip(dft_fnames, gap_fnames, start_fnames):
-        _ = bde_summary(dft_fname, gap_fname, calculator, start_fname, precision)
+    all_bdes = []
+    for dft_fname, gap_fname, start_fname in zip(dft_fnames, gap_fnames,
+                                                 start_fnames):
+        bdes = bde_summary(dft_fname, gap_fname, calculator, start_fname,
+                        precision, printing, dft_prefix)
+        all_bdes.append(bdes)
+
+    return all_bdes
 
 
-def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None, precision=3,
-                printing=True):
+def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None,
+                precision=3, printing=True, dft_prefix='dft_'):
+
     dft_ats = read(dft_fname, ':')
     dft_h = Atoms('H', positions=[(0, 0, 0)])
     dft_h.info['config_type'] = 'H'
-    dft_h.info['dft_energy'] = -13.547449778462548
+    dft_h.info[f'{dft_prefix}energy'] = -13.547449778462548
     dft_ats = [dft_h] + dft_ats
+
 
     if gap_fname is not None and os.path.isfile(gap_fname):
         gap_ats = read(gap_fname, ':')
@@ -53,7 +103,7 @@ def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None, pr
     else:
         gap_ats = None
 
-    bdes = get_bdes(dft_ats, gap_ats)
+    bdes = get_bdes(dft_ats, gap_ats, dft_prefix)
 
     if printing:
         print('-' * 30)
@@ -62,61 +112,76 @@ def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None, pr
 
         headers = [' ', "eV\nDFT E", "eV\nDFT BDE"]
         if gap_ats is not None:
-            headers += ["eV\nGAP E", "eV\nGAP BDE", "meV\nabs error", "Å\nRMSD"]
+            headers += ["eV\nGAP E", "eV\nGAP BDE", "meV\nBDE abs error",
+                        "Å\nRMSD", "SOAP dist", 'meV\nGAP E abs error']
 
         print(tabulate(bdes, headers=headers, floatfmt=f".{precision}f"))
 
     return pd.DataFrame(bdes)
 
-def gap_optimise(start_fname, gap_fname, calculator):
 
-    gap_tmp_fname = os.path.splitext(gap_fname)[0] + '_tmp.xyz'
-
-    if start_fname is None:
+def gap_optimise(start_fnames, gap_fnames, calculator):
+    if start_fnames is None or start_fnames[0] is None:
         raise RuntimeError('Don\'t have a start file to optimise')
 
-    dir = os.path.dirname(gap_fname)
+    if isinstance(start_fnames, str) and isinstance(gap_fnames, str):
+        start_fnames = [start_fnames]
+        gap_fnames = [gap_fnames]
+
+    gap_tmp_fnames = [os.path.splitext(gap_fname)[0] + '_tmp.xyz' for gap_fname
+                      in gap_fnames]
+
+    dir = os.path.dirname(gap_fnames[0])
     opt_dir = os.path.join(dir, 'opt_trajectories')
     if not os.path.isdir(opt_dir):
         os.makedirs(opt_dir)
 
-    base_name =  os.path.basename(os.path.splitext(gap_fname)[0])
-    traj_fname = os.path.join(opt_dir, base_name + '_traj.xyz')
-    log_fname = os.path.join(opt_dir, base_name + '_opt.log')
+    base_names = [os.path.basename(os.path.splitext(gap_fname)[0]) for
+                  gap_fname in gap_fnames]
+    traj_fnames = [os.path.join(opt_dir, base_name + '_traj.xyz') for base_name
+                   in base_names]
 
+    # log_fname = os.path.join(opt_dir, 'opt_log.txt') 
 
     gap_h = Atoms('H', positions=[(0, 0, 0)])
     gap_h.info['config_type'] = 'H'
-    starts = [gap_h] + read(start_fname, ':')
-
-    #tmp non-optimised structures to be overwritten
-    write(gap_tmp_fname, starts)
 
 
-    inputs = ConfigSet_in(input_files=gap_tmp_fname)
-    outputs = ConfigSet_out(output_files=traj_fname, force=True)
+    for start_fname, gap_tmp_fname in zip(start_fnames, gap_tmp_fnames):
+        starts = [gap_h.copy()] + read(start_fname, ':')
+        write(gap_tmp_fname, starts)
 
-    print(f'optimising: {gap_tmp_fname}')
+    output_dict = {}
+    for in_fname, out_fname in zip(gap_tmp_fnames, traj_fnames):
+        output_dict[in_fname] = out_fname
 
-    it.run_opt(inputs, outputs, calculator, fmax=1e-2, return_traj=True, logfile=log_fname, chunksize=1)
+    inputs = ConfigSet_in(input_files=gap_tmp_fnames)
+    outputs = ConfigSet_out(output_files=output_dict)
 
-    optimised_atoms = read(traj_fname, ':')
-    opt_ats = [at for at in optimised_atoms if 'minim_config_type' in
-               at.info.keys() and 'converged' in at.info['minim_config_type']]
+
+    it.run_opt(inputs, outputs, calculator, fmax=1e-2, return_traj=True,
+               logfile=None, chunksize=20)
 
     calculator = construct_calculator_picklesafe(calculator)
-    for at in opt_ats:
-        at.set_calculator(calculator),
-        at.info['gap_energy'] = at.get_potential_energy()
-        at.arrays['gap_forces'] = at.get_forces()
 
-    write(gap_fname, opt_ats)
-    os.remove(gap_tmp_fname)
+    for traj_fname, gap_fname, gap_tmp_fname in zip(traj_fnames, gap_fnames,
+                                                    gap_tmp_fnames):
+        optimised_atoms = read(traj_fname, ':')
+        opt_ats = [at for at in optimised_atoms if 'minim_config_type' in
+                   at.info.keys() and 'converged' in at.info[
+                       'minim_config_type']]
+
+        for at in opt_ats:
+            at.set_calculator(calculator),
+            at.info['gap_energy'] = at.get_potential_energy()
+            at.arrays['gap_forces'] = at.get_forces()
+
+        write(gap_fname, opt_ats)
+        os.remove(gap_tmp_fname)
 
 
-def get_bdes(dft_ats, gap_ats=None):
+def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
     label_pattern = re.compile(r"rad_?\d+$|mol$|H$")
-
 
     dft_h = dft_ats[0]
     dft_mol = dft_ats[1]
@@ -124,11 +189,11 @@ def get_bdes(dft_ats, gap_ats=None):
     assert 'H' == label_pattern.search(dft_h.info['config_type']).group()
     assert 'mol' == label_pattern.search(dft_mol.info['config_type']).group()
 
-    dft_h_energy = dft_h.info['dft_energy']
-    dft_mol_energy = dft_mol.info['dft_energy']
+    dft_h_energy = dft_h.info[f'{dft_prefix}energy']
+    dft_mol_energy = dft_mol.info[f'{dft_prefix}energy']
 
-    mol_data = ['H', dft_h_energy, np.nan]
-    h_data = ['mol', dft_mol_energy, np.nan]
+    h_data = ['H', dft_h_energy, np.nan]
+    mol_data = ['mol', dft_mol_energy, np.nan]
 
     if gap_ats is not None:
 
@@ -136,11 +201,14 @@ def get_bdes(dft_ats, gap_ats=None):
         gap_mol = gap_ats[1]
 
         assert 'H' == label_pattern.search(gap_h.info['config_type']).group()
-        assert 'mol' == label_pattern.search(gap_mol.info['config_type']).group()
+        assert 'mol' == label_pattern.search(
+            gap_mol.info['config_type']).group()
 
         try:
             gap_h_energy = gap_h.info['gap_energy']
             gap_mol_energy = gap_mol.info['gap_energy']
+
+            dft_e_of_gap_mol = gap_mol.info['dft_energy']
         except KeyError:
             print(f'info: {gap_h.info}, {gap_mol.info}')
             raise
@@ -148,9 +216,12 @@ def get_bdes(dft_ats, gap_ats=None):
         h_error = abs(dft_h_energy - gap_h_energy) * 1e3
         mol_error = abs(dft_mol_energy - gap_mol_energy) * 1e3
         mol_rmsd = util.get_rmse(dft_mol.positions, gap_mol.positions)
+        mol_soap_dist = util.soap_dist(dft_mol, gap_mol)
+        gap_abs_e_error = abs(dft_e_of_gap_mol - gap_mol_energy) * 1e3
 
-        h_data += [gap_h_energy, np.nan, h_error, np.nan]
-        mol_data += [gap_mol_energy, np.nan, mol_error, mol_rmsd]
+        h_data += [gap_h_energy, np.nan, h_error, np.nan, np.nan, np.nan]
+        mol_data += [gap_mol_energy, np.nan, mol_error, mol_rmsd, mol_soap_dist,
+                     gap_abs_e_error]
     else:
         gap_ats = [None for _ in dft_ats]
 
@@ -160,11 +231,13 @@ def get_bdes(dft_ats, gap_ats=None):
 
     bde_errors = []
     rmsds = []
+    soap_dists = []
+    gap_e_errors = []
     for dft_at, gap_at in zip(dft_ats[2:], gap_ats[2:]):
 
         label = label_pattern.search(dft_at.info['config_type']).group()
 
-        dft_rad_e = dft_at.info['dft_energy']
+        dft_rad_e = dft_at.info[f'{dft_prefix}energy']
         dft_bde = dft_rad_e + dft_h_energy - dft_mol_energy
 
         data_line = [label, dft_rad_e, dft_bde]
@@ -174,32 +247,45 @@ def get_bdes(dft_ats, gap_ats=None):
             gap_bde = gap_rad_e + gap_h_energy - gap_mol_energy
             bde_error = abs(dft_bde - gap_bde) * 1e3
             bde_errors.append(bde_error)
+
             rmsd = util.get_rmse(dft_at.positions, gap_at.positions)
             rmsds.append(rmsd)
 
-            data_line += [gap_rad_e, gap_bde, bde_error, rmsd]
+            soap_dist = util.soap_dist(dft_at, gap_at)
+            soap_dists.append(soap_dist)
+
+            dft_e_of_gap_rad = gap_at.info['dft_energy']
+            gap_e_error = abs(gap_rad_e - dft_e_of_gap_rad) * 1e3
+            gap_e_errors.append(gap_e_error)
+
+            data_line += [gap_rad_e, gap_bde, bde_error, rmsd, soap_dist, gap_e_error]
 
         data.append(data_line)
 
     if gap_ats[0] is not None:
-        data.append(['mean', np.nan, np.nan, np.nan, np.nan, np.mean(bde_errors), np.mean(rmsds)])
+        data.append(
+            ['mean', np.nan, np.nan, np.nan, np.nan, np.mean(bde_errors),
+             np.mean(rmsds), np.mean(soap_dists), np.mean(gap_e_errors)])
 
     return data
 
 
-def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot', start_fnames=None, calculator=None,
+def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot',
+                 start_fnames=None,
+                 calculator=None,
                  output_dir='pictures'):
-
     if start_fnames is None:
         start_fnames = [None for _ in gap_fnames]
 
     all_titles = []
     all_dft_bdes = []
     all_gap_bdes = []
-    for gap_fname, dft_fname, start_fname in zip(gap_fnames, dft_fnames, start_fnames):
+    for gap_fname, dft_fname, start_fname in zip(gap_fnames, dft_fnames,
+                                                 start_fnames):
         #         print(gap_fname)
 
-        title = os.path.basename(os.path.splitext(dft_fname)[0]).replace('_optimised', '')
+        title = os.path.basename(os.path.splitext(dft_fname)[0]).replace(
+            '_optimised', '')
         if '_bde_train_set' in title:
             title = title.replace('_bde_train_set', '')
         all_titles.append(title)
@@ -207,7 +293,7 @@ def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot', start_fnames
         bdes = bde_summary(dft_fname=dft_fname, gap_fname=gap_fname,
                            start_fname=start_fname,
                            calculator=calculator,
-                                       printing=False)
+                           printing=False)
 
         dft_bdes = np.array(bdes[2][2:-1])
         gap_bdes = np.array(bdes[4][2:-1])
@@ -222,15 +308,17 @@ def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot', start_fnames
     errors_gap = [np.std(gap_bdes) for gap_bdes in all_gap_bdes]
     width = 0.4
 
-    fig = plt.figure()
+    plt.figure()
     plt.grid(color='lightgrey')
-    plt.bar(bar_categories, bars_dft, yerr=errors_dft, width=-width, align='edge', color='tab:red',
+    plt.bar(bar_categories, bars_dft, yerr=errors_dft, width=-width,
+            align='edge', color='tab:red',
             zorder=2, label='DFT')
-    plt.bar(bar_categories, bars_gap, yerr=errors_gap, width=width, align='edge', color='tab:blue',
+    plt.bar(bar_categories, bars_gap, yerr=errors_gap, width=width,
+            align='edge', color='tab:blue',
             zorder=2, label='GAP')
     plt.ylabel('Mean BDE / eV')
     plt.title(plot_title)
-    plt.legend()
+    plt.legend(bbox_to_anchor=(1, 1))
     plt.xticks(rotation=90)
     # plt.show()
     plt.tight_layout()
@@ -238,26 +326,53 @@ def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot', start_fnames
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
     else:
-        output_dir=''
+        output_dir = ''
 
-    plt.savefig(os.path.join(output_dir, plot_title+'.png'), dpi=300)
+    plt.savefig(os.path.join(output_dir, plot_title + '.png'), dpi=300)
 
 
-def get_data(gap_fnames, dft_fnames, selection, start_fnames=None, calculator=None):
-    all_bdes = {}
+def get_data(dft_fnames, gap_fnames, selection=None, start_fnames=None,
+             calculator=None, which_data='bde'):
+    '''which_data = 'bde', 'rmsd' or 'soap'. if 'rmsd' is selected,
+    all_values[title][set]['dft'] corresponds to the DFT bdes and
+    all_values[title][set]['gap'] = to rmsd or soap'''
 
-    for gap_fname, dft_fname, start_fname, in zip(gap_fnames, dft_fnames, start_fnames):
+    dft_val_idx = 2
+    if which_data == 'bde':
+        gap_val_idx = 4
+    elif which_data == 'rmsd':
+        gap_val_idx = 6
+    elif which_data == 'soap_dist':
+        gap_val_idx = 7
+    elif which_data == 'gap_e_error':
+        gap_val_idx = 8
 
-        title = os.path.basename(os.path.splitext(gap_fname)[0]).replace('_gap_optimised.xyz', '')
+    if selection is None:
+        selection = {}
+
+    if start_fnames is None:
+        start_fnames = [None for _ in dft_fnames]
+
+    all_values = {}
+
+    for gap_fname, dft_fname, start_fname, in zip(gap_fnames, dft_fnames,
+                                                  start_fnames):
+
+        print(gap_fname)
+
+        title = os.path.basename(os.path.splitext(gap_fname)[0]).replace(
+            '_gap_optimised.xyz', '')
         if '_bde_train_set' in title:
             title = title.replace('_bde_train_set', '')
 
+        all_values[title] = {'train': {'gap': [], 'dft': []},
+                           'test': {'gap': [], 'dft': []}}
 
-        all_bdes[title] = {'train': {'gap': [], 'dft': []}, 'test': {'gap': [], 'dft': []}}
+        bde_table = bde_summary(dft_fname=dft_fname, gap_fname=gap_fname,
+                           start_fname=start_fname, calculator=calculator,
+                           printing=False)
 
-        bdes = bde_summary(dft_fname=dft_fname, gap_fname=gap_fname,
-                                           start_fname=start_fname, calculator=calculator,
-                                           printing=False)
+        bde_table = bde_table.drop(bde_table.index[[0, 1, -1]])
 
         selected_h_list = []
         for key, vals in selection.items():
@@ -265,68 +380,286 @@ def get_data(gap_fnames, dft_fnames, selection, start_fnames=None, calculator=No
                 selected_h_list = vals
 
         if selected_h_list == 'all':
-            all_bdes[title]['test']['dft'] = bdes[2]
-            all_bdes[title]['test']['gap'] = bdes[4]
+            all_values[title]['test']['dft'] = bde_table[dft_val_idx]
+            all_values[title]['test']['gap'] = bde_table[gap_val_idx]
         elif len(selected_h_list) == 0:
-            all_bdes[title]['train']['dft'] = bdes[2]
-            all_bdes[title]['train']['gap'] = bdes[4]
+            all_values[title]['train']['dft'] = bde_table[dft_val_idx]
+            all_values[title]['train']['gap'] = bde_table[gap_val_idx]
         else:
-            for idx, row in bdes.iterrows():
+            for idx, row in bde_table.iterrows():
                 for rad_no in selected_h_list:
                     if str(rad_no) in row[0]:
-                        all_bdes[title]['test']['dft'].append(row[2])
-                        all_bdes[title]['test']['gap'].append(row[4])
+                        all_values[title]['test']['dft'].append(row[dft_val_idx])
+                        all_values[title]['test']['gap'].append(row[gap_val_idx])
                         break
                 else:
-                    all_bdes[title]['train']['dft'].append(row[2])
-                    all_bdes[title]['train']['gap'].append(row[4])
+                    all_values[title]['train']['dft'].append(row[dft_val_idx])
+                    all_values[title]['train']['gap'].append(row[gap_val_idx])
 
         for set_name in ['train', 'test']:
             for method_name in ['dft', 'gap']:
-                all_bdes[title][set_name][method_name] = np.array(
-                    all_bdes[title][set_name][method_name])
+                all_values[title][set_name][method_name] = np.array(
+                    all_values[title][set_name][method_name])
 
-    return all_bdes
-
-
-def scatter_plot(gap_fnames, dft_fnames, selection=None, plot_title='bde_scatter',
-                     start_fnames=None, calculator=None, output_dir='pictures'):
-
-    if start_fnames is None:
-        start_fnames = [None for _ in gap_fnames]
-
-    if selection is None:
-        selection = {}
+    return all_values
 
 
-    data = get_data(gap_fnames, dft_fnames, selection, start_fnames, calculator)
+def scatter_plot(all_data,
+                 plot_title=None,
+                 output_dir='pictures',
+                 which_data = 'bde'):
 
-    shade = 50
+    if isinstance(all_data, dict):
+        all_data = [all_data]
+
+    if which_data == 'bde':
+        shade = 50
+        if plot_title is None:
+            plot_title = 'bde_scatter'
+        fill_label = f'<50 meV'
+        hline_label = '50 meV'
+        ylabel = '|DFT BDE - GAP BDE| / meV'
+
+    elif which_data == 'rmsd':
+        shade = 0.1
+        if plot_title is None:
+            plot_title = 'rmsd_scatter'
+        fill_label = f'< 0.1 Å'
+        hline_label = '0.1 Å'
+        ylabel = 'RMSD / Å'
+    elif which_data == 'soap_dist':
+        shade =None
+        if plot_title is None:
+            plot_title = 'soap_distance_scatter'
+        fill_label=f'< {shade}'
+        hline_label = f'{shade}'
+        ylabel = 'SOAP distance'
+    elif which_data == 'gap_e_error':
+        shade = 50
+        if plot_title is None:
+            plot_title = 'soap_energy_error_scatter'
+        fill_label = f'< {shade} meV'
+        hline_label = f'{shade} meV'
+        ylabel = 'absolute GAP vs DFT error, meV'
+
     plt.figure(figsize=(10, 5))
     ax = plt.gca()
-    plt.axhline(0, linewidth=0.8, color='k', zorder=2)
+    # plt.axhline(shade, linewidth=0.8, color='k', zorder=2,
+    # label=hline_label)
 
     cmap = plt.get_cmap('tab10')
     colors = [cmap(idx) for idx in np.arange(10)]
 
-    for idx, (label, comp_vals) in enumerate(data.items()):
-        for (set_name, set_vals), m in zip(comp_vals.items(), ['o', 'x']):
-            if len(set_vals['dft']) == 0:
+    ref_data = all_data[0]
+
+    for idx, label in enumerate(ref_data.keys()):
+
+        print_label = label.replace('_gap_optimised', '')
+        phrase_2 = '_bde_train_set'
+        if phrase_2 in print_label:
+            print_label = print_label.replace(phrase_2, '')
+
+        for set_name, m in zip(ref_data[label].keys(), ['.', 'x']):
+
+            if len(ref_data[label][set_name]['dft']) == 0:
                 continue
+
             if set_name == 'test':
-                label += ' test'
+                label += 'test'
 
             color = colors[idx % 10]
 
-            plt.scatter(set_vals['dft'], (set_vals['dft'] - set_vals['gap']) * 1000,
-                        label=label, zorder=3, marker=m, color=color)
+            if which_data in ['rmsd', 'soap_dist', 'gap_e_error']:
+                all_ys = []
+                all_xs = []
+                for data in all_data:
+                    y_data = data[label][set_name]['gap']
+                    all_ys.append(y_data)
+                    all_xs.append(data[label][set_name]['dft'])
+
+            else:
+                all_ys = []
+                all_xs = []
+                for data in all_data:
+                    dft_bdes = data[label][set_name]['dft']
+                    gap_bdes = data[label][set_name]['gap']
+                    all_ys.append(np.abs(dft_bdes - gap_bdes) * 1000)
+                    all_xs.append(data[label][set_name]['dft'])
+
+            all_xs = np.array(all_xs).T
+            stds = np.array([np.std(vals) for vals in all_xs])
+            xs = np.array([np.mean(vals) for vals in all_xs])
+            if np.all(stds != 0):
+                raise RuntimeError("All DFT BDEs aren't the same")
+
+            all_ys = np.array(all_ys)
+            all_ys = all_ys.T
+
+            if len(all_data) == 1:
+                ys = all_ys
+                yerr = None
+                if m == '.':
+                    m = 'o'
+                fmt = m
+                legend_title = None
+
+            elif len(all_data) == 2:
+                lower = np.array([np.min(vals) for vals in all_ys])
+                upper = np.array([np.max(vals) for vals in all_ys])
+                ys = upper
+                yerr = np.array([lower, upper])
+                fmt = 'none'
+                legend_title = 'Err bars: 2 BDEs - min & max'
+
+            elif len(all_data) == 3:
+                lower = np.array([np.min(vals) for vals in all_ys])
+                upper = np.array([np.max(vals) for vals in all_ys])
+                median = np.array([np.median(vals) for vals in all_ys])
+
+                ys = median
+                yerr = np.array([lower, upper])
+                fmt = m
+
+                legend_title = 'Err bars: 3 BDEs - min, median & max'
+
+            else:
+
+                means = np.array([np.mean(vals) for vals in all_ys])
+                stds = np.array([np.std(vals) for vals in all_ys])
+
+                ys = means
+                yerr = stds
+                fmt = m
+                legend_title = 'Err bars: 3+ BDES - mean +- STD'
+
+            plt.errorbar(xs, ys, yerr=yerr, zorder=3, fmt=fmt, color=color,
+                         label=label, capsize=2)
+
+    if shade is not None:
+        xmin, xmax = ax.get_xlim()
+        plt.fill_between([xmin, xmax], 0, shade, color='lightgrey',
+                         label=fill_label, alpha=0.5)
+        ax.set_xlim(xmin, xmax)
+
+    plt.yscale('log')
+    plt.grid(color='grey', ls=':', which='both')
+    plt.ylabel(ylabel)
+    plt.xlabel('DFT BDE / eV')
+    plt.title(plot_title)
+    plt.legend(title=legend_title, bbox_to_anchor=(1, 1))
+    plt.tight_layout()
+
+
+    if output_dir is not None:
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+    else:
+        output_dir = ''
+
+    plt.savefig(os.path.join(output_dir, plot_title + '.png'), dpi=300)
+
+def iter_plot(all_data,
+              plot_title=None,
+              output_dir='pictures',
+              which_data = 'bde',
+              include=None):
+
+    if which_data == 'bde':
+        shade = 50
+        if plot_title is None:
+            plot_title = 'bde_scatter'
+        fill_label = f'<50 meV'
+        hline_label = '50 meV'
+        ylabel = '|DFT BDE - GAP BDE| / meV'
+
+    elif which_data == 'rmsd':
+        shade = 0.1
+        if plot_title is None:
+            plot_title = 'rmsd_scatter'
+        fill_label = f'< 0.1 Å'
+        hline_label = '0.1 Å'
+        ylabel = 'RMSD / Å'
+
+    elif which_data == 'soap_dist':
+        shade = 0.01
+        if plot_title is None:
+            plot_title = 'soap_distance_scatter'
+        fill_label = f'< {shade}'
+        hline_label = '{shade}'
+        ylabel = 'SOAP distance'
+
+    elif which_data == 'gap_e_error':
+        shade = 50
+        if plot_title is None:
+            plot_title = 'soap_energy_error_scatter'
+        fill_label = f'< {shade} meV'
+        hline_label = f'{shade} meV'
+        ylabel = 'absolute GAP vs DFT error, meV'
+
+
+    plt.figure(figsize=(10, 5))
+    ax = plt.gca()
+
+    cmap = plt.get_cmap('tab10')
+    colors = [cmap(idx) for idx in np.arange(10)]
+
+    ref_data = all_data[0]
+
+    for idx, label in enumerate(ref_data.keys()):
+
+        print_label = label.replace('_gap_optimised', '')
+        phrase_2 = '_bde_train_set'
+        if phrase_2 in print_label:
+            print_label = print_label.replace(phrase_2, '')
+
+        if include is not None:
+            if label not in include and print_label not in include:
+                continue
+
+        for set_name, m in zip(ref_data[label].keys(), ['.', 'x']):
+
+            if len(ref_data[label][set_name]['dft']) == 0:
+                continue
+
+            if set_name == 'test':
+                label += 'test'
+
+            color = colors[idx % 10]
+
+            if which_data in ['rmsd', 'soap_dist', 'gap_e_error']:
+                all_ys = []
+                for data in all_data:
+                    # corresponds to RMSD
+                    all_ys.append(data[label][set_name]['gap'])
+
+
+            elif which_data == 'bde':
+                all_ys = []
+                for data in all_data:
+                    dft_bdes = data[label][set_name]['dft']
+                    gap_bdes = data[label][set_name]['gap']
+                    all_ys.append(np.abs(dft_bdes - gap_bdes) * 1000)
+
+            xs = np.arange(len(all_data))
+
+            all_ys = np.array(all_ys)
+
+            for ys in all_ys.T:
+                plt.plot(xs, ys, zorder=3, marker='x', color=color,
+                         label=print_label)
+                if print_label is not None:
+                    print_label = None
 
     xmin, xmax = ax.get_xlim()
-    plt.fill_between([xmin, xmax], -shade, shade, color='lightgrey', label=f'$\pm$ 50 meV')
+    plt.fill_between([xmin, xmax], 0, shade, color='lightgrey',
+                     label=fill_label, alpha=0.5)
     ax.set_xlim(xmin, xmax)
-    plt.grid(color='lightgrey')
-    plt.ylabel('DFT BDE - GAP BDE / meV')
-    plt.xlabel('DFT BDE / eV')
+
+    plt.yscale('log')
+    plt.grid(color='grey', ls=':', which='both')
+    plt.ylabel(ylabel)
+    plt.xlabel('Iteration')
+    plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(1))
     plt.title(plot_title)
     plt.legend(bbox_to_anchor=(1, 1))
     plt.tight_layout()
@@ -337,220 +670,4 @@ def scatter_plot(gap_fnames, dft_fnames, selection=None, plot_title='bde_scatter
     else:
         output_dir = ''
 
-    plt.savefig(os.path.join(output_dir, plot_title+'.png'), dpi=300)
-
-
-"""
-
-@click.command()
-@click.option('--bde_start_dir', type=click.Path(), help='which files to gap-optimise')
-@click.option('--dft_bde_dir', type=click.Path(), help='which files to compare to')
-@click.option('--gap_fname')
-@click.option('--dft_bde_fname', type=click.Path(), help='single name with dft bde info')
-@click.option('--bde_start_fname', type=click.Path(),
-              help='single bde start fname to optimise with GAP')
-@click.option('--dft_only', is_flag=True, help='Prints only the dft summary')
-@click.option('--bde_out_dir', type=click.Path(), help='Directory where to save all opt_files')
-@click.option('--gap_bde_out_fname', type=click.Path(),
-              help='fname to save to/load from gap bde energies')
-@click.option('--precision', '-p', type=int, default=3)
-def cli_gap_bde_summary(bde_start_dir=None, dft_bde_dir=None, gap_fname=None, bde_out_dir=None,
-                        dft_bde_fname=None,
-                        bde_start_fname=None, gap_bde_out_fname=None, dft_only=False, precision=3):
-    gap_bde_summary(bde_start_dir=bde_start_dir, dft_bde_dir=dft_bde_dir, gap_fname=gap_fname,
-                    bde_out_dir=bde_out_dir, dft_bde_fname=dft_bde_fname,
-                    bde_start_fname=bde_start_fname, gap_bde_out_fname=gap_bde_out_fname,
-                    dft_only=dft_only, precision=precision)
-
-
-def gap_bde_summary(bde_start_dir=None, dft_bde_dir=None, gap_fname=None, bde_out_dir=None,
-                    dft_bde_fname=None,
-                    bde_start_fname=None, gap_bde_out_fname=None, dft_only=False, precision=3,
-                    printing=False):
-    if bde_out_dir:
-        if not os.path.exists(bde_out_dir):
-            os.makedirs(bde_out_dir)
-        os.chdir(bde_out_dir)
-
-    if not dft_only:
-        if bde_start_dir is not None and bde_start_fname is not None:
-            raise ValueError(
-                f" only one of bde_start_dir ({bde_start_dir}) and bde_start_fname ("
-                f"{bde_start_fname}) must be given")
-        elif bde_start_dir is not None:
-            start_fnames = [os.path.join(bde_start_dir, name) for name in os.listdir(bde_start_dir)]
-            start_fnames = util.natural_sort(start_fnames)
-        elif bde_start_fname is not None:
-            start_fnames = [bde_start_fname]
-        else:
-            start_fnames = None
-
-        # if bde_out_dir is not None:
-        #     bde_out_fnames =  util.natural_sort(os.listdir('.'))
-
-    else:
-        if dft_bde_dir is not None and dft_bde_fname is not None:
-            raise ValueError(f'only one of dft_bde_dir and dft_bde_fname can be given')
-        elif dft_bde_dir:
-            dft_fnames = [os.path.join(dft_bde_dir, name) for name in os.listdir(dft_bde_dir)]
-            dft_fnames = util.natural_sort(dft_fnames)
-        else:
-            dft_fnames = [dft_bde_fname]
-
-    gap = None
-    if gap_fname is not None and not dft_only:
-        dir = '.'
-        if bde_out_dir:
-            dir = '..'
-        gap = Potential(param_filename=os.path.join(dir, gap_fname))
-
-    if not dft_only:
-        # if have start names, cycle through start names
-        if start_fnames is not None:
-            for start_fname in start_fnames:
-                basename = os.path.basename(start_fname)
-                gap_bde_out_fname = basename.replace('_non-optimised.xyz', '_gap_optimised.xyz')
-                if not dft_bde_fname:
-                    dft_fname = os.path.join(dft_bde_dir, basename.replace('_non-optimised.xyz',
-                                                                           '_optimised.xyz'))
-                else:
-                    dft_fname = dft_bde_fname
-                gap_ats = get_optimised_gap_atoms(gap_bde_out_fname, start_fname, gap)
-                # title = basename.replace('_non-optimised.xyz', '')
-                title = gap_bde_out_fname
-                table(title, dft_fname, gap_ats, precision, printing=printing)
-        # elif bde_out_fnames is not None:
-        #     for gap_bde_out_fname in bde_out_fnames:
-        #         basename = os.path.basename(gap_bde_out_fname)
-        #         dft_fname = os.path.join(dft_bde_dir, basename.replace('gap_optimised.xyz',
-        #         'optimised.xyz'))
-        #         gap_ats = read(gap_bde_out_fname, ':')
-        #         title = basename.replace('_gap_optimised.xyz', '')
-        #         table(title, dft_fname, gap_ats, precision)
-        elif gap_bde_out_fname is not None and dft_bde_fname is not None:
-            gap_ats = get_optimised_gap_atoms(gap_bde_out_fname, dft_bde_fname, gap)
-            title = os.path.splitext(gap_bde_out_fname)[0]
-            bdes = table(title, dft_bde_fname, gap_ats, precision, printing=printing)
-            return bdes
-
-
-    else:
-        for dft_fname in dft_fnames:
-            title = os.path.basename(os.path.splitext(dft_fname)[0])
-            bdes = table(title, dft_fname, gap_ats=None, precision=precision)
-            return bdes
-
-
-def table(title, dft_fname, gap_ats, precision, printing=True):
-    # print BDE summary while we're at it
-    if printing:
-        print('-' * 30)
-        print(title)
-        print('-' * 30)
-    if os.path.exists(dft_fname):
-        dft_ats = read(dft_fname, ':')
-
-        dft_mol = dft_ats[0]
-        dft_h = dft_ats[1]
-        dft_rads = dft_ats[2:]
-
-        headers = [' ', "eV\nDFT E", "eV\nDFT BDE"]
-        data = []
-
-        dft_mol_e = dft_mol.info["dft_energy"]
-        mol_data = ['mol', dft_mol_e, np.nan]
-
-        dft_h_e = dft_h.info["dft_energy"]
-        h_data = ['H', dft_h_e, np.nan]
-
-        if gap_ats:
-            headers += ["eV\nGAP E", "eV\nGAP BDE", "meV\nabs error", "Å\nRMSD"]
-
-            gap_mol = gap_ats[0]
-            gap_h = gap_ats[1]
-            gap_rads = gap_ats[2:]
-
-            gap_mol_e = gap_mol.info["gap_energy"]
-            error = abs(dft_mol_e - gap_mol_e) * 1e3
-            rmsd = util.get_rmse(dft_mol.positions, gap_mol.positions)
-            mol_data += [gap_mol_e, np.nan, error, rmsd]
-
-            gap_h_e = gap_h.info["gap_energy"]
-            error = abs(dft_h_e - gap_h_e) * 1e3
-            h_data += [gap_h_e, np.nan, error, np.nan]
-
-        else:
-            gap_rads = [None for _ in range(len(dft_rads))]
-
-        # data.append(headers)
-        data.append(mol_data)
-        data.append(h_data)
-
-        bde_errors = []
-        rmsds = []
-        dft_bdes = []
-        for idx, (dft_rad, gap_rad) in enumerate(zip(dft_rads, gap_rads)):
-
-            dft_rad_e = dft_rad.info['dft_energy']
-            dft_bde = - dft_mol_e + dft_rad_e + dft_h_e
-            dft_bdes.append(dft_bde)
-
-            if "config_type" in dft_rad.info.keys():
-                label = dft_rad.info["config_type"]
-            else:
-                label = f'rad {idx}'
-
-            if gap_rad:
-                gap_rad_e = gap_rad.info['gap_energy']
-                gap_bde = - gap_mol_e + gap_rad_e + gap_h_e
-
-                error = abs(dft_bde - gap_bde) * 1e3
-                rmsd = util.get_rmse(dft_rad.positions, gap_rad.positions)
-                bde_errors.append(error)
-                rmsds.append(rmsd)
-
-                if 'config_type' in gap_rad.info.keys():
-                    label = gap_rad.info['config_type']
-                else:
-                    label = f'rad {idx}'
-
-                data_line = [label, dft_rad_e, dft_bde, gap_rad_e, gap_bde, error, rmsd]
-            else:
-                data_line = [label, dft_rad_e, dft_bde]
-
-            data.append(data_line)
-
-        if gap_ats:
-            data.append(
-                ['mean', np.nan, np.nan, np.nan, np.nan, np.mean(bde_errors), np.mean(rmsds)])
-
-        if printing:
-            print(tabulate(data, headers=headers, floatfmt=f".{precision}f"))
-        table = pd.DataFrame(data)
-        return table
-    else:
-        print(f"\n\nCouldn't find {dft_fname} to print BDE summary")
-
-
-def get_optimised_gap_atoms(gap_bde_out_fname, start_fname, gap):
-    # optimise structures
-    if not os.path.exists(
-            gap_bde_out_fname) and start_fname and gap is not None:
-        print(f"Didn't find {gap_bde_out_fname}, optimising bde starts")
-        bde_starts = read(start_fname, ':')
-        gap_ats = []
-        for at in bde_starts:
-            relaxed = util.relax(at, gap)
-            relaxed.info['gap_energy'] = relaxed.get_potential_energy()
-            gap_ats.append(relaxed)
-        write(gap_bde_out_fname, gap_ats, 'extxyz')
-    elif os.path.exists(gap_bde_out_fname):
-        gap_ats = read(gap_bde_out_fname, ':')
-    else:
-        raise FileNotFoundError(
-            "Need either bde start file to optimise or gap_bde_out_fname "
-            "with optimised structures")
-    return gap_ats
-    
-"""
-
+    plt.savefig(os.path.join(output_dir, plot_title + '.png'), dpi=300)
