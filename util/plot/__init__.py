@@ -24,7 +24,12 @@ from lxml import etree as et
 
 
 # Atomistic imports
-from quippy.potential import Potential
+try:
+    from quippy.potential import Potential
+    from quippy.descriptors import Descriptor
+except ModuleNotFoundError:
+    pass
+
 from ase.io import read, write
 from ase import Atom, Atoms
 from ase.io.extxyz import key_val_str_to_dict
@@ -32,7 +37,6 @@ from ase.io.extxyz import key_val_dict_to_str
 from ase.optimize.precon import PreconLBFGS
 from ase.units import Ha
 from util import dict_to_vals
-from quippy.descriptors import Descriptor
 from util.config import Config
 
 
