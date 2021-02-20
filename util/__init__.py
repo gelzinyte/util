@@ -418,19 +418,22 @@ try:
                    'add_species': 'True',
                    'average':'True'}
     soap = Descriptor(args_str='SOAP', **soap_param)
+
+
+    def soap_sim(at1, at2, desc=soap):
+        return np.dot(get_soap(at1, desc), get_soap(at2, desc))
+
+    def soap_dist(at1, at2, desc=soap):
+        sp1 = get_soap(at1, desc)
+        sp2 = get_soap(at2, desc)
+        return np.sqrt(2 - 2 * np.dot(sp1, sp2))
+
 except NameError:
     pass
 
 def get_soap(at, desc):
     return desc.calc_descriptor(at)[0]
 
-def soap_sim(at1, at2, desc=soap):
-    return np.dot(get_soap(at1, desc), get_soap(at2, desc))
-
-def soap_dist(at1, at2, desc=soap):
-    sp1 = get_soap(at1, desc)
-    sp2 = get_soap(at2, desc)
-    return np.sqrt(2 - 2 * np.dot(sp1, sp2))
 
 def get_E_F_dict_evaled(atoms, energy_name, force_name):
     '''Returns {'energy': {'config1':[energies],
