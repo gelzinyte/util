@@ -409,15 +409,17 @@ def shell_stdouterr(raw_command, cwd=None):
                                       shell=True, cwd=cwd).communicate()
     return stdout.strip(), stderr.strip()
 
-
-soap_param =  {'name': 'soap',
-               'l_max': '4',
-               'n_max': '8',
-               'cutoff': '3.0',
-               'atom_gaussian_width': '0.3',
-               'add_species': 'True',
-               'average':'True'}
-soap = Descriptor(args_str='SOAP', **soap_param)
+try:
+    soap_param =  {'name': 'soap',
+                   'l_max': '4',
+                   'n_max': '8',
+                   'cutoff': '3.0',
+                   'atom_gaussian_width': '0.3',
+                   'add_species': 'True',
+                   'average':'True'}
+    soap = Descriptor(args_str='SOAP', **soap_param)
+except NameError:
+    pass
 
 def get_soap(at, desc):
     return desc.calc_descriptor(at)[0]
