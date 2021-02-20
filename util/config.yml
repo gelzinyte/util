@@ -2,6 +2,7 @@
 programs:
   orca: /opt/womble/orca/orca_4_2_1_linux_x86-64_openmpi314/orca
   gap_fit: /opt/womble/QUIP/2021_02_08/linux_x86_64_gfortran_openmp/gap_fit
+  quip: /opt/womble/QUIP/2021_02_08/linux_x86_64_gfortran_openmp/quip
 
 other_paths:
   scratch: /scratch/eg475
@@ -9,6 +10,11 @@ other_paths:
 
 gap_files:
   glue_fname: /home/eg475/scripts/source_files/glue_repulsive_fitted.xml
+
+files:
+  isolated_atoms_fname: /home/eg475/scripts/source_files/isolated_atoms.xyz
+
+dimer_curves_base_dir: /home/eg475/data/reactions/dimer_curves/orca_hannes_params/
 
 util_root:
   /home/eg475/scripts/util/

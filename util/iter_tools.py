@@ -196,7 +196,7 @@ def opt(atoms, calculator, fmax=1.0e-3, steps=1000, precon='auto',
     return all_trajs
 
 
-def reeval_dft(gap_dirs):
+def reeval_dft(gap_dirs, smearing=2000):
 
     if isinstance(gap_dirs, str):
         gap_dirs = gap_dirs.split(' ')
@@ -207,7 +207,7 @@ def reeval_dft(gap_dirs):
 
     output_prefix = 'dft_'
     orca_kwargs = default_kw['orca']
-    orca_kwargs['smearing'] = 2000
+    orca_kwargs['smearing'] = smearing
 
     print(f'orca_kwargs: {orca_kwargs}')
 

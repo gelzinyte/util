@@ -204,11 +204,17 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
         assert 'mol' == label_pattern.search(
             gap_mol.info['config_type']).group()
 
+        have_dft = False
+        if f'{dft_prefix}energy' in gap_mol.info.keys():
+            have_dft=True
+
+
         try:
             gap_h_energy = gap_h.info['gap_energy']
             gap_mol_energy = gap_mol.info['gap_energy']
 
-            dft_e_of_gap_mol = gap_mol.info['dft_energy']
+            if have_dft:
+                dft_e_of_gap_mol = gap_mol.info['dft_energy']
         except KeyError:
             print(f'info: {gap_h.info}, {gap_mol.info}')
             raise
@@ -217,11 +223,15 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
         mol_error = abs(dft_mol_energy - gap_mol_energy) * 1e3
         mol_rmsd = util.get_rmse(dft_mol.positions, gap_mol.positions)
         mol_soap_dist = util.soap_dist(dft_mol, gap_mol)
-        gap_abs_e_error = abs(dft_e_of_gap_mol - gap_mol_energy) * 1e3
+        if have_dft:
+            gap_abs_e_error = abs(dft_e_of_gap_mol - gap_mol_energy) * 1e3
 
-        h_data += [gap_h_energy, np.nan, h_error, np.nan, np.nan, np.nan]
-        mol_data += [gap_mol_energy, np.nan, mol_error, mol_rmsd, mol_soap_dist,
-                     gap_abs_e_error]
+        h_data += [gap_h_energy, np.nan, h_error, np.nan, np.nan]
+        mol_data += [gap_mol_energy, np.nan, mol_error, mol_rmsd, mol_soap_dist]
+
+        if have_dft:
+            h_data += [np.nan]
+            mol_data += [gap_abs_e_error]
     else:
         gap_ats = [None for _ in dft_ats]
 
@@ -254,11 +264,15 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
             soap_dist = util.soap_dist(dft_at, gap_at)
             soap_dists.append(soap_dist)
 
-            dft_e_of_gap_rad = gap_at.info['dft_energy']
-            gap_e_error = abs(gap_rad_e - dft_e_of_gap_rad) * 1e3
-            gap_e_errors.append(gap_e_error)
+            if have_dft:
+                dft_e_of_gap_rad = gap_at.info['dft_energy']
+                gap_e_error = abs(gap_rad_e - dft_e_of_gap_rad) * 1e3
+                gap_e_errors.append(gap_e_error)
 
-            data_line += [gap_rad_e, gap_bde, bde_error, rmsd, soap_dist, gap_e_error]
+            data_line += [gap_rad_e, gap_bde, bde_error, rmsd, soap_dist]
+
+            if have_dft:
+                data_line += [gap_e_error]
 
         data.append(data_line)
 

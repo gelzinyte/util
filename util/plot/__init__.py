@@ -33,6 +33,8 @@ from ase.optimize.precon import PreconLBFGS
 from ase.units import Ha
 from util import dict_to_vals
 from quippy.descriptors import Descriptor
+from util.config import Config
+
 
 
 
@@ -53,6 +55,8 @@ from quippy.descriptors import Descriptor
 
 def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
 
+    cfg = Config.load()
+
     corr_desc = ugap.get_gap_2b_dict(param_fname)
 
     tmp_dimer_in_name = 'tmp_dimer_in.xyz'
@@ -61,7 +65,8 @@ def make_2b_only_plot(dimer_name, ax, param_fname, label=None, color=None):
     atoms = [Atoms(dimer_name, positions=[(0, 0, 0), (0, 0, d)]) for d in distances]
     write(tmp_dimer_in_name, atoms, 'extxyz')
 
-    which_quip = '/home/eg475/programs/QUIPwo0/build/linux_x86_64_gfortran_openmp/quip'
+    # which_quip = '/home/eg475/programs/QUIPwo0/build/linux_x86_64_gfortran_openmp/quip'
+    which_quip = cfg['programs']['quip']
 
     command = f"{which_quip} E=T F=T atoms_filename={tmp_dimer_in_name} param_filename={param_fname} calc_args={{only_descriptor={corr_desc[dimer_name]}}} \
                          | grep AT | sed 's/AT//' > {tmp_dimer_out_name}"
@@ -116,7 +121,12 @@ def make_dimer_plot(dimer_name, ax, calc, label, color=None, isolated_atoms_fnam
 
 
 def make_ref_plot(dimer_name, ax, calc_type='dft'):
-    atoms_fname=f'/home/eg475/reactions/dimer_curves/orca_hannes_params/{dimer_name}/{dimer_name}_out.xyz'
+
+    cfg = Config.load()
+
+    atoms_fname = os.path.join(cfg['dimer_curves_base_dir'], f'{dimer_name}/{dimer_name}_out.xyz')
+
+    # atoms_fname=f'/home/eg475/reactions/dimer_curves/orca_hannes_params/{dimer_name}/{dimer_name}_out.xyz'
     dimer = read(atoms_fname, ':')
     distances = [at.get_distance(0, 1) for at in dimer]
     ref_data = util.get_E_F_dict(dimer, calc_type=calc_type)

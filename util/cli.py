@@ -6,6 +6,7 @@ from util.plot import rmse_scatter_evaled
 from util import data
 from util import select_configs
 from util import old_nms_to_new
+from util import configs_ops
 import os
 from quippy.potential import Potential
 from util import bde
@@ -51,10 +52,36 @@ def subcli_data(ctx):
 def subcli_gap(ctx):
     pass
 
+@cli.group('configs')
+@click.pass_context
+def subcli_configs(ctx):
+    pass
+
+@subcli_configs.command('distribute')
+@click.argument('in-fname')
+@click.option('--num-tasks', '-n', default=8, type=click.INT, help='number of files to distribute across')
+@click.option('--prefix', '-p', default='in_', help='prefix for individual files')
+def distribute_configs(in_fname, num_tasks, prefix):
+    configs_ops.batch_configs(in_fname=in_fname, num_tasks=num_tasks,
+                              batch_in_fname_prefix=prefix)
+
+
+@subcli_configs.command('gather')
+@click.option('--out-fname', '-o', help='output for gathered configs')
+@click.option('--num-tasks', '-n', default=8, type=click.INT,
+              help='number of files to gather configs from')
+@click.option('--prefix', '-p', default='out_',
+              help='prefix for individual files')
+def gather_configs(out_fname, num_tasks, prefix):
+    configs_ops.collect_configs(out_fname=out_fname, num_tasks=num_tasks,
+                              batch_in_fname_prefix=prefix)
+
+
 @subcli_data.command('reevaluate-dir')
 @click.argument('dirs')
-def reevaluate_dir(dirs):
-    iter_tools.reeval_dft(dirs)
+@click.option('--smearing', type=click.INT, default=2000)
+def reevaluate_dir(dirs, smearing=2000):
+    iter_tools.reeval_dft(dirs, smearing)
 
 @subcli_gap.command('opt-and-nm')
 @click.option('--dft-dir', '-d')
