@@ -79,6 +79,18 @@ def gather_configs(out_fname, num_tasks, prefix):
     configs_ops.collect_configs(out_fname=out_fname, num_tasks=num_tasks,
                               batch_in_fname_prefix=prefix)
 
+@subcli_configs.command('remove')
+@click.option('--num-tasks', '-n', default=8, type=click.INT,
+              help='number of files')
+@click.option('--out-prefix',  default='out_',
+              help='prefix for individual output files')
+@click.option('--in-prefix', default='in_',
+              help='prefix for individual files')
+def cleanup_configs(num_tasks, out_prefix, in_prefix):
+    configs_ops.cleanup_configs(num_tasks=num_tasks,
+                                batch_in_fname_prefix=in_prefix,
+                                batch_out_fname_prefix=out_prefix)
+
 
 @subcli_data.command('reevaluate-dir')
 @click.argument('dirs')
