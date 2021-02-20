@@ -8,7 +8,10 @@ from util import select_configs
 from util import old_nms_to_new
 from util import configs_ops
 import os
-from quippy.potential import Potential
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
 from util import bde
 from util import mem_tracker
 from util import iter_fit

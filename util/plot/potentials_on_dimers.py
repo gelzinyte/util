@@ -5,7 +5,10 @@ from ase import Atoms
 import numpy as np
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
-from quippy.potential import Potential
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
 import util
 
 @click.command()

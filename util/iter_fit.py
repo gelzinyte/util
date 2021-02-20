@@ -1,7 +1,10 @@
 import os
 import yaml
 from ase.io import read, write
-from quippy.potential import Potential
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
 from wfl.calculators import orca, generic
 from util import ugap
 from wfl.configset import ConfigSet_in, ConfigSet_out

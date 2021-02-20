@@ -9,15 +9,22 @@ from itertools import zip_longest
 # Packages for atoms and molecules
 import ase
 from collections import OrderedDict
-from quippy.potential import Potential
-from quippy.descriptors import Descriptor
+try:
+    from quippy.potential import Potential
+    from quippy.descriptors import Descriptor
+except ModuleNotFoundError:
+    pass
+
 import matplotlib.pyplot as plt
 from math import log10, floor
 
 from ase.optimize.precon import PreconLBFGS
 
-from asaplib.data import ASAPXYZ
-from asaplib.reducedim import Dimension_Reducers
+try:
+    from asaplib.data import ASAPXYZ
+    from asaplib.reducedim import Dimension_Reducers
+except:
+    pass
 
 
 def relax(at, calc, fmax=1e-3, steps=0):

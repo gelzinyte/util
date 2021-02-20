@@ -2,7 +2,10 @@
 from copy import deepcopy
 from ase.io.extxyz import key_val_str_to_dict
 from ase.io.extxyz import key_val_dict_to_str
-from quippy.potential import Potential
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
 from ase.build import molecule
 import numpy as np
 import xml.etree.ElementTree as et

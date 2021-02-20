@@ -1,6 +1,9 @@
 from util import iter_tools as it
 from wfl.generate_configs import vib
-from quippy.potential import Potential
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
 import os
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from ase.io import read, write
