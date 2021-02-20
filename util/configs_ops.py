@@ -1,5 +1,6 @@
 from ase.io import read, write
 from util import grouper
+import os
 
 
 def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_'):
