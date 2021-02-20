@@ -2,7 +2,10 @@ import pandas as pd
 import os
 import sys
 from wfl.configset import ConfigSet_in, ConfigSet_out
-from wfl.generate_configs import smiles, radicals
+try:
+    from wfl.generate_configs import smiles, radicals
+except ImportError:
+    pass
 from ase.optimize.precon import PreconLBFGS
 from wfl.pipeline import iterable_loop
 from wfl.utils.parallel import construct_calculator_picklesafe
