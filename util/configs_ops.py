@@ -5,7 +5,7 @@ from util import grouper
 def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_'):
 
     all_atoms = read(in_fname, ':')
-    batch_size = (len(all_atoms) / num_tasks) + 1
+    batch_size = int(len(all_atoms) / num_tasks) + 1
 
     for idx, batch in enumerate(grouper(all_atoms, batch_size)):
 
