@@ -113,7 +113,8 @@ def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None,
         headers = [' ', "eV\nDFT E", "eV\nDFT BDE"]
         if gap_ats is not None:
             headers += ["eV\nGAP E", "eV\nGAP BDE", "meV\nBDE abs error",
-                        "Å\nRMSD", "SOAP dist", 'meV\nGAP E abs error']
+                        "Å\nRMSD", "SOAP dist", 'meV\nGAP E abs error',
+                        'meV/Å\n GAP F RMSE']
 
         print(tabulate(bdes, headers=headers, floatfmt=f".{precision}f"))
 
@@ -215,6 +216,7 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
 
             if have_dft:
                 dft_e_of_gap_mol = gap_mol.info['dft_energy']
+                dft_f_of_gap_mol = gap_mol.arrays['dft_forces']
         except KeyError:
             print(f'info: {gap_h.info}, {gap_mol.info}')
             raise

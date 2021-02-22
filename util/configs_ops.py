@@ -1,4 +1,7 @@
 from ase.io import read, write
+import warnings
+from ase import neighborlist
+import numpy as np
 from util import grouper
 import os
 
@@ -38,3 +41,41 @@ def cleanup_configs(num_tasks=8, batch_in_fname_prefix='in_',
         out_fname = f'{batch_out_fname_prefix}{idx+count_from}.xyz'
         if os.path.exists(out_fname):
             os.remoe(out_fname)
+
+
+def filter_expanded_geometries(atoms_list):
+
+    atoms_out = []
+    skipped_idx = []
+    for idx, atoms in enumerate(atoms_list):
+        if len(atoms) == 1:
+            atoms_out.append(atoms)
+
+
+        natural_cutoffs = neighborlist.natural_cutoffs(atoms,
+                                                       mult=2)
+        neighbor_list = neighborlist.NeighborList(natural_cutoffs,
+                                                  self_interaction=False,
+                                                  bothways=True)
+        _ = neighbor_list.update(atoms)
+
+        for at in atoms:
+            if at.symbol == 'H':
+
+                indices, offsets = neighbor_list.get_neighbors(at.index)
+                if len(indices) == 0:
+                    skipped_idx.append(idx)
+                    # print(f'skipped {idx} because of atom {at.index}')
+                    break
+
+        else:
+            atoms_out.append(atoms)
+    warnings.warn(f'skipped {len(skipped_idx)} atoms, because couldn\'t find '
+                  f'a H whithin reasonable cutoff. Nos: {skipped_idx}')
+
+    return atoms_out
+
+
+
+
+

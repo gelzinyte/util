@@ -12,6 +12,7 @@ from util import iter_tools as it
 import util
 from util import bde
 from util.config import Config
+from util import configs_ops
 from wfl.generate_configs import vib
 
 # will be changed
@@ -274,6 +275,10 @@ def fit(no_cycles, test_fname='test.xyz',
                                             prop_prefix='gap_')
 
                     ats = read(nm_sample_fname, ":")
+
+                    # filter out super expanded structures
+                    ats = configs_ops.filter_expanded_geometries(ats)
+
                     for at in ats:
                         at.cell = [40, 40, 40]
                         at.info['iter_no'] = cycle_idx
