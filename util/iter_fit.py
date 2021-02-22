@@ -21,7 +21,8 @@ def fit(no_cycles, test_fname='test.xyz',
         first_train_fname='train.xyz', e_sigma=0.0005, f_sigma=0.02,
         n_sparse=600,
         smiles_csv=None, num_smiles_opt=None, 
-        opt_starts_fname=None,  num_nm_displacements=None):
+        opt_starts_fname=None,  num_nm_displacements=None,
+        smearing=2000):
     """ iteratively fits and optimises stuff
     
     Parameters
@@ -84,7 +85,7 @@ def fit(no_cycles, test_fname='test.xyz',
     output_prefix = 'dft_'
     orca_kwargs = default_kw['orca']
 
-    orca_kwargs['smearing'] = 2000
+    orca_kwargs['smearing'] = smearing
 
     print(f'orca_kwargs: {orca_kwargs}')
 

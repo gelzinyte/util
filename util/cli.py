@@ -7,6 +7,7 @@ from util import data
 from util import select_configs
 from util import old_nms_to_new
 from util import configs_ops
+from util import atom_types
 import os
 try:
     from quippy.potential import Potential
@@ -59,6 +60,17 @@ def subcli_gap(ctx):
 @click.pass_context
 def subcli_configs(ctx):
     pass
+
+@subcli_configs.command('atom-type')
+@click.argument('in-fname')
+@click.option('--output', '-o')
+@click.option('--cutoff-multiplier', '-m', type=click.FLOAT, default=1,
+              help='multiplier for cutoffs')
+def atom_type(in_fname, output, cutoff_multiplier):
+    inputs = ConfigSet_in(input_files=in_fname)
+    outputs = ConfigSet_out(output_files=output)
+    atom_types.assign_aromatic(inputs=inputs, outputs=outputs,
+                               mult=cutoff_multiplier)
 
 @subcli_configs.command('distribute')
 @click.argument('in-fname')
@@ -148,15 +160,17 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--num_smiles_opt', type=click.INT, help='number of optimisations per smiles' )
 @click.option('--opt_starts_fname', help='filename where to optimise structures from')
 @click.option('--num_nm_displacements', type=click.INT, help='number of normal modes displacements per structure')
+@click.option('--smearing', type=click.INT)
 def fit(no_cycles, test_fname, train_fname, e_sigma, n_sparse,
         f_sigma,  smiles_csv, num_smiles_opt, opt_starts_fname,
-        num_nm_displacements):
+        num_nm_displacements, smearing):
 
     iter_fit.fit(no_cycles=no_cycles,
                       test_fname=test_fname, first_train_fname=train_fname,
                       e_sigma=e_sigma, f_sigma=f_sigma, smiles_csv=smiles_csv,
                  num_smiles_opt=num_smiles_opt, opt_starts_fname=opt_starts_fname,
-                 num_nm_displacements=num_nm_displacements, n_sparse=n_sparse)
+                 num_nm_displacements=num_nm_displacements, n_sparse=n_sparse,
+                 smearing=smearing)
 
 @subcli_gap.command('optimize')
 @click.option('--start-dir' )
