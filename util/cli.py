@@ -89,7 +89,7 @@ def distribute_configs(in_fname, num_tasks, prefix):
               help='prefix for individual files')
 def gather_configs(out_fname, num_tasks, prefix):
     configs_ops.collect_configs(out_fname=out_fname, num_tasks=num_tasks,
-                              batch_in_fname_prefix=prefix)
+                              batch_out_fname_prefix=prefix)
 
 @subcli_configs.command('remove')
 @click.option('--num-tasks', '-n', default=8, type=click.INT,
@@ -160,7 +160,7 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--num_smiles_opt', type=click.INT, help='number of optimisations per smiles' )
 @click.option('--opt_starts_fname', help='filename where to optimise structures from')
 @click.option('--num_nm_displacements', type=click.INT, help='number of normal modes displacements per structure')
-@click.option('--smearing', type=click.INT)
+@click.option('--smearing', type=click.INT, default=2000)
 def fit(no_cycles, test_fname, train_fname, e_sigma, n_sparse,
         f_sigma,  smiles_csv, num_smiles_opt, opt_starts_fname,
         num_nm_displacements, smearing):

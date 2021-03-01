@@ -86,7 +86,7 @@ def multi_bde_summaries(dft_dir, gap_dir=None, calculator=None, start_dir=None,
 
 
 def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None,
-                precision=3, printing=True, dft_prefix='dft_'):
+                precision=3, printing=True, dft_prefix='dft_', gap_prefix='gap_'):
 
     dft_ats = read(dft_fname, ':')
     dft_h = Atoms('H', positions=[(0, 0, 0)])
@@ -103,18 +103,18 @@ def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None,
     else:
         gap_ats = None
 
-    bdes = get_bdes(dft_ats, gap_ats, dft_prefix)
+    bdes = get_bdes(dft_ats, gap_ats, dft_prefix, gap_prefix)
 
     if printing:
         print('-' * 30)
         print(os.path.basename(os.path.splitext(dft_fname)[0]))
         print('-' * 30)
 
-        headers = [' ', "eV\nDFT E", "eV\nDFT BDE"]
+        headers = [' ', "eV\nDFT BDE"]
         if gap_ats is not None:
-            headers += ["eV\nGAP E", "eV\nGAP BDE", "meV\nBDE abs error",
-                        "Å\nRMSD", "SOAP dist", 'meV\nGAP E abs error',
-                        'meV/Å\n GAP F RMSE']
+            headers += ["eV\nGAP BDE", "BDE meV\nabs error",
+                        "Å\nRMSD", "\nSOAP dist", 'GAP E meV\nabs error',
+                        'GAP F meV/Å\nRMSE', 'GAP F meV/Å\nmax error']
 
         print(tabulate(bdes, headers=headers, floatfmt=f".{precision}f"))
 
@@ -181,7 +181,7 @@ def gap_optimise(start_fnames, gap_fnames, calculator):
         os.remove(gap_tmp_fname)
 
 
-def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
+def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_', gap_prefix='gap_'):
     label_pattern = re.compile(r"rad_?\d+$|mol$|H$")
 
     dft_h = dft_ats[0]
@@ -193,8 +193,8 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
     dft_h_energy = dft_h.info[f'{dft_prefix}energy']
     dft_mol_energy = dft_mol.info[f'{dft_prefix}energy']
 
-    h_data = ['H', dft_h_energy, np.nan]
-    mol_data = ['mol', dft_mol_energy, np.nan]
+    h_data = ['H', np.nan]
+    mol_data = ['mol', np.nan]
 
     if gap_ats is not None:
 
@@ -209,10 +209,13 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
         if f'{dft_prefix}energy' in gap_mol.info.keys():
             have_dft=True
 
-
         try:
-            gap_h_energy = gap_h.info['gap_energy']
-            gap_mol_energy = gap_mol.info['gap_energy']
+            gap_h_energy = gap_h.info[f'{gap_prefix}energy']
+            gap_mol_energy = gap_mol.info[f'{gap_prefix}energy']
+            if f'{gap_prefix}forces' in gap_mol.arrays.keys():
+                gap_mol_forces = gap_mol.arrays[f'{gap_prefix}forces']
+            else:
+                gap_mol_forces=None
 
             if have_dft:
                 dft_e_of_gap_mol = gap_mol.info['dft_energy']
@@ -227,13 +230,15 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
         mol_soap_dist = util.soap_dist(dft_mol, gap_mol)
         if have_dft:
             gap_abs_e_error = abs(dft_e_of_gap_mol - gap_mol_energy) * 1e3
+            gap_f_rmse = util.get_rmse(gap_mol_forces, dft_f_of_gap_mol) * 1e3
+            gap_f_max_err = np.max(np.abs(gap_mol_forces - dft_f_of_gap_mol)) * 1e3
 
-        h_data += [gap_h_energy, np.nan, h_error, np.nan, np.nan]
-        mol_data += [gap_mol_energy, np.nan, mol_error, mol_rmsd, mol_soap_dist]
+        h_data += [ np.nan, h_error, np.nan, np.nan]
+        mol_data += [np.nan, mol_error, mol_rmsd, mol_soap_dist]
 
         if have_dft:
-            h_data += [np.nan]
-            mol_data += [gap_abs_e_error]
+            h_data += [np.nan, np.nan, np.nan]
+            mol_data += [gap_abs_e_error, gap_f_rmse, gap_f_max_err]
     else:
         gap_ats = [None for _ in dft_ats]
 
@@ -245,6 +250,7 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
     rmsds = []
     soap_dists = []
     gap_e_errors = []
+    gap_f_errors = []
     for dft_at, gap_at in zip(dft_ats[2:], gap_ats[2:]):
 
         label = label_pattern.search(dft_at.info['config_type']).group()
@@ -252,7 +258,7 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
         dft_rad_e = dft_at.info[f'{dft_prefix}energy']
         dft_bde = dft_rad_e + dft_h_energy - dft_mol_energy
 
-        data_line = [label, dft_rad_e, dft_bde]
+        data_line = [label, dft_bde]
 
         if gap_at is not None:
             gap_rad_e = gap_at.info['gap_energy']
@@ -271,17 +277,26 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_'):
                 gap_e_error = abs(gap_rad_e - dft_e_of_gap_rad) * 1e3
                 gap_e_errors.append(gap_e_error)
 
-            data_line += [gap_rad_e, gap_bde, bde_error, rmsd, soap_dist]
+                dft_f_of_gap_rad = gap_at.arrays['dft_forces']
+                gap_rad_f = gap_at.arrays[f'{gap_prefix}forces']
+                rad_f_rmse = util.get_rmse(dft_f_of_gap_rad, gap_rad_f) * 1e3
+                gap_f_errors.append(list(np.ravel(dft_f_of_gap_rad - gap_rad_f)))
+
+                gap_max_f_error = np.max(np.abs(dft_f_of_gap_rad - gap_rad_f)) * 1e3
+
+            data_line += [gap_bde, bde_error, rmsd, soap_dist]
 
             if have_dft:
-                data_line += [gap_e_error]
+                data_line += [gap_e_error, rad_f_rmse, gap_max_f_error]
 
         data.append(data_line)
 
     if gap_ats[0] is not None:
         data.append(
-            ['mean', np.nan, np.nan, np.nan, np.nan, np.mean(bde_errors),
-             np.mean(rmsds), np.mean(soap_dists), np.mean(gap_e_errors)])
+            ['mean',  np.nan, np.nan, np.mean(bde_errors),
+             np.mean(rmsds), np.mean(soap_dists), np.mean(gap_e_errors),
+            np.sqrt(np.mean(np.array(gap_f_errors) ** 2))*1e3,
+             np.nan])
 
     return data
 
@@ -348,19 +363,23 @@ def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot',
 
 
 def get_data(dft_fnames, gap_fnames, selection=None, start_fnames=None,
-             calculator=None, which_data='bde'):
+             calculator=None, which_data='bde', gap_prefix='gap_'):
     '''which_data = 'bde', 'rmsd' or 'soap'. if 'rmsd' is selected,
     all_values[title][set]['dft'] corresponds to the DFT bdes and
     all_values[title][set]['gap'] = to rmsd or soap'''
 
-    dft_val_idx = 2
+    dft_val_idx = 1 # was 2
     if which_data == 'bde':
-        gap_val_idx = 4
+        gap_val_idx = 2 # was 4
     elif which_data == 'rmsd':
-        gap_val_idx = 6
+        gap_val_idx = 4  # was 6
     elif which_data == 'soap_dist':
-        gap_val_idx = 7
+        gap_val_idx = 5  # was 7
     elif which_data == 'gap_e_error':
+        gap_val_idx = 6 # was 8
+    elif which_data == 'gap_f_rmse':
+        gap_val_idx = 7
+    elif which_data == 'gap_f_max':
         gap_val_idx = 8
 
     if selection is None:
@@ -386,7 +405,7 @@ def get_data(dft_fnames, gap_fnames, selection=None, start_fnames=None,
 
         bde_table = bde_summary(dft_fname=dft_fname, gap_fname=gap_fname,
                            start_fname=start_fname, calculator=calculator,
-                           printing=False)
+                           printing=False, gap_prefix=gap_prefix)
 
         bde_table = bde_table.drop(bde_table.index[[0, 1, -1]])
 
@@ -453,10 +472,24 @@ def scatter_plot(all_data,
     elif which_data == 'gap_e_error':
         shade = 50
         if plot_title is None:
-            plot_title = 'soap_energy_error_scatter'
+            plot_title = 'energy_error_scatter'
         fill_label = f'< {shade} meV'
         hline_label = f'{shade} meV'
         ylabel = 'absolute GAP vs DFT error, meV'
+    elif which_data == 'gap_f_rmse':
+        shade = 100
+        if plot_title is None:
+            plot_title = 'force_forces_scatter'
+        fill_label = f'< {shade} meV/Å'
+        hline_label = f'{shade} meV/Å'
+        ylabel = 'force RMSE per molecule, meV/Å'
+    elif which_data == 'gap_f_max':
+        shade = 100
+        if plot_title is None:
+            plot_title = 'max_f_error_scatter'
+        fill_label = f'< {shade} meV/Å'
+        hline_label = f'{shade} meV/Å'
+        ylabel = 'maximum force component error per molecule, meV/Å'
 
     plt.figure(figsize=(10, 5))
     ax = plt.gca()
@@ -485,7 +518,8 @@ def scatter_plot(all_data,
 
             color = colors[idx % 10]
 
-            if which_data in ['rmsd', 'soap_dist', 'gap_e_error']:
+            if which_data in ['rmsd', 'soap_dist', 'gap_e_error', 'gap_f_rmse', 
+                              'gap_f_max']:
                 all_ys = []
                 all_xs = []
                 for data in all_data:
@@ -607,10 +641,23 @@ def iter_plot(all_data,
     elif which_data == 'gap_e_error':
         shade = 50
         if plot_title is None:
-            plot_title = 'soap_energy_error_scatter'
+            plot_title = 'gap_energy_error_scatter'
         fill_label = f'< {shade} meV'
         hline_label = f'{shade} meV'
         ylabel = 'absolute GAP vs DFT error, meV'
+    elif which_data == 'gap_f_rmse':
+        shade = 100
+        if plot_title is None:
+            plot_title = 'gap_force_rmse_scatter'
+        fill_label = f'< {shade} meV/Å'
+        hline_label = f'{shade} meV/Å'
+        ylabel = 'GAP f RMSE per molecule / meV/Å'
+    elif which_data == 'gap_f_max':
+        shade = 100
+        if plot_title is None:
+            plot_title = 'gap_max_f_error_scatter'
+        fill_label = f'< {shade} meV/Å'
+        ylabel='GAP max f error per molecule/ meV/Å'
 
 
     plt.figure(figsize=(10, 5))
@@ -642,7 +689,8 @@ def iter_plot(all_data,
 
             color = colors[idx % 10]
 
-            if which_data in ['rmsd', 'soap_dist', 'gap_e_error']:
+            if which_data in ['rmsd', 'soap_dist', 'gap_e_error', 'gap_f_rmse',
+                              'gap_f_max']:
                 all_ys = []
                 for data in all_data:
                     # corresponds to RMSD

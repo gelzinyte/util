@@ -36,9 +36,9 @@ def opt_and_normal_modes(dft_dir, gap_fnames, output_dir):
             optimise(gap_fname, input_fnames, traj_fname,
                                  opt_output_fname)
 
-        if not os.path.isfile(nm_output_fname):
-            print(f'normal-moding with {gap_fname}')
-            derive_normal_modes_parallel_atoms(opt_output_fname, gap_fname, nm_output_fname)
+        # if not os.path.isfile(nm_output_fname):
+        #     print(f'normal-moding with {gap_fname}')
+        #     derive_normal_modes_parallel_atoms(opt_output_fname, gap_fname, nm_output_fname)
 
 
 def optimise(gap_fname, input_fnames, traj_fname, output_fname):
