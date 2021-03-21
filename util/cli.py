@@ -22,6 +22,7 @@ from ase.io import read, write
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.calculators import orca
 from ase.io.extxyz import key_val_str_to_dict
+from util.plot import dataset
 
 
 @click.group('util')
@@ -61,15 +62,47 @@ def subcli_gap(ctx):
 def subcli_configs(ctx):
     pass
 
+@subcli_plot.command('overview')
+@click.argument('in-fname')
+@click.option('--fig-prefix', '-p')
+def plot_dataset(in_fname, fig_prefix):
+
+    atoms = read(in_fname, ':')
+
+    if fig_prefix:
+        title_energy = f'{fig_prefix}_energy_by_idx'
+        title_forces = f'{fig_prefix}_forces_by_idx'
+        title_geometry = f'{fig_prefix}_distances_distribution'
+
+    dataset.energy_by_idx(atoms, title=title_energy)
+    dataset.forces_by_idx(atoms, title=title_forces)
+    dataset.distances_distributions(atoms, title=title_geometry)
+
+
+@subcli_configs.command('filter-geometry')
+@click.argument('in-fname')
+@click.option('--mult', type=click.FLOAT, default=1.2, help='factor for bond cutoffs')
+@click.option('--out_fname', '-o', help='output fname')
+def filter_geometry(in_fname, mult, out_fname):
+    ats_in = read(in_fname, ':')
+    ats_out = configs_ops.filter_expanded_geometries(ats_in, mult)
+    write(out_fname, ats_out)
+
+
+
 @subcli_configs.command('atom-type')
 @click.argument('in-fname')
 @click.option('--output', '-o')
 @click.option('--cutoff-multiplier', '-m', type=click.FLOAT, default=1,
               help='multiplier for cutoffs')
-def atom_type(in_fname, output, cutoff_multiplier):
+@click.option('--elements', '-e', help='List of elements to atom type in aromatic and non')
+@click.option('--force', '-f', is_flag=True, help='whether to force overwriting configs_out')
+def atom_type(in_fname, output, cutoff_multiplier, elements, force):
+    elements = elements.split(" ")
     inputs = ConfigSet_in(input_files=in_fname)
-    outputs = ConfigSet_out(output_files=output)
+    outputs = ConfigSet_out(output_files=output, force=force)
     atom_types.assign_aromatic(inputs=inputs, outputs=outputs,
+                               elements_to_type=elements,
                                mult=cutoff_multiplier)
 
 @subcli_configs.command('distribute')
@@ -159,18 +192,20 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--smiles_csv', help='smiles to optimise')
 @click.option('--num_smiles_opt', type=click.INT, help='number of optimisations per smiles' )
 @click.option('--opt_starts_fname', help='filename where to optimise structures from')
-@click.option('--num_nm_displacements', type=click.INT, help='number of normal modes displacements per structure')
+@click.option('--num_nm_displacements_per_temp', type=click.INT,
+              help='number of normal modes displacements per structure per temperature')
+@click.option('--num_nm_temps', type=click.INT, help='how many nm temps to sample from')
 @click.option('--smearing', type=click.INT, default=2000)
 def fit(no_cycles, test_fname, train_fname, e_sigma, n_sparse,
         f_sigma,  smiles_csv, num_smiles_opt, opt_starts_fname,
-        num_nm_displacements, smearing):
+        num_nm_displacements_per_temp, num_nm_temps, smearing):
 
     iter_fit.fit(no_cycles=no_cycles,
                       test_fname=test_fname, first_train_fname=train_fname,
                       e_sigma=e_sigma, f_sigma=f_sigma, smiles_csv=smiles_csv,
                  num_smiles_opt=num_smiles_opt, opt_starts_fname=opt_starts_fname,
-                 num_nm_displacements=num_nm_displacements, n_sparse=n_sparse,
-                 smearing=smearing)
+                 num_nm_displacements_per_temp=num_nm_displacements_per_temp, n_sparse=n_sparse,
+                 smearing=smearing, num_nm_temps=num_nm_temps)
 
 @subcli_gap.command('optimize')
 @click.option('--start-dir' )
@@ -386,6 +421,11 @@ def bde_scatter_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
     if gap_dir is not None:
         if not os.path.isdir(gap_dir):
             os.makedirs(gap_dir)
+
+    if 'rmsd':
+        which_data = 'rmsd'
+    else:
+        which_data = 'bde'
 
     if gap_xml_fname is not None:
         calculator = (Potential, [], {'param_filename': gap_xml_fname})

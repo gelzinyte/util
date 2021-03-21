@@ -43,7 +43,7 @@ def cleanup_configs(num_tasks=8, batch_in_fname_prefix='in_',
             os.remoe(out_fname)
 
 
-def filter_expanded_geometries(atoms_list):
+def filter_expanded_geometries(atoms_list, mult=1.2):
 
     atoms_out = []
     skipped_idx = []
@@ -53,19 +53,28 @@ def filter_expanded_geometries(atoms_list):
 
 
         natural_cutoffs = neighborlist.natural_cutoffs(atoms,
-                                                       mult=2)
+                                                       mult=mult)
         neighbor_list = neighborlist.NeighborList(natural_cutoffs,
                                                   self_interaction=False,
                                                   bothways=True)
         _ = neighbor_list.update(atoms)
 
         for at in atoms:
-            if at.symbol == 'H':
 
-                indices, offsets = neighbor_list.get_neighbors(at.index)
+            indices, offsets = neighbor_list.get_neighbors(at.index)
+            if at.symbol == 'H':
                 if len(indices) == 0:
                     skipped_idx.append(idx)
                     # print(f'skipped {idx} because of atom {at.index}')
+                    break
+
+            elif at.symbol == 'C':
+                if len(indices) < 2:
+                    skipped_idx.append(idx)
+                    break
+            elif at.symbol == 'O':
+                if len(indices) == 0:
+                    skipped_idx.append(idx)
                     break
 
         else:

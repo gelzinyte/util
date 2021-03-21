@@ -56,8 +56,12 @@ def sample_configs(input_fn, output_fname, n_configs, sample_type, include_confi
 
 
     atoms_out = []
-    for atoms_list in at_by_config.values():
-        atoms_out += random.sample(atoms_list, config_sample_size)
+    for cfg, atoms_list in at_by_config.items():
+        if len(atoms_list) < config_sample_size:
+            print(f'taking all {len(atoms_list)} configs of {cfg}')
+            atoms_out += atoms_list
+        else:
+            atoms_out += random.sample(atoms_list, config_sample_size)
 
     print(f'Dataset size: {len(atoms_out)}')
 

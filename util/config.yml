@@ -4,6 +4,8 @@ programs:
   gap_fit: /opt/womble/QUIP/2021_02_08/linux_x86_64_gfortran_openmp/gap_fit
   quip: /opt/womble/QUIP/2021_02_08/linux_x86_64_gfortran_openmp/quip
 
+dftb: /home/eg475/scripts/source_files/tightbind.parms.DFTB.mio-0-1.xml
+
 other_paths:
   scratch: /scratch/eg475
   tmp: /tmp/eg475

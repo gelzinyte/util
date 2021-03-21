@@ -22,6 +22,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
+def filter_by_error(atoms, gap_prefix='gap_', dft_prefix='dft_',
+                    e_threshold=0.05, f_threshold=0.1):
+    atoms_out = []
+    for at in atoms:
+
+        e_error = at.info[f'{gap_prefix}energy'] - at.info[f'{dft_prefix}energy']
+        if np.abs(e_error) > e_threshold:
+            atoms_out.append(at)
+            continue
+
+        if f_threshold is not None:
+            f_error = at.arrays[f'{gap_prefix}forces'] - at.arrays[f'{dft_prefix}forces']
+            if np.max(np.abs(f_error.flatten())) > f_threshold:
+                atoms_out.append(at)
+
+    return atoms_out
 
 
 def make_structures(smiles_csv, iter_no, num_smi_repeat, opt_starts_fname):
@@ -43,7 +59,7 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, opt_starts_fname):
 
     # generate radicals
     mols_rads = ConfigSet_out(output_files=opt_starts_fname)
-    radicals.multi_mol_remove_h(molecules.output_configs, output=mols_rads)
+    radicals.abstract_sp3_hydrogen_atoms(molecules.output_configs, outputs=mols_rads)
 
 
 
@@ -271,9 +287,11 @@ def overall_errors(all_errs, title):
     ax2.plot(xs, f_errs, color='tab:blue', marker='x', label=f_col)
     ax2.tick_params(axis='y', labelcolor='tab:blue')
 
-    ax1.set_ylim(bottom=0)
-    ax2.set_ylim(bottom=0)
+    # ax1.set_ylim(bottom=0)
+    # ax2.set_ylim(bottom=0)
 
+    ax1.set_yscale('log')
+    ax2.set_yscale('log')
     # ax1.legend(bbox_to_anchor=(0, 0, 1, 0.8))
     # ax2.legend(bbox_to_anchor=(0, 0, 1, 0.8))
     ax1.set_ylabel(e_col, color='tab:red')
@@ -353,7 +371,8 @@ def rmses_by_mol(all_errs, label_addition=''):
         for ax in [ax_e, ax_f]:
             ax.set_xlabel('iteration')
             ax.xaxis.set_major_locator(mticker.MultipleLocator(1))
-            ax.set_ylim(bottom=0)
+            # ax.set_ylim(bottom=0)
+            ax.set_yscale('log')
 
         plt.suptitle(compound + ' ' + label_addition, color=color,
                      size=16)

@@ -1,5 +1,6 @@
 import os
 import yaml
+import numpy as np
 from ase.io import read, write
 try:
     from quippy.potential import Potential
@@ -22,7 +23,8 @@ def fit(no_cycles, test_fname='test.xyz',
         first_train_fname='train.xyz', e_sigma=0.0005, f_sigma=0.02,
         n_sparse=600,
         smiles_csv=None, num_smiles_opt=None, 
-        opt_starts_fname=None,  num_nm_displacements=None,
+        opt_starts_fname=None,  num_nm_displacements_per_temp=None,
+        num_nm_temps=None,
         smearing=2000):
     """ iteratively fits and optimises stuff
     
@@ -45,8 +47,11 @@ def fit(no_cycles, test_fname='test.xyz',
         for smiles, how many to generate-optimise structures
     opt_starts_fname: str, default=None
         xyz with structures to optimise every cycle
-    num_nm_displacements: int, default=None
-        how many normal modes to sample from GAP-optimised structures
+    num_nm_displacements_per_temp: int, default=None
+        how many normal modes to sample from GAP-optimised structures for each
+        temperature
+    num_nm_temps: int, default=None
+        how many temperatures to draw nm samples from
 
     """
 
@@ -173,30 +178,6 @@ def fit(no_cycles, test_fname='test.xyz',
         print(f'stderr: {stderr}')
 
 
-    # train_set = ConfigSet_in(input_files=dset_0_fname)
-    # for dataset, name in zip([train_set, test_set], ['train', 'test']):
-    #     output_fname = f'xyzs/gap_0_on_{name}.xyz'
-    #     if not os.path.isfile(output_fname):
-    #         print('error table')
-    #         if calculator is None:
-    #             calculator = Potential(param_filename=gap_fname)
-    #         print('-'*30, f'\n{name}\n', '-'*30)
-    #         error_table.plot(data=dataset, ref_prefix='dft_', pred_prefix='gap0_',
-    #                          calculator=calculator,
-    #                          output_fname=output_fname, chunksize=200)
-
-
-    # for set_name in ['train', 'test']:
-    #     gap_name = 'gap0'
-    #     output_dir = f'bdes/{gap_name}/{set_name}'
-    #     bde_start_dir = os.path.join(bde_root, set_name, 'starts')
-    #     bde_dft_dir = os.path.join(bde_root, set_name, 'dft')
-    #     calculator = (Potential, [], {'param_filename':gap_fname})
-    #     print('making bde files')
-    #     bde.multi_bde_summaries(dft_dir=bde_dft_dir, gap_dir=output_dir, calculator=calculator,
-    #                             start_dir=bde_start_dir)
-        # it.make_bde_files(bde_start_dir, output_dir, calculator, 'gap0')
-
     ###############################
     ## iterations
     ###############################
@@ -210,17 +191,19 @@ def fit(no_cycles, test_fname='test.xyz',
         # define filenames
         #######################
 
-        if  smiles_csv is not None:
+        if smiles_csv is not None:
             opt_starts_fname = f'xyzs/non_opt_mols_rads_{cycle_idx}.xyz'
 
         nm_ref_fname = None
         nm_sample_fname = None
-        if num_nm_displacements is not None:
+        if num_nm_displacements_per_temp is not None:
             nm_ref_fname = f'xyzs/normal_modes_reference_{cycle_idx}.xyz'
             nm_sample_fname = f'xyzs/normal_modes_sample_{cycle_idx}.xyz'
 
         opt_fname = f'xyzs/opt_mols_rads_{cycle_idx}.xyz'
-        extra_data_with_dft = f'xyzs/opt_mols_rads_dft_{cycle_idx}.xyz'
+        extra_data_with_dft = f'xyzs/all_extra_data_w_dft_{cycle_idx}.xyz'
+        extra_data_with_dft_and_gap = f'xyzs/all_extra_data_w_dft_and_gap_{cycle_idx}.xyz'
+        additional_data = f'xyzs/data_to_add_{cycle_idx}.xyz'
         opt_traj_fname = f'xyzs/opt_trajs/opt_{cycle_idx}.xyz'
         train_set_fname = f'xyzs/train_{cycle_idx}.xyz'
         opt_logfile = f'xyzs/opt_trajs/opt_log_{cycle_idx}.txt'
@@ -249,7 +232,7 @@ def fit(no_cycles, test_fname='test.xyz',
 
             file_for_dft = opt_fname
             
-            if num_nm_displacements is not None:
+            if num_nm_displacements_per_temp is not None:
 
                 # generate normal mode reference
                 if not os.path.exists(nm_ref_fname):
@@ -263,21 +246,23 @@ def fit(no_cycles, test_fname='test.xyz',
 
                 # sample normal modes
                 if not os.path.exists(nm_sample_fname):
-                    inputs = ConfigSet_in(input_files=nm_ref_fname)
-                    outputs = ConfigSet_out(output_files=nm_sample_fname)
-                    info_to_keep = ['config_type', 'iter_no', 'minim_n_steps']
-                    
-                    vib.sample_normal_modes(inputs=inputs,
-                                             outputs=outputs, 
-                                             temp=nm_temp, 
-                                             sample_size=num_nm_displacements, 
-                                             info_to_keep=info_to_keep,
-                                            prop_prefix='gap_')
+                    nm_temperatures = np.random.randint(1, 600, num_nm_temps)
+                    sampled_configs = []
+                    for nm_temp in nm_temperatures:
+                        inputs = ConfigSet_in(input_files=nm_ref_fname)
+                        outputs = ConfigSet_out()
+                        info_to_keep = ['config_type', 'iter_no', 'minim_n_steps']
 
-                    ats = read(nm_sample_fname, ":")
+                        vib.sample_normal_modes(inputs=inputs,
+                                                 outputs=outputs,
+                                                 temp=nm_temp,
+                                                 sample_size=num_nm_displacements_per_temp,
+                                                 info_to_keep=info_to_keep,
+                                                prop_prefix='gap_')
+                        sampled_configs += outputs.output_configs
 
                     # filter out super expanded structures
-                    ats = configs_ops.filter_expanded_geometries(ats)
+                    ats = configs_ops.filter_expanded_geometries(sampled_configs)
 
                     for at in ats:
                         at.cell = [40, 40, 40]
@@ -299,16 +284,36 @@ def fit(no_cycles, test_fname='test.xyz',
                                                          keep_files=True, base_rundir=f'orca_outputs_{cycle_idx}'
                                                          )
 
-                # if calculator is None:
-                #     calculator = Potential(param_filename=gap_fname)
+            if not os.path.exists(extra_data_with_dft_and_gap):
+                print('Reevaluating extra data with gap')
+                inputs = ConfigSet_in(input_files=extra_data_with_dft)
+                outputs = ConfigSet_out(output_files=extra_data_with_dft_and_gap)
 
-                # print('-' * 15, f'Optimisation {cycle_idx} errors:')
-                # error_table.plot(data=dft_evaled_opt_mols_rads,
-                #                  ref_prefix='dft_', pred_prefix=f'gap{cycle_idx - 1}_',
-                #                  calculator=calculator, output_fname=opt_fname)
+                no_cores = int(os.environ['AUTOPARA_NPOOL'])
+                no_compounds = len(read(extra_data_with_dft, ':'))
+
+                chunksize = int(no_compounds/no_cores) + 1
+
+                generic.run(inputs=inputs, outputs=outputs, calculator=calculator,
+                            properties=['energy', 'forces'], chunksize=chunksize)
+
+                atoms = read(extra_data_with_dft_and_gap, ':')
+                for at in atoms:
+                    at.info[f'gap_{cycle_idx}_energy'] = at.info['Potential_energy']
+                    at.arrays[f'gap_{cycle_idx}_forces'] = at.arrays['Potential_forces']
+
+                write(extra_data_with_dft_and_gap, atoms)
+
+            if not os.path.exists(additional_data):
+                atoms = read(extra_data_with_dft_and_gap, ':')
+                atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx}_',
+                                           f_threshold=None)
+                write(additional_data, atoms)
+
+
 
             previous_dset = read(f'xyzs/train_{cycle_idx - 1}.xyz', ':')
-            new_atoms = read(extra_data_with_dft, ':')
+            new_atoms = read(additional_data, ':')
             write(train_set_fname, previous_dset + new_atoms, write_results=False)
         else:
             print(f'Found {train_set_fname}, not re-generating')
@@ -329,29 +334,6 @@ def fit(no_cycles, test_fname='test.xyz',
             print(f'stdout: {stdout}')
             print(f'stderr: {stderr}')
 
-
-        # test/evaluate gap
-        # train_set = ConfigSet_in(input_files=train_set_fname)
-        # for dataset, name in zip([train_set, test_set], ['train', 'test']):
-        #     output_fname = f'xyzs/gap_{cycle_idx}_on_{name}.xyz'
-        #     if not os.path.isfile(output_fname):
-        #         if calculator is None:
-        #             calculator = Potential(param_filename=gap_fname)
-        #         print(f'gap fname: {gap_fname}')
-        #         error_table.plot(data=dataset, ref_prefix='dft_', pred_prefix=f'gap{cycle_idx}_',
-        #                          calculator=calculator,
-        #                          output_fname=output_fname, chunksize=200)
-
-        # for set_name in ['train', 'test']:
-        #     gap_name = f'gap{cycle_idx}'
-        #     output_dir = f'bdes/{gap_name}/{set_name}'
-        #     bde_start_dir = os.path.join(bde_root, set_name, 'starts')
-        #     bde_dft_dir = os.path.join(bde_root, set_name, 'dft')
-        #
-        #     print('making bde files')
-        #     bde.multi_bde_summaries(dft_dir=bde_dft_dir, gap_dir=output_dir,
-        #                             calculator=(Potential, [], {'param_filename':gap_fname}),
-        #                             start_dir=bde_start_dir)
 
     ##################
     # Analyse stuff

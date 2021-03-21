@@ -5,6 +5,7 @@ import random
 import numpy as np
 import subprocess
 from itertools import zip_longest
+from collections import Counter
 
 # Packages for atoms and molecules
 import ase
@@ -25,6 +26,16 @@ try:
     from asaplib.reducedim import Dimension_Reducers
 except:
     pass
+
+def get_binding_energy_per_at(atoms, isolated_at_data, prop_prefix):
+
+    counted_ats = Counter(list(atoms.symbols))
+    full_energy = atoms.info[f'{prop_prefix}energy']
+    for symbol, count in counted_ats.items():
+        full_energy -= count * isolated_at_data[symbol]
+
+    return full_energy / len(atoms)
+
 
 
 def relax(at, calc, fmax=1e-3, steps=0):
