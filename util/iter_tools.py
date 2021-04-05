@@ -12,7 +12,7 @@ from wfl.utils.parallel import construct_calculator_picklesafe
 from wfl.utils.at_copy_spc import at_copy_SPC
 from wfl.utils.misc import atoms_to_list
 from ase.io import write, read
-from util.config import Config
+from util.util_config import Config
 from wfl.calculators import orca
 import os
 
@@ -21,6 +21,25 @@ import matplotlib.ticker as mticker
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from wfl.generate_configs import vib
+
+def testing_set_from_gap_normal_modes(iter_no, temperature, no_samples):
+
+    nm_fname = f'xyzs/normal_modes_reference_{iter_no}.xyz'
+    inputs = ConfigSet_in(input_files=nm_fname)
+    outputs = ConfigSet_out()
+    info_to_keep = ['config_type', 'iter_no', 'minim_n_steps']
+
+
+    vib.sample_normal_modes(inputs=inputs,
+                            outputs=outputs,
+                            temp=temperature,
+                            sample_size=no_samples,
+                            info_to_keep=info_to_keep,
+                            prop_prefix='gap_')
+
+    return outputs.output_configs
+
 
 def filter_by_error(atoms, gap_prefix='gap_', dft_prefix='dft_',
                     e_threshold=0.05, f_threshold=0.1):

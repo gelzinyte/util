@@ -2,13 +2,16 @@ import click
 from util import compare_minima
 from util import error_table
 from util import plot
+from util import iter_tools as it
 from util.plot import rmse_scatter_evaled
+from util.plot import iterations
 from util import data
 from util import select_configs
 from util import old_nms_to_new
-from util import configs_ops
+from util import configs
 from util import atom_types
 import os
+import numpy as np
 try:
     from quippy.potential import Potential
 except ModuleNotFoundError:
@@ -62,21 +65,127 @@ def subcli_gap(ctx):
 def subcli_configs(ctx):
     pass
 
-@subcli_plot.command('overview')
+@cli.group('tmp')
+def subcli_tmp():
+    pass
+
+@subcli_configs.command('sample-normal-modes')
+@click.argument('input_fname')
+@click.option('--output-fname', '-o', help='where to write sampled structures')
+@click.option('--temperature', '-t', type=click.FLOAT,  help='target temperature to generate normal modes at')
+@click.option('--sample-size', '-n', type=click.INT, help='number of sampled structures per input structure')
+@click.option('--prop-prefix', '-p', help='prefix for properties in xyz')
+@click.option('--info-to-keep', help='space separated string of info keys to keep')
+@click.option('--arrays-to-keep', help='space separated string of arrays keys to keep')
+def sample_normal_modes(input_fname, output_fname, temperature, sample_size,
+                        prop_prefix, info_to_keep, arrays_to_keep):
+
+    inputs = ConfigSet_in(input_files=input_fname)
+    outputs = ConfigSet_out(output_files=output_fname)
+    if info_to_keep is not None:
+        info_to_keep = info_to_keep.split()
+    if arrays_to_keep is not None:
+        arrays_to_keep = arrays_to_keep.split()
+
+    configs.sample_downweighted_normal_modes(inputs=inputs, outputs=outputs,
+                                             temp=temperature, sample_size=sample_size,
+                                             prop_prefix=prop_prefix,
+                                             info_to_keep=info_to_keep,
+                                             arrays_to_keep=arrays_to_keep)
+
+
+
+
+@subcli_tmp.command('sample-nms-test-set')
+@click.option('--output-prefix', default='normal_modes_test_sample')
+@click.option('--num-temps', type=click.INT)
+@click.option('--num-displacements-per-temp', type=click.INT)
+@click.option('--num-cycles', type=click.INT)
+@click.option('--output-dir', default='xyzs', show_default=True)
+def make_test_sets(output_prefix, num_temps, num_displacements_per_temp, num_cycles,
+                   output_dir):
+
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    temperatures = np.random.randint(1, 500, num_temps)
+    for iter_no in range(1, num_cycles+1):
+
+        current_test_set = []
+        for temp in temperatures:
+            sample = it.testing_set_from_gap_normal_modes(iter_no, temp,
+                                                         num_displacements_per_temp)
+            current_test_set += sample
+
+        write(os.path.join(output_dir, f'{output_prefix}_{iter_no}.xyz'), current_test_set)
+
+
+
+@subcli_plot.command('iterations')
+@click.option('--test-fname-pattern', default='xyzs/gap_{idx}_on_test_{idx}.xyz', show_default=True)
+@click.option('--train-fname-pattern', default='xyzs/gap_{idx}_on_train_{idx}.xyz',
+              show_default=True, help='pattern with "{idx}" in the title to be replaced')
+@click.option('--ref-prefix', default='dft_', show_default=True)
+@click.option('--pred-prefix-pattern', default='gap_{idx}_', show_default=True,
+              help='pattern with {idx} to be replaced')
+@click.option('--plot-prefix')
+@click.option('--num-cycles', type=click.INT, help='number of iterations', required=True)
+@click.option('--gap-bde-dir-pattern', default='bdes_from_dft_min/gap_{idx}_bdes_from_dft',
+              show_default=True)
+@click.option('--dft-bde-dir', default='/home/eg475/dsets/small_cho/bde_files/train/dft/')
+@click.option('--measure', default='bde_correlation',
+              type=click.Choice(['bde', 'rmsd', 'soap_dist', 'gap_e_error', \
+                                'gap_f_rmse', 'gap_f_max', 'bde_correlation']),
+             help='which property to look at')
+@click.option('--no-lc', is_flag=True, help='turns off learning curves')
+@click.option('--means', type=click.BOOL, default=True, help='whether to do a means plot')
+@click.option('--no-bde', is_flag=True, help='turns off bde related plots')
+def plot_cycles(test_fname_pattern, train_fname_pattern, ref_prefix, pred_prefix_pattern, plot_prefix,
+                num_cycles, gap_bde_dir_pattern, dft_bde_dir, measure, no_lc, means, no_bde):
+
+    num_cycles += 1
+
+    train_fnames = [train_fname_pattern.replace('{idx}', str(idx)) for idx in range(num_cycles)]
+    test_fnames = [test_fname_pattern.replace('{idx}', str(idx)) for idx in
+                    range(num_cycles)]
+    pred_prefixes = [pred_prefix_pattern.replace('{idx}', str(idx)) for idx in range(num_cycles)]
+
+    if not no_lc:
+        iterations.learning_curves(train_fnames=train_fnames, test_fnames=test_fnames,
+                                   ref_prefix=ref_prefix, pred_prefix_list=pred_prefixes,
+                               plot_prefix=plot_prefix)
+
+    if not no_bde:
+        iterations.bde_related_plots(num_cycles=num_cycles, gap_dir_pattern=gap_bde_dir_pattern,
+                                    dft_dir=dft_bde_dir, metric=measure, plot_prefix=plot_prefix,
+                                 means=means)
+
+
+@subcli_plot.command('data-summary')
 @click.argument('in-fname')
 @click.option('--fig-prefix', '-p')
-def plot_dataset(in_fname, fig_prefix):
+@click.option('--isolated_at_fname', '-i')
+@click.option('--cutoff', '-c', default=6.0, type=click.FLOAT,
+              help='cutoff for counting distances')
+def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff):
 
     atoms = read(in_fname, ':')
+
+    if cutoff == 0:
+        cutoff = None
+
+    isolated_ats = None
+    if isolated_at_fname:
+        isolated_ats = read(isolated_at_fname, ':')
 
     if fig_prefix:
         title_energy = f'{fig_prefix}_energy_by_idx'
         title_forces = f'{fig_prefix}_forces_by_idx'
         title_geometry = f'{fig_prefix}_distances_distribution'
 
-    dataset.energy_by_idx(atoms, title=title_energy)
+    dataset.energy_by_idx(atoms, title=title_energy, isolated_atoms=isolated_ats)
     dataset.forces_by_idx(atoms, title=title_forces)
-    dataset.distances_distributions(atoms, title=title_geometry)
+    dataset.distances_distributions(atoms, title=title_geometry, cutoff=cutoff)
 
 
 @subcli_configs.command('filter-geometry')
@@ -85,7 +194,7 @@ def plot_dataset(in_fname, fig_prefix):
 @click.option('--out_fname', '-o', help='output fname')
 def filter_geometry(in_fname, mult, out_fname):
     ats_in = read(in_fname, ':')
-    ats_out = configs_ops.filter_expanded_geometries(ats_in, mult)
+    ats_out = configs.filter_expanded_geometries(ats_in, mult)
     write(out_fname, ats_out)
 
 
@@ -110,7 +219,7 @@ def atom_type(in_fname, output, cutoff_multiplier, elements, force):
 @click.option('--num-tasks', '-n', default=8, type=click.INT, help='number of files to distribute across')
 @click.option('--prefix', '-p', default='in_', help='prefix for individual files')
 def distribute_configs(in_fname, num_tasks, prefix):
-    configs_ops.batch_configs(in_fname=in_fname, num_tasks=num_tasks,
+    configs.batch_configs(in_fname=in_fname, num_tasks=num_tasks,
                               batch_in_fname_prefix=prefix)
 
 
@@ -121,7 +230,7 @@ def distribute_configs(in_fname, num_tasks, prefix):
 @click.option('--prefix', '-p', default='out_',
               help='prefix for individual files')
 def gather_configs(out_fname, num_tasks, prefix):
-    configs_ops.collect_configs(out_fname=out_fname, num_tasks=num_tasks,
+    configs.collect_configs(out_fname=out_fname, num_tasks=num_tasks,
                               batch_out_fname_prefix=prefix)
 
 @subcli_configs.command('remove')
@@ -132,7 +241,7 @@ def gather_configs(out_fname, num_tasks, prefix):
 @click.option('--in-prefix', default='in_',
               help='prefix for individual files')
 def cleanup_configs(num_tasks, out_prefix, in_prefix):
-    configs_ops.cleanup_configs(num_tasks=num_tasks,
+    configs.cleanup_configs(num_tasks=num_tasks,
                                 batch_in_fname_prefix=in_prefix,
                                 batch_out_fname_prefix=out_prefix)
 
@@ -184,7 +293,6 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 
 @subcli_gap.command('fit')
 @click.option('--no_cycles', type=click.INT, help='number of gap_fit - optimise cycles')
-@click.option('--test_fname', default='test.xyz', help='xyz to test gaps on')
 @click.option('--train_fname', default='train.xyz', help='fname of first training set file')
 @click.option('--e_sigma', default=0.0005, type=click.FLOAT, help='energy default sigma')
 @click.option('--f_sigma', default=0.02, type=click.FLOAT, help='force default sigma')
@@ -195,13 +303,13 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--num_nm_displacements_per_temp', type=click.INT,
               help='number of normal modes displacements per structure per temperature')
 @click.option('--num_nm_temps', type=click.INT, help='how many nm temps to sample from')
-@click.option('--smearing', type=click.INT, default=2000)
-def fit(no_cycles, test_fname, train_fname, e_sigma, n_sparse,
+@click.option('--smearing', type=click.INT, default=5000)
+def fit(no_cycles, train_fname, e_sigma, n_sparse,
         f_sigma,  smiles_csv, num_smiles_opt, opt_starts_fname,
         num_nm_displacements_per_temp, num_nm_temps, smearing):
 
     iter_fit.fit(no_cycles=no_cycles,
-                      test_fname=test_fname, first_train_fname=train_fname,
+                      first_train_fname=train_fname,
                       e_sigma=e_sigma, f_sigma=f_sigma, smiles_csv=smiles_csv,
                  num_smiles_opt=num_smiles_opt, opt_starts_fname=opt_starts_fname,
                  num_nm_displacements_per_temp=num_nm_displacements_per_temp, n_sparse=n_sparse,
@@ -414,18 +522,17 @@ def bde_bar_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
 @click.option('--plot_title', '-t', type=click.STRING, default='bde_bar_plot')
 @click.option('--output_dir', type=click.Path(), default='pictures')
 @click.option('--exclude', '-e', help='string of dft fnames to exclude')
-@click.option('--rmsd', is_flag=True, help='scatters rmsds instead of bdes')
+@click.option('--measure', default='bde_correlation',
+              type=click.Choice(['bde', 'rmsd', 'soap_dist', 'gap_e_error', \
+                                'gap_f_rmse', 'gap_f_max', 'bde_correlation']),
+             help='which property to look at')
 def bde_scatter_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
                  plot_title='bde_bar_plot', output_dir='pictures',
-                exclude=None, rmsd=False):
+                exclude=None, measure='bde'):
     if gap_dir is not None:
         if not os.path.isdir(gap_dir):
             os.makedirs(gap_dir)
 
-    if 'rmsd':
-        which_data = 'rmsd'
-    else:
-        which_data = 'bde'
 
     if gap_xml_fname is not None:
         calculator = (Potential, [], {'param_filename': gap_xml_fname})
@@ -449,11 +556,10 @@ def bde_scatter_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
         start_fnames = [None for _ in dft_fnames]
 
     data = bde.get_data(dft_fnames, gap_fnames, start_fnames=start_fnames,
-                        calculator=calculator, which_data=which_data)
+                        calculator=calculator, which_data=measure)
 
     bde.scatter_plot(all_data=data, plot_title=plot_title,
-                         output_dir=output_dir,
-                     rmsd=rmsd)
+                         output_dir=output_dir, which_data=measure  )
 
 
 

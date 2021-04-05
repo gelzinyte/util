@@ -98,7 +98,11 @@ def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None,
     if gap_fname is not None and os.path.isfile(gap_fname):
         gap_ats = read(gap_fname, ':')
     elif gap_fname is not None and not os.path.isfile(gap_fname):
-        gap_optimise(start_fname, gap_fname, calculator)
+        try:
+            gap_optimise(start_fname, gap_fname, calculator)
+        except RuntimeError as e:
+            print(f'start_fname: {start_fname}\ngap_fname: {gap_fname}\ndft_fname: {dft_fname}')
+            raise e
         gap_ats = read(gap_fname, ':')
     else:
         gap_ats = None
@@ -304,7 +308,7 @@ def get_bdes(dft_ats, gap_ats=None, dft_prefix='dft_', gap_prefix='gap_'):
 def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot',
                  start_fnames=None,
                  calculator=None,
-                 output_dir='pictures'):
+                 output_dir='pictures', which_data='bde'):
     if start_fnames is None:
         start_fnames = [None for _ in gap_fnames]
 
@@ -326,8 +330,8 @@ def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot',
                            calculator=calculator,
                            printing=False)
 
-        dft_bdes = np.array(bdes[2][2:-1])
-        gap_bdes = np.array(bdes[4][2:-1])
+        dft_bdes = np.array(bdes[get_dft_idx_in_table()][2:-1])
+        gap_bdes = np.array(bdes[property_to_table_idx(which_data)][2:-1])
 
         all_dft_bdes.append(dft_bdes)
         all_gap_bdes.append(gap_bdes)
@@ -362,25 +366,35 @@ def bde_bar_plot(gap_fnames, dft_fnames, plot_title='bde_bar_plot',
     plt.savefig(os.path.join(output_dir, plot_title + '.png'), dpi=300)
 
 
+def property_to_table_idx(which_data):
+    if which_data == 'bde' or which_data == 'bde_correlation':
+        return  2 # was 4
+    elif which_data == 'rmsd':
+        return  4  # was 6
+    elif which_data == 'soap_dist':
+        return  5  # was 7
+    elif which_data == 'gap_e_error':
+        return  6 # was 8
+    elif which_data == 'gap_f_rmse':
+        return 7
+    elif which_data == 'gap_f_max':
+        return 8
+
+def get_dft_idx_in_table():
+    return 1
+
 def get_data(dft_fnames, gap_fnames, selection=None, start_fnames=None,
              calculator=None, which_data='bde', gap_prefix='gap_'):
     '''which_data = 'bde', 'rmsd' or 'soap'. if 'rmsd' is selected,
     all_values[title][set]['dft'] corresponds to the DFT bdes and
     all_values[title][set]['gap'] = to rmsd or soap'''
 
-    dft_val_idx = 1 # was 2
-    if which_data == 'bde':
-        gap_val_idx = 2 # was 4
-    elif which_data == 'rmsd':
-        gap_val_idx = 4  # was 6
-    elif which_data == 'soap_dist':
-        gap_val_idx = 5  # was 7
-    elif which_data == 'gap_e_error':
-        gap_val_idx = 6 # was 8
-    elif which_data == 'gap_f_rmse':
-        gap_val_idx = 7
-    elif which_data == 'gap_f_max':
-        gap_val_idx = 8
+    drop_idx = [0, -1]
+    if which_data in ['bde', 'bde_correlation']:
+        drop_idx = [0, 1,  -1]
+
+    dft_val_idx = get_dft_idx_in_table()
+    gap_val_idx = property_to_table_idx(which_data)
 
     if selection is None:
         selection = {}
@@ -393,7 +407,6 @@ def get_data(dft_fnames, gap_fnames, selection=None, start_fnames=None,
     for gap_fname, dft_fname, start_fname, in zip(gap_fnames, dft_fnames,
                                                   start_fnames):
 
-        print(gap_fname)
 
         title = os.path.basename(os.path.splitext(gap_fname)[0]).replace(
             '_gap_optimised.xyz', '')
@@ -407,7 +420,7 @@ def get_data(dft_fnames, gap_fnames, selection=None, start_fnames=None,
                            start_fname=start_fname, calculator=calculator,
                            printing=False, gap_prefix=gap_prefix)
 
-        bde_table = bde_table.drop(bde_table.index[[0, 1, -1]])
+        bde_table = bde_table.drop(bde_table.index[drop_idx])
 
         selected_h_list = []
         for key, vals in selection.items():
@@ -490,8 +503,14 @@ def scatter_plot(all_data,
         fill_label = f'< {shade} meV/Å'
         hline_label = f'{shade} meV/Å'
         ylabel = 'maximum force component error per molecule, meV/Å'
+    elif which_data == 'bde_correlation':
+        shade = 50
+        if plot_title is None:
+            plot_title = 'bde_scatter'
+        fill_label = f'$\pm$ 50 meV'
+        ylabel='GAP BDE / eV'
 
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(6, 6))
     ax = plt.gca()
     # plt.axhline(shade, linewidth=0.8, color='k', zorder=2,
     # label=hline_label)
@@ -513,9 +532,6 @@ def scatter_plot(all_data,
             if len(ref_data[label][set_name]['dft']) == 0:
                 continue
 
-            if set_name == 'test':
-                label += 'test'
-
             color = colors[idx % 10]
 
             if which_data in ['rmsd', 'soap_dist', 'gap_e_error', 'gap_f_rmse', 
@@ -527,13 +543,22 @@ def scatter_plot(all_data,
                     all_ys.append(y_data)
                     all_xs.append(data[label][set_name]['dft'])
 
-            else:
+            elif which_data == 'bde':
                 all_ys = []
                 all_xs = []
                 for data in all_data:
                     dft_bdes = data[label][set_name]['dft']
                     gap_bdes = data[label][set_name]['gap']
                     all_ys.append(np.abs(dft_bdes - gap_bdes) * 1000)
+                    all_xs.append(data[label][set_name]['dft'])
+
+            elif which_data == 'bde_correlation':
+                all_ys = []
+                all_xs = []
+                for data in all_data:
+                    dft_bdes = data[label][set_name]['dft']
+                    gap_bdes = data[label][set_name]['gap']
+                    all_ys.append(gap_bdes)
                     all_xs.append(data[label][set_name]['dft'])
 
             all_xs = np.array(all_xs).T
@@ -582,21 +607,49 @@ def scatter_plot(all_data,
                 fmt = m
                 legend_title = 'Err bars: 3+ BDES - mean +- STD'
 
-            plt.errorbar(xs, ys, yerr=yerr, zorder=3, fmt=fmt, color=color,
-                         label=label, capsize=2)
+            # plt.errorbar(xs, ys, yerr=yerr, zorder=3, fmt=fmt, color=color,
+            #              label=label, capsize=2)
+            marker = 'o'
+            if set_name == 'test':
+                label += '_test'
+                marker = 'x'
+
+            plt.scatter(xs, ys, zorder=3, label=print_label, marker=marker)
 
     if shade is not None:
         xmin, xmax = ax.get_xlim()
-        plt.fill_between([xmin, xmax], 0, shade, color='lightgrey',
-                         label=fill_label, alpha=0.5)
-        ax.set_xlim(xmin, xmax)
+        if which_data == 'bde_correlation':
+            extend_axis = 0.1
+            xmin -=extend_axis
+            xmax += extend_axis
 
-    plt.yscale('log')
+            shade /= 1e+3
+            plt.plot([xmin, xmax], [xmin, xmax],
+                     color='k', lw=0.5)
+            plt.fill_between([xmin, xmax], [xmin - shade, xmax - shade],
+                            [xmin+ shade, xmax + shade],
+                              color='lightgrey', alpha=0.5)
+
+
+
+        else:
+            plt.fill_between([xmin, xmax], 0, shade, color='lightgrey',
+                             label=fill_label, alpha=0.5)
+            ax.set_xlim(xmin, xmax)
+
+    if which_data != 'bde_correlation':
+        plt.yscale('log')
+        plt.legend(title=legend_title, bbox_to_anchor=[1, 1])
+    else:
+        if len(ref_data.keys()) <11:
+            plt.legend(title=legend_title)
+
+
+
     plt.grid(color='grey', ls=':', which='both')
     plt.ylabel(ylabel)
     plt.xlabel('DFT BDE / eV')
     plt.title(plot_title)
-    plt.legend(title=legend_title, bbox_to_anchor=(1, 1))
     plt.tight_layout()
 
 
@@ -612,7 +665,8 @@ def iter_plot(all_data,
               plot_title=None,
               output_dir='pictures',
               which_data = 'bde',
-              include=None):
+              include=None,
+              means=False):
 
     if which_data == 'bde':
         shade = 50
@@ -659,8 +713,10 @@ def iter_plot(all_data,
         fill_label = f'< {shade} meV/Å'
         ylabel='GAP max f error per molecule/ meV/Å'
 
-
-    plt.figure(figsize=(10, 5))
+    figsize=(10, 5)
+    if means:
+        figsize=(8, 5)
+    plt.figure(figsize=figsize)
     ax = plt.gca()
 
     cmap = plt.get_cmap('tab10')
@@ -668,6 +724,7 @@ def iter_plot(all_data,
 
     ref_data = all_data[0]
 
+    means_data = None
     for idx, label in enumerate(ref_data.keys()):
 
         print_label = label.replace('_gap_optimised', '')
@@ -693,7 +750,6 @@ def iter_plot(all_data,
                               'gap_f_max']:
                 all_ys = []
                 for data in all_data:
-                    # corresponds to RMSD
                     all_ys.append(data[label][set_name]['gap'])
 
 
@@ -708,15 +764,28 @@ def iter_plot(all_data,
 
             all_ys = np.array(all_ys)
 
-            for ys in all_ys.T:
-                plt.plot(xs, ys, zorder=3, marker='x', color=color,
-                         label=print_label)
-                if print_label is not None:
-                    print_label = None
+            if not means:
+                for ys in all_ys.T:
+                    plt.plot(xs, ys, zorder=3, marker='x', color=color,
+                             label=print_label)
+                    if print_label is not None:
+                        print_label = None
+            else:
+                if means_data is None:
+                    means_data = np.array(all_ys.T)
+                else:
+                    means_data =  np.concatenate((means_data, all_ys.T))
+
+
+    if means:
+        mean_ys = np.mean(means_data, axis=0)
+        for data in means_data:
+            plt.scatter(xs, data, alpha=0.5, edgecolor='none')
+        plt.plot(xs, mean_ys, color='k', marker='x', ms=10, label='mean')
 
     xmin, xmax = ax.get_xlim()
     plt.fill_between([xmin, xmax], 0, shade, color='lightgrey',
-                     label=fill_label, alpha=0.5)
+                     label=fill_label, alpha=0.5, zorder=0)
     ax.set_xlim(xmin, xmax)
 
     plt.yscale('log')

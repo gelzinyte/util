@@ -27,7 +27,21 @@ try:
 except:
     pass
 
-def get_binding_energy_per_at(atoms, isolated_at_data, prop_prefix):
+from contextlib import contextmanager,redirect_stderr,redirect_stdout
+from os import devnull
+
+@contextmanager
+def suppress_stdout_stderr():
+    """A context manager that redirects stdout and stderr to devnull"""
+    with open(devnull, 'w') as fnull:
+        with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
+            yield (err, out)
+
+def get_binding_energy_per_at(atoms, isolated_atoms, prop_prefix):
+
+    isolated_at_data = {}
+    for at in isolated_atoms:
+        isolated_at_data[list(at.symbols)[0]] = at.info[f'{prop_prefix}energy']
 
     counted_ats = Counter(list(atoms.symbols))
     full_energy = atoms.info[f'{prop_prefix}energy']

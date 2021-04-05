@@ -37,7 +37,7 @@ from ase.io.extxyz import key_val_dict_to_str
 from ase.optimize.precon import PreconLBFGS
 from ase.units import Ha
 from util import dict_to_vals
-from util.config import Config
+from util.util_config import Config
 
 
 

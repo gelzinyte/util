@@ -12,20 +12,20 @@ from wfl.configset import ConfigSet_in, ConfigSet_out
 from util import iter_tools as it
 import util
 from util import bde
-from util.config import Config
-from util import configs_ops
+from util.util_config import Config
+from util import configs
 from wfl.generate_configs import vib
 
 # will be changed
 # from wfl.plotting import error_table
 
-def fit(no_cycles, test_fname='test.xyz',
+def fit(no_cycles,
         first_train_fname='train.xyz', e_sigma=0.0005, f_sigma=0.02,
         n_sparse=600,
         smiles_csv=None, num_smiles_opt=None, 
         opt_starts_fname=None,  num_nm_displacements_per_temp=None,
         num_nm_temps=None,
-        smearing=2000):
+        smearing=5000):
     """ iteratively fits and optimises stuff
     
     Parameters
@@ -77,7 +77,6 @@ def fit(no_cycles, test_fname='test.xyz',
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
 
-    test_set = ConfigSet_in(input_files=test_fname)
     calculator = None
     
     nm_temp = 300 
@@ -199,8 +198,14 @@ def fit(no_cycles, test_fname='test.xyz',
         if num_nm_displacements_per_temp is not None:
             nm_ref_fname = f'xyzs/normal_modes_reference_{cycle_idx}.xyz'
             nm_sample_fname = f'xyzs/normal_modes_sample_{cycle_idx}.xyz'
+            nm_sample_fname_for_test = f'xyzs/normal_modes_test_sample_{cycle_idx}.xyz'
+            nm_sample_fname_for_test_w_dft = f'xyzs/normal_modes_test_sample_dft_{cycle_idx}.xyz'
 
         opt_fname = f'xyzs/opt_mols_rads_{cycle_idx}.xyz'
+        opt_fname_w_dft = f'xyzs/opt_mols_rads_dft_{cycle_idx}.xyz'
+        opt_fname_w_dft_and_gap = f'xyzs/opt_mols_rads_dft_gap_{cycle_idx}.xyz'
+        structures_to_derive_normal_modes = f'xyzs/opt_mols_for_nms_{cycle_idx}.xyz'
+
         extra_data_with_dft = f'xyzs/all_extra_data_w_dft_{cycle_idx}.xyz'
         extra_data_with_dft_and_gap = f'xyzs/all_extra_data_w_dft_and_gap_{cycle_idx}.xyz'
         additional_data = f'xyzs/data_to_add_{cycle_idx}.xyz'
@@ -230,13 +235,51 @@ def fit(no_cycles, test_fname='test.xyz',
                             opt_fname=opt_fname, opt_traj_fname=opt_traj_fname,
                             logfile=opt_logfile)
 
-            file_for_dft = opt_fname
-            
+            # evaluate with dft
+            if not os.path.exists(opt_fname_w_dft):
+                print(f'Calculating dft energies')
+                dft_evaled_opt_mols_rads = ConfigSet_out(output_files=opt_fname_w_dft)
+                inputs = ConfigSet_in(input_files=opt_fname)
+                dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
+                                                         outputs=dft_evaled_opt_mols_rads,
+                                                         orca_kwargs=orca_kwargs, output_prefix='dft_',
+                                                         keep_files=True, base_rundir=f'orca_outputs_{cycle_idx}'
+                                                         )
+
+            # evaluate optimised with gap
+            if not os.path.exists(opt_fname_w_dft_and_gap):
+                print('Reevaluating extra data with gap')
+                inputs = ConfigSet_in(input_files=opt_fname_w_dft)
+                outputs = ConfigSet_out(output_files=opt_fname_w_dft_and_gap)
+
+                no_cores = int(os.environ['AUTOPARA_NPOOL'])
+                no_compounds = len(read(opt_fname_w_dft, ':'))
+
+                chunksize = int(no_compounds/no_cores) + 1
+
+                generic.run(inputs=inputs, outputs=outputs, calculator=calculator,
+                            properties=['energy', 'forces'], chunksize=chunksize)
+
+                atoms = read(opt_fname_w_dft_and_gap, ':')
+                for at in atoms:
+                    at.info[f'gap_{cycle_idx}_energy'] = at.info['Potential_energy']
+                    at.arrays[f'gap_{cycle_idx}_forces'] = at.arrays['Potential_forces']
+
+                write(opt_fname_w_dft_and_gap, atoms)
+
+            # filter by energy
+            if not os.path.exists(structures_to_derive_normal_modes):
+                atoms = read(opt_fname_w_dft_and_gap, ':')
+                atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx}_',
+                                           f_threshold=None)
+                write(structures_to_derive_normal_modes, atoms)
+
+
             if num_nm_displacements_per_temp is not None:
 
                 # generate normal mode reference
                 if not os.path.exists(nm_ref_fname):
-                    inputs = ConfigSet_in(input_files=opt_fname)
+                    inputs = ConfigSet_in(input_files=structures_to_derive_normal_modes)
                     outputs = ConfigSet_out(output_files=nm_ref_fname)
                     vib.generate_normal_modes_parallel_atoms(inputs=inputs,
                                          outputs=outputs, 
@@ -246,36 +289,51 @@ def fit(no_cycles, test_fname='test.xyz',
 
                 # sample normal modes
                 if not os.path.exists(nm_sample_fname):
-                    nm_temperatures = np.random.randint(1, 600, num_nm_temps)
-                    sampled_configs = []
+                    nm_temperatures = np.random.randint(1, 500, num_nm_temps)
+                    sampled_configs_train = []
+                    sampled_configs_test = []
                     for nm_temp in nm_temperatures:
                         inputs = ConfigSet_in(input_files=nm_ref_fname)
                         outputs = ConfigSet_out()
                         info_to_keep = ['config_type', 'iter_no', 'minim_n_steps']
 
-                        vib.sample_normal_modes(inputs=inputs,
-                                                 outputs=outputs,
-                                                 temp=nm_temp,
-                                                 sample_size=num_nm_displacements_per_temp,
-                                                 info_to_keep=info_to_keep,
+                        # training set
+                        # vib.sample_normal_modes(inputs=inputs,
+                        #                          outputs=outputs,
+                        #                          temp=nm_temp,
+                        #                          sample_size=num_nm_displacements_per_temp*2,
+                        #                          info_to_keep=info_to_keep,
+                        #                         prop_prefix='gap_')
+
+                        configs.sample_downweighted_normal_modes(inputs=inputs,
+                                                outputs=outputs,
+                                                temp=nm_temp,
+                                                sample_size=num_nm_displacements_per_temp * 2,
+                                                info_to_keep=info_to_keep,
                                                 prop_prefix='gap_')
-                        sampled_configs += outputs.output_configs
+                        sampled_configs_train += outputs.output_configs[0::2]
+                        sampled_configs_test += outputs.output_configs[1::2]
+
 
                     # filter out super expanded structures
-                    ats = configs_ops.filter_expanded_geometries(sampled_configs)
+                    ats_train = configs.filter_expanded_geometries(sampled_configs_train)
+                    ats_test = configs.filter_expanded_geometries(
+                        sampled_configs_test)
 
-                    for at in ats:
-                        at.cell = [40, 40, 40]
-                        at.info['iter_no'] = cycle_idx
-                    write(nm_sample_fname, ats)
+                    for ats, fname in zip([ats_train, ats_test],
+                                          [nm_sample_fname, nm_sample_fname_for_test ]):
+                        for at in ats:
+                            at.cell = [40, 40, 40]
+                            at.info['iter_no'] = cycle_idx
+                        write(fname, ats)
 
                 # re-define file to be re-calculated with dft
                 file_for_dft = nm_sample_fname
 
 
-
+            # training set dft
             if not os.path.exists(extra_data_with_dft):
-                print(f'Calculating dft energies')
+                print(f'Calculating train set dft energies')
                 dft_evaled_opt_mols_rads = ConfigSet_out(output_files=extra_data_with_dft)
                 inputs = ConfigSet_in(input_files=file_for_dft)
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
@@ -283,6 +341,20 @@ def fit(no_cycles, test_fname='test.xyz',
                                                          orca_kwargs=orca_kwargs, output_prefix='dft_',
                                                          keep_files=True, base_rundir=f'orca_outputs_{cycle_idx}'
                                                          )
+
+            # test set dft
+            if not os.path.exists(nm_sample_fname_for_test_w_dft):
+                print(f'Calculating test set dft energies')
+                dft_evaled_opt_mols_rads = ConfigSet_out(output_files=nm_sample_fname_for_test_w_dft)
+                inputs = ConfigSet_in(input_files=file_for_dft)
+                dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
+                                                         outputs=dft_evaled_opt_mols_rads,
+                                                         orca_kwargs=orca_kwargs,
+                                                         output_prefix='dft_',
+                                                         keep_files=True,
+                                                         base_rundir=f'orca_outputs_{cycle_idx}'
+                                                         )
+
 
             if not os.path.exists(extra_data_with_dft_and_gap):
                 print('Reevaluating extra data with gap')

@@ -1,4 +1,7 @@
 from ase.io import read, write
+from wfl.generate_configs.vib import Vibrations
+from ase import units
+from ase import Atoms
 import warnings
 from ase import neighborlist
 import numpy as np
@@ -86,5 +89,64 @@ def filter_expanded_geometries(atoms_list, mult=1.2):
 
 
 
+def sample_downweighted_normal_modes(inputs, outputs, temp, sample_size, prop_prefix,
+                        info_to_keep=None, arrays_to_keep=None):
+    """Multiple times displace along normal modes for all atoms in input
 
+    Parameters
+    ----------
+
+    inputs: Atoms / list(Atoms) / ConfigSet_in
+        Structures with normal mode information (eigenvalues &
+        eigenvectors)
+    outputs: ConfigSet_out
+    temp: float
+        Temperature for normal mode displacements
+    sample_size: int
+        Now many perturbed structures per input structure to return
+    prop_prefix: str / None
+        prefix for normal_mode_frequencies and normal_mode_displacements
+        stored in atoms.info/arrays
+    info_to_keep: str, default "config_type"
+        string of Atoms.info.keys() to keep
+    arrays_to_keep: str, default None
+        string of Atoms.arrays.keys() entries to keep
+
+    Returns
+    -------
+      """
+
+    if isinstance(inputs, Atoms):
+        inputs = [inputs]
+
+    for atoms in inputs:
+        at_vib = Vibrations(atoms, prop_prefix)
+        energies_into_modes = energies_for_weighting_normal_modes(at_vib.frequencies,
+                                                                  temp)
+        try:
+            sample = at_vib.sample_normal_modes(energies_for_modes=energies_into_modes[6:],
+                                                sample_size=sample_size,
+                                                info_to_keep=info_to_keep,
+                                                arrays_to_keep=arrays_to_keep)
+        except TypeError as e:
+            print(f'config type: {at_vib.atoms.info["config_type"]}')
+            raise(e)
+        outputs.write(sample)
+
+    outputs.end_write()
+
+
+def energies_for_weighting_normal_modes(frequencies, temp, threshold_invcm=200,
+                              threshold_eV=None):
+    """Frequencies in eV, threshold in eV or invcm"""
+
+    assert threshold_invcm is None or threshold_eV is None
+
+    if threshold_invcm is not None:
+        threshold_eV = threshold_invcm * units.invcm
+
+    return np.array([units.kB * temp * (
+                freq / threshold_eV) ** 2 if freq < threshold_eV else
+                     units.kB * temp
+                     for freq in frequencies])
 
