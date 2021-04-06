@@ -1,6 +1,7 @@
 import click
 from util import compare_minima
 from util import error_table
+from util import tmp
 from util import plot
 from util import iter_tools as it
 from util.plot import rmse_scatter_evaled
@@ -10,7 +11,7 @@ from util import select_configs
 from util import old_nms_to_new
 from util import configs
 from util import atom_types
-import os
+import os 
 import numpy as np
 try:
     from quippy.potential import Potential
@@ -69,8 +70,14 @@ def subcli_configs(ctx):
 def subcli_tmp():
     pass
 
+@subcli_configs.command('cleanup-info-entries')
+@click.argument('input-fname')
+@click.option('--output-fname', '-o')
+def cleanup_info_entries(input_fname, output_fname):
+    tmp.process_config_info(input_fname, output_fname)
+
 @subcli_configs.command('sample-normal-modes')
-@click.argument('input_fname')
+@click.argument('input-fname')
 @click.option('--output-fname', '-o', help='where to write sampled structures')
 @click.option('--temperature', '-t', type=click.FLOAT,  help='target temperature to generate normal modes at')
 @click.option('--sample-size', '-n', type=click.INT, help='number of sampled structures per input structure')
