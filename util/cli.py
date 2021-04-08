@@ -3,6 +3,7 @@ from util import compare_minima
 from util import error_table
 from util import tmp
 from util import plot
+from util.plot import dimer
 from util import iter_tools as it
 from util.plot import rmse_scatter_evaled
 from util.plot import iterations
@@ -69,6 +70,13 @@ def subcli_configs(ctx):
 @cli.group('tmp')
 def subcli_tmp():
     pass
+
+@subcli_plot.command('dft-dimer')
+@click.argument('dimer-fnames', nargs=-1)
+@click.option('--prefix', '-p', default=dimer)
+def plot_dft_dimers(dimer_fnames, prefix):
+    """plots all results from all given evaluated xyzs"""
+    dimer.dimer(dimer_fnames, prefix)
 
 @subcli_configs.command('cleanup-info-entries')
 @click.argument('input-fname')
@@ -145,10 +153,10 @@ def make_test_sets(output_prefix, num_temps, num_displacements_per_temp, num_cyc
                                 'gap_f_rmse', 'gap_f_max', 'bde_correlation']),
              help='which property to look at')
 @click.option('--no-lc', is_flag=True, help='turns off learning curves')
-@click.option('--means', type=click.BOOL, default=True, help='whether to do a means plot')
+@click.option('--no-means', is_flag=True, help='plot all lines, not just means')
 @click.option('--no-bde', is_flag=True, help='turns off bde related plots')
 def plot_cycles(test_fname_pattern, train_fname_pattern, ref_prefix, pred_prefix_pattern, plot_prefix,
-                num_cycles, gap_bde_dir_pattern, dft_bde_dir, measure, no_lc, means, no_bde):
+                num_cycles, gap_bde_dir_pattern, dft_bde_dir, measure, no_lc, no_means, no_bde):
 
     num_cycles += 1
 
@@ -161,6 +169,10 @@ def plot_cycles(test_fname_pattern, train_fname_pattern, ref_prefix, pred_prefix
         iterations.learning_curves(train_fnames=train_fnames, test_fnames=test_fnames,
                                    ref_prefix=ref_prefix, pred_prefix_list=pred_prefixes,
                                plot_prefix=plot_prefix)
+
+    means = True
+    if no_means:
+        means=False
 
     if not no_bde:
         iterations.bde_related_plots(num_cycles=num_cycles, gap_dir_pattern=gap_bde_dir_pattern,
@@ -255,8 +267,8 @@ def cleanup_configs(num_tasks, out_prefix, in_prefix):
 
 @subcli_data.command('reevaluate-dir')
 @click.argument('dirs')
-@click.option('--smearing', type=click.INT, default=2000)
-def reevaluate_dir(dirs, smearing=2000):
+@click.option('--smearing', type=click.INT, default=5000)
+def reevaluate_dir(dirs, smearing=5000):
     iter_tools.reeval_dft(dirs, smearing)
 
 @subcli_gap.command('opt-and-nm')

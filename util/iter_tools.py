@@ -234,7 +234,7 @@ def opt(atoms, calculator, fmax=1.0e-3, steps=1000, precon='auto',
     return all_trajs
 
 
-def reeval_dft(gap_dirs, smearing=2000):
+def reeval_dft(gap_dirs, smearing=5000):
 
     if isinstance(gap_dirs, str):
         gap_dirs = gap_dirs.split(' ')

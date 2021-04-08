@@ -4,9 +4,6 @@ from ase.io import read
 import click
 import os
 
-@click.command()
-@click.argument('dimer_fnames', nargs=-1)
-@click.option('--prefix', default='dimer', help='prefix for the png')
 def dimer(dimer_fnames, prefix):
 
     plt.figure()
@@ -15,9 +12,9 @@ def dimer(dimer_fnames, prefix):
 
     for dimer_fname in dimer_fnames:
         atoms = read(dimer_fname, ':')
-        energies = np.array([at.info['energy'] for at in atoms])
+        energies = np.array([at.info['energy'] for at in atoms if 'energy' in at.info.keys()])
         if len(atoms)>2:
-            distances = [at.get_distance(0, 1) for at in atoms]
+            distances = [at.get_distance(0, 1) for at in atoms if 'energy' in at.info.keys()]
             plt.plot(distances, energies, marker='x', label=f'{os.path.splitext(dimer_fname)[0]} = {energies[-1]:4f}')
             plt.scatter(distances[-1], energies[-1])
             all_ends.append(energies[-1])
@@ -41,5 +38,3 @@ def dimer(dimer_fnames, prefix):
     plt.savefig(f'{prefix}.png', dpi=300)
 
 
-if __name__=='__main__':
-    dimer()
