@@ -37,7 +37,7 @@ wfl -v generate-configs remove-sp3-Hs -o ${mol_rad_non_opt_fn} ${mol_non_opt_fn}
 
 conda activate py3.8
 echo 'optimising'
-wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "${opt_calc_kwargs}" --scratch-path $scratch_path --base-rundir $opt_base_rundir  --output-file ${opt_fn}  ${mol_rad_non_opt_fn}
+#wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "${opt_calc_kwargs}" --scratch-path $scratch_path --base-rundir $opt_base_rundir  --output-file ${opt_fn}  ${mol_rad_non_opt_fn}
 
 
 conda activate wo
@@ -45,7 +45,7 @@ conda activate wo
 #wfl -v generate-configs derive-normal-modes --calc-kwargs "${nm_calc_kwargs}" --calc-name orca -p dft_ --parallel-hessian -o ${nm_fn} ${opt_fn}
 """
 
-def sub_data(df_name, how_many, skip_first, submit, overwrite_sub, script, hours=48, no_cores=16, script_name='sub.sh'):
+def sub_data(df_name, how_many, skip_first, submit, overwrite_sub, hours=48, no_cores=16, script_name='sub.sh'):
 
     df = pd.read_csv(df_name)
 
@@ -77,7 +77,7 @@ def sub_data(df_name, how_many, skip_first, submit, overwrite_sub, script, hours
 #$ -pe smp {no_cores}        # number of cores requested
 #$ -l h_rt={hours}:00:00  # time requested in HH:MM:SS format
 #$ -S /bin/bash      # shell to run the job in
-#$ -N nm{idx}
+#$ -N {name} 
 #$ -j yes            # combine error and output logs
 #$ -cwd              # execute job in directory from which it was submitted
 
@@ -86,12 +86,7 @@ echo $(date)
             f.write(f'smiles="{smi}"\n')
             f.write(f'config_type={name}\n')
 
-            if script=='more_data':
-                f.write(more_data)
-            elif script == 'everything':
-                f.write(everything)
-            else:
-                raise RuntimeError
+            f.write(everything)
 
         if submit:
             subprocess.run(f"qsub {script_name}", shell=True)
