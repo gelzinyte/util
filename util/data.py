@@ -8,99 +8,41 @@ import os
 # submit = True
 # overwrite = False
 # df = pd.read_csv('../CHO_train_compounds.csv')
+
+
 everything = """mol_non_opt_fn='mol_non_opt.xyz'
 mol_rad_non_opt_fn='mol_rad_non_opt.xyz'
 opt_fn="opt_mol_rad.xyz"
 nm_fn='mol_rad_nms.xyz'
-train_in_fn='mol_rad_nm_data_in_train.xyz'
-test_in_fn='mol_rad_nm_data_in_test.xyz'
-train_fn='train_mol_rad_nm_data.xyz'
-test_fn='test_mol_rad_nm_data.xyz'
 
-N_train=10
-N_test=5
-
-scratch_path=/tmp/eg475
+scratch_path=/scratch-ssd/eg475
 opt_base_rundir=orca_opt
+orca_simple_input="UKS B3LYP def2-SV(P) def2/J D3BJ"
+smearing=5000
+opt_calc_kwargs="task=opt smearing=${smearing}"
 
 n_run=1
 n_hop=1
-orca_simple_input="UKS B3LYP def2-SV(P) def2/J D3BJ"
-smearing=5000
-
-bhoporca_kwargs="orcasimpleinput='${orca_simple_input}'  scratch_path='$scratch_path' n_run='${n_run}' n_hop='${n_hop}' smearing='$smearing'"
-
-orcablocks="%scf Convergence Tight  SmearTemp '${smearing}' maxiter 500  end"
-orca_opt_kwargs="keep_files=T base_rundir='${opt_base_rundir}' orca_kwargs={orcasimpleinput='${orca_simple_input}' orcablocks='${orcablocks}' scratch_path='${scratch_path}'}"
+nm_calc_kwargs="orcasimpleinput='${orca_simple_input}'  scratch_path='$scratch_path' n_run='${n_run}' n_hop='${n_hop}' smearing='$smearing'"
 
 
 mkdir -p $scratch_path
-source /home/eg475/programs/miniconda3/etc/profile.d/conda.sh
-conda activate wo0
 export  OMP_NUM_THREADS=${NSLOTS}
 export AUTOPARA_NPOOL=${NSLOTS}
 
 
+conda activate wo
 wfl -v generate-configs smiles -o ${mol_non_opt_fn} -i "config_type=${config_type}" $smiles
+wfl -v generate-configs remove-sp3-Hs -o ${mol_rad_non_opt_fn} ${mol_non_opt_fn}
 
-wfl -v generate-configs rads-from-mol -o ${mol_rad_non_opt_fn} ${mol_non_opt_fn}
-
+conda activate py3.8
 echo 'optimising'
-wfl -v generate-configs optimise --calc-kwargs "${orca_opt_kwargs}" --calc-name orca -o ${opt_fn}  ${mol_rad_non_opt_fn}
-
-echo 'generating normal modes'
-wfl -v generate-configs nm-ref --calc-kwargs "${bhoporca_kwargs}" --calc-name orca -o ${nm_fn} ${opt_fn}
+wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "${opt_calc_kwargs}" --scratch-path $scratch_path --base-rundir $opt_base_rundir  --output-file ${opt_fn}  ${mol_rad_non_opt_fn}
 
 
-echo 'generating nm sample'
-wfl -v generate-configs nm-sample --num_per_ref ${N_train} -t 300 -o ${train_in_fn} ${nm_fn} --force
-wfl -v generate-configs nm-sample --num_per_ref ${N_test} -t 300 -o ${test_in_fn} ${nm_fn} --force
-
-echo 'getting dft energies forces'
-wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "smearing=${smearing}" --scratch-path $scratch_path --n-run $n_run --n-hop $n_hop --orca-simple-input "${orca_simple_input}" --output-file ${train_fn} ${train_in_fn}
-
-wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "smearing=${smearing}" --scratch-path $scratch_path --n-run $n_run --n-hop $n_hop --orca-simple-input "${orca_simple_input}" --output-file ${test_fn} ${test_in_fn}
-
-echo 'ase converting'
-ase convert -e 'atoms.cell = [40, 40, 40]' -f ${train_fn} ${train_fn}
-ase convert -e 'atoms.cell = [40, 40, 40]' -f ${test_fn} ${test_fn}
-"""
-
-more_data = """nm_fn='mol_rad_nms.xyz'
-train_in_fn='mol_rad_nm_data_in_train_2.xyz'
-train_fn='train_2_mol_rad_nm_data.xyz'
-
-N_train=40
-
-scratch_path=/tmp/eg475
-opt_base_rundir=orca_opt
-
-n_run=1
-n_hop=1
-orca_simple_input="UKS B3LYP def2-SV(P) def2/J D3BJ"
-smearing=5000
-
-bhoporca_kwargs="orcasimpleinput='${orca_simple_input}'  scratch_path='$scratch_path' n_run='${n_run}' n_hop='${n_hop}' smearing='$smearing'"
-
-orcablocks="%scf Convergence Tight  SmearTemp '${smearing}' maxiter 500  end"
-orca_opt_kwargs="keep_files=T base_rundir='${opt_base_rundir}' orca_kwargs={orcasimpleinput='${orca_simple_input}' orcablocks='${orcablocks}' scratch_path='${scratch_path}'}"
-
-
-mkdir -p $scratch_path
-source /home/eg475/programs/miniconda3/etc/profile.d/conda.sh
-conda activate wo0
-export  OMP_NUM_THREADS=${NSLOTS}
-export AUTOPARA_NPOOL=${NSLOTS}
-
-
-echo 'generating nm sample'
-wfl -v generate-configs nm-sample --num_per_ref ${N_train} -t 300 -o ${train_in_fn} ${nm_fn} --force
-
-echo 'getting dft energies forces'
-wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "smearing=${smearing}" --scratch-path $scratch_path --n-run $n_run --n-hop $n_hop --orca-simple-input "${orca_simple_input}" --output-file ${train_fn} ${train_in_fn}
-
-echo 'ase converting'
-ase convert -e 'atoms.cell = [40, 40, 40]' -f ${train_fn} ${train_fn}
+conda activate wo
+#echo 'generating normal modes'
+#wfl -v generate-configs derive-normal-modes --calc-kwargs "${nm_calc_kwargs}" --calc-name orca -p dft_ --parallel-hessian -o ${nm_fn} ${opt_fn}
 """
 
 def sub_data(df_name, how_many, skip_first, submit, overwrite_sub, script, hours=48, no_cores=16, script_name='sub.sh'):

@@ -323,10 +323,9 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--num_nm_displacements_per_temp', type=click.INT,
               help='number of normal modes displacements per structure per temperature')
 @click.option('--num_nm_temps', type=click.INT, help='how many nm temps to sample from')
-@click.option('--smearing', type=click.INT, default=5000)
 def fit(no_cycles, train_fname, e_sigma, descriptor_fname,
         f_sigma,  smiles_csv, num_smiles_opt, opt_starts_fname,
-        num_nm_displacements_per_temp, num_nm_temps, smearing):
+        num_nm_displacements_per_temp, num_nm_temps):
 
     iter_fit.fit(no_cycles=no_cycles,
                       first_train_fname=train_fname,
@@ -334,7 +333,7 @@ def fit(no_cycles, train_fname, e_sigma, descriptor_fname,
                  num_smiles_opt=num_smiles_opt, opt_starts_fname=opt_starts_fname,
                  num_nm_displacements_per_temp=num_nm_displacements_per_temp,
                  gap_descriptor_filename=descriptor_fname,
-                 smearing=smearing, num_nm_temps=num_nm_temps)
+                  num_nm_temps=num_nm_temps)
 
 @subcli_gap.command('md-stability')
 @click.option('--gap-filename', '-g')
@@ -390,20 +389,19 @@ def convert_nms(fname_in, fname_out, prefix, info_to_keep, arrays_to_keep):
     old_nms_to_new.convert_all(fname_in, fname_out, prefix, info_to_keep, arrays_to_keep)
 
 
-@subcli_data.command('gen')
+@subcli_tmp.command('opt-and-nm')
 @click.argument('df-fname')
 @click.option('--how-many', '-n', type=click.INT, help='how many structures to submit')
 @click.option('--skip_first', '-s', type=click.INT, help='how many structures to skip')
 @click.option('--submit', type=click.BOOL, help='whether to submit the jobs')
 @click.option('--overwrite', type=click.BOOL, help='whether to overwrite stuff in non-empty dirs')
-@click.option('--script', help='everything or more_data')
-@click.option('--hours', type=click.INT, default=48)
+@click.option('--hours', type=click.INT, default=168)
 @click.option('--no-cores', type=click.INT, default=16)
 @click.option('--script-name', default='sub.sh')
-def submit_data(df_fname, how_many, skip_first, submit, overwrite, script,
+def submit_data(df_fname, how_many, skip_first, submit, overwrite,
                 hours, no_cores, script_name):
     data.sub_data(df_name=df_fname, how_many=how_many, skip_first=skip_first,
-                  submit=submit, overwrite_sub=overwrite, script=script,
+                  submit=submit, overwrite_sub=overwrite,
                   hours=hours, no_cores=no_cores, script_name=script_name)
 
 
