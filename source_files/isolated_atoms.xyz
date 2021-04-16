@@ -5,8 +5,5 @@ C        0.00000000       0.00000000       0.00000000
 Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3 dft_energy=-13.547478676206193 config_type=isolated_atom  pbc="F F F"
 H        0.00000000       0.00000000       0.00000000
 1
-Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3 dft_energy=-1483.3686026358728 config_type=isolated_atom  pbc="F F F"
-N        0.00000000       0.00000000       0.00000000
-1
 Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3 dft_energy=-2040.0734198446598 config_type=isolated_atom  pbc="F F F"
 O        0.00000000       0.00000000       0.00000000

@@ -22,6 +22,7 @@ from util import bde
 from util import mem_tracker
 from util import iter_fit
 from util import iter_tools
+from util import md
 import util
 from ase.io import read, write
 from wfl.configset import ConfigSet_in, ConfigSet_out
@@ -315,7 +316,7 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--train_fname', default='train.xyz', help='fname of first training set file')
 @click.option('--e_sigma', default=0.0005, type=click.FLOAT, help='energy default sigma')
 @click.option('--f_sigma', default=0.02, type=click.FLOAT, help='force default sigma')
-@click.option('--n_sparse', default=600, type=click.INT)
+@click.option('--descriptor-fname', default='descriptors.yml')
 @click.option('--smiles_csv', help='smiles to optimise')
 @click.option('--num_smiles_opt', type=click.INT, help='number of optimisations per smiles' )
 @click.option('--opt_starts_fname', help='filename where to optimise structures from')
@@ -323,7 +324,7 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
               help='number of normal modes displacements per structure per temperature')
 @click.option('--num_nm_temps', type=click.INT, help='how many nm temps to sample from')
 @click.option('--smearing', type=click.INT, default=5000)
-def fit(no_cycles, train_fname, e_sigma, n_sparse,
+def fit(no_cycles, train_fname, e_sigma, descriptor_fname,
         f_sigma,  smiles_csv, num_smiles_opt, opt_starts_fname,
         num_nm_displacements_per_temp, num_nm_temps, smearing):
 
@@ -331,8 +332,16 @@ def fit(no_cycles, train_fname, e_sigma, n_sparse,
                       first_train_fname=train_fname,
                       e_sigma=e_sigma, f_sigma=f_sigma, smiles_csv=smiles_csv,
                  num_smiles_opt=num_smiles_opt, opt_starts_fname=opt_starts_fname,
-                 num_nm_displacements_per_temp=num_nm_displacements_per_temp, n_sparse=n_sparse,
+                 num_nm_displacements_per_temp=num_nm_displacements_per_temp,
+                 gap_descriptor_filename=descriptor_fname,
                  smearing=smearing, num_nm_temps=num_nm_temps)
+
+@subcli_gap.command('md-stability')
+@click.option('--gap-filename', '-g')
+@click.option('--mol-filename', '-m')
+def run_md(gap_filename, mol_filename):
+    md.run_md(gap_filename, mol_filename)
+
 
 @subcli_gap.command('optimize')
 @click.option('--start-dir' )

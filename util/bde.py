@@ -127,6 +127,7 @@ def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None,
 
 def gap_optimise(start_fnames, gap_fnames, calculator):
     if start_fnames is None or start_fnames[0] is None:
+        print(f'gap_fname: {gap_fnames}')
         raise RuntimeError('Don\'t have a start file to optimise')
 
     if isinstance(start_fnames, str) and isinstance(gap_fnames, str):

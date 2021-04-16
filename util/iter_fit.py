@@ -21,11 +21,10 @@ from wfl.generate_configs import vib
 
 def fit(no_cycles,
         first_train_fname='train.xyz', e_sigma=0.0005, f_sigma=0.02,
-        n_sparse=600,
+        gap_descriptor_filename=None,
         smiles_csv=None, num_smiles_opt=None, 
         opt_starts_fname=None,  num_nm_displacements_per_temp=None,
-        num_nm_temps=None,
-        smearing=5000):
+        num_nm_temps=None):
     """ iteratively fits and optimises stuff
     
     Parameters
@@ -41,6 +40,8 @@ def fit(no_cycles,
         gap_fit e_sigma
     f_sigma: float, default=0.02
         gap_fit f_sigma
+    gap_descriptor_filename: str, default None
+        .yml with gap descriptors
     smiles_csv: str, default None
         CSV of idx, name, smiles to generate structures from
     num_smiles_opt: int, default None
@@ -66,6 +67,7 @@ def fit(no_cycles,
 
     bde_root = '/home/eg475/data/bde_files'
 
+
     cfg = Config.load()
     gap_fit_path =  cfg['programs']['gap_fit']
     scratch_dir = cfg['other_paths']['tmp']
@@ -90,7 +92,6 @@ def fit(no_cycles,
     output_prefix = 'dft_'
     orca_kwargs = default_kw['orca']
 
-    orca_kwargs['smearing'] = smearing
 
     print(f'orca_kwargs: {orca_kwargs}')
 
@@ -98,52 +99,11 @@ def fit(no_cycles,
     ## set up GAP
     ######################################################
 
-    # e_sigma = 0.0005
-    # f_sigma = 0.02
-
-    l_max = 6
-    n_max = 12
-    delta = 1
-    zeta = 4
-    n_sparse = n_sparse
-
-    cutoff_soap_1 = 3
-    atom_gaussian_width_1 = 0.3
-    cutoff_transition_width_1 = 0.5
-
-    cutoff_soap_2 = 6
-    atom_gaussian_width_2 = 0.6
-    cutoff_transition_width_2 = 1
+    descriptors = Config.from_yaml(gap_descriptor_filename)['descriptors']
 
     default_sigma = [e_sigma, f_sigma, 0.0, 0.0]
     config_type_sigma = {'isolated_atom': [0.0001, 0.0, 0.0, 0.0]}
 
-    descriptors = dict()
-    descriptors['soap_1'] = {'name': 'soap',
-                             'l_max': l_max,
-                             'n_max': n_max,
-                             'cutoff': cutoff_soap_1,
-                             'delta': delta,
-                             'covariance_type': 'dot_product',
-                             'zeta': zeta,
-                             'n_sparse': n_sparse,
-                             'sparse_method': 'cur_points',
-                             'atom_gaussian_width': atom_gaussian_width_1,
-                             'cutoff_transition_width': cutoff_transition_width_1,
-                             'add_species': 'True'}
-
-    descriptors['soap_2'] = {'name': 'soap',
-                             'l_max': l_max,
-                             'n_max': n_max,
-                             'cutoff': cutoff_soap_2,
-                             'delta': delta,
-                             'covariance_type': 'dot_product',
-                             'zeta': zeta,
-                             'n_sparse': n_sparse,
-                             'sparse_method': 'cur_points',
-                             'atom_gaussian_width': atom_gaussian_width_2,
-                             'cutoff_transition_width': cutoff_transition_width_2,
-                             'add_species': 'True'}
 
     ########################################################
     ## set up first dset
@@ -243,7 +203,7 @@ def fit(no_cycles,
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
                                                          outputs=dft_evaled_opt_mols_rads,
                                                          orca_kwargs=orca_kwargs, output_prefix='dft_',
-                                                         keep_files=True, base_rundir=f'orca_outputs_{cycle_idx}'
+                                                         keep_files=False, base_rundir=f'orca_outputs_{cycle_idx}'
                                                          )
 
             # evaluate optimised with gap
@@ -297,13 +257,6 @@ def fit(no_cycles,
                         outputs = ConfigSet_out()
                         info_to_keep = ['config_type', 'iter_no', 'minim_n_steps']
 
-                        # training set
-                        # vib.sample_normal_modes(inputs=inputs,
-                        #                          outputs=outputs,
-                        #                          temp=nm_temp,
-                        #                          sample_size=num_nm_displacements_per_temp*2,
-                        #                          info_to_keep=info_to_keep,
-                        #                         prop_prefix='gap_')
 
                         configs.sample_downweighted_normal_modes(inputs=inputs,
                                                 outputs=outputs,
@@ -315,10 +268,6 @@ def fit(no_cycles,
                         sampled_configs_test += outputs.output_configs[1::2]
 
 
-                    # filter out super expanded structures
-                    ats_train = configs.filter_expanded_geometries(sampled_configs_train)
-                    ats_test = configs.filter_expanded_geometries(
-                        sampled_configs_test)
 
                     for ats, fname in zip([ats_train, ats_test],
                                           [nm_sample_fname, nm_sample_fname_for_test ]):
@@ -339,7 +288,7 @@ def fit(no_cycles,
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
                                                          outputs=dft_evaled_opt_mols_rads,
                                                          orca_kwargs=orca_kwargs, output_prefix='dft_',
-                                                         keep_files=True, base_rundir=f'orca_outputs_{cycle_idx}'
+                                                         keep_files=False, base_rundir=f'orca_outputs_{cycle_idx}'
                                                          )
 
             # test set dft
@@ -351,7 +300,7 @@ def fit(no_cycles,
                                                          outputs=dft_evaled_opt_mols_rads,
                                                          orca_kwargs=orca_kwargs,
                                                          output_prefix='dft_',
-                                                         keep_files=True,
+                                                         keep_files=False,
                                                          base_rundir=f'orca_outputs_{cycle_idx}'
                                                          )
 
