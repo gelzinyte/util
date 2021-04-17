@@ -31,18 +31,18 @@ export  OMP_NUM_THREADS=${NSLOTS}
 export AUTOPARA_NPOOL=${NSLOTS}
 
 
-conda activate wo
-wfl -v generate-configs smiles -o ${mol_non_opt_fn} -i "config_type=${config_type}" $smiles
-wfl -v generate-configs remove-sp3-Hs -o ${mol_rad_non_opt_fn} ${mol_non_opt_fn}
+#conda activate wo
+#wfl -v generate-configs smiles -o ${mol_non_opt_fn} -i "config_type=${config_type}" $smiles
+#wfl -v generate-configs remove-sp3-Hs -o ${mol_rad_non_opt_fn} ${mol_non_opt_fn}
 
-conda activate py3.8
-echo 'optimising'
+#conda activate py3.8
+#echo 'optimising'
 #wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "${opt_calc_kwargs}" --scratch-path $scratch_path --base-rundir $opt_base_rundir  --output-file ${opt_fn}  ${mol_rad_non_opt_fn}
 
 
 conda activate wo
-#echo 'generating normal modes'
-#wfl -v generate-configs derive-normal-modes --calc-kwargs "${nm_calc_kwargs}" --calc-name orca -p dft_ --parallel-hessian -o ${nm_fn} ${opt_fn}
+echo 'generating normal modes'
+wfl -v generate-configs derive-normal-modes --calc-kwargs "${nm_calc_kwargs}" --calc-name orca -p dft_ --parallel-hessian -o ${nm_fn} ${opt_fn}
 """
 
 def sub_data(df_name, how_many, skip_first, submit, overwrite_sub, hours=48, no_cores=16, script_name='sub.sh'):
