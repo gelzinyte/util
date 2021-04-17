@@ -269,7 +269,7 @@ def fit(no_cycles,
 
 
 
-                    for ats, fname in zip([ats_train, ats_test],
+                    for ats, fname in zip([sampled_configs_train, sampled_configs_test],
                                           [nm_sample_fname, nm_sample_fname_for_test ]):
                         for at in ats:
                             at.cell = [40, 40, 40]
