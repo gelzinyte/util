@@ -24,7 +24,6 @@ def kpca(data, tmp_fname='kpca_tmp_atoms.xyz'):
     return ats_out
 
 
-
 def plot_kpca(atoms, cmap='tab10', title='kpca', skip_labels=None):
 
     markers = ['+', 'x']

@@ -398,10 +398,14 @@ def convert_nms(fname_in, fname_out, prefix, info_to_keep, arrays_to_keep):
 @click.option('--hours', type=click.INT, default=168)
 @click.option('--no-cores', type=click.INT, default=16)
 @click.option('--script-name', default='sub.sh')
+@click.option('--generate', '-g', is_flag=True, help='whether to generate radicals from smiles')
+@click.option('--optimise', '-o', is_flag=True, help='whether to optimise')
+@click.option('--modes', '-m', is_flag=True, help='whether to generate modes')
 def submit_data(df_fname, how_many, skip_first, submit, overwrite,
-                hours, no_cores, script_name):
+                hours, no_cores, script_name, generate, optimise, modes):
     data.sub_data(df_name=df_fname, how_many=how_many, skip_first=skip_first,
                   submit=submit, overwrite_sub=overwrite,
+                  generate=generate, optimise=optimise, modes=modes,
                   hours=hours, no_cores=no_cores, script_name=script_name)
 
 
