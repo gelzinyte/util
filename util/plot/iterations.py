@@ -123,7 +123,7 @@ def bde_related_plots(num_cycles, gap_dir_pattern, dft_dir, metric=None, plot_pr
             with suppress_stdout_stderr():
                 data = bde.get_data(dft_fnames, gap_fnames, which_data=metric)
             all_data.append(data)
-        bde.iter_plot(all_data, plot_title=plot_prefix.replace('_', ' ') +'_' + metric,
+        bde.iter_plot(all_data, plot_title=plot_prefix.replace('_', ' ') +' ' + metric.replace('_', ' '),
                       which_data=metric, means=means)
 
 

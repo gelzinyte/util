@@ -222,15 +222,15 @@ def fit(no_cycles,
 
                 atoms = read(opt_fname_w_dft_and_gap, ':')
                 for at in atoms:
-                    at.info[f'gap_{cycle_idx}_energy'] = at.info['Potential_energy']
-                    at.arrays[f'gap_{cycle_idx}_forces'] = at.arrays['Potential_forces']
+                    at.info[f'gap_{cycle_idx-1}_energy'] = at.info['Potential_energy']
+                    at.arrays[f'gap_{cycle_idx-1}_forces'] = at.arrays['Potential_forces']
 
                 write(opt_fname_w_dft_and_gap, atoms)
 
             # filter by energy
             if not os.path.exists(structures_to_derive_normal_modes):
                 atoms = read(opt_fname_w_dft_and_gap, ':')
-                atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx}_',
+                atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
                                            f_threshold=None)
                 write(structures_to_derive_normal_modes, atoms)
 
@@ -320,14 +320,14 @@ def fit(no_cycles,
 
                 atoms = read(extra_data_with_dft_and_gap, ':')
                 for at in atoms:
-                    at.info[f'gap_{cycle_idx}_energy'] = at.info['Potential_energy']
-                    at.arrays[f'gap_{cycle_idx}_forces'] = at.arrays['Potential_forces']
+                    at.info[f'gap_{cycle_idx-1}_energy'] = at.info['Potential_energy']
+                    at.arrays[f'gap_{cycle_idx-1}_forces'] = at.arrays['Potential_forces']
 
                 write(extra_data_with_dft_and_gap, atoms)
 
             if not os.path.exists(additional_data):
                 atoms = read(extra_data_with_dft_and_gap, ':')
-                atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx}_',
+                atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
                                            f_threshold=None)
                 write(additional_data, atoms)
 

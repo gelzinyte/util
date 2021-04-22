@@ -13,6 +13,62 @@ from wfl.utils.parallel import construct_calculator_picklesafe
 import matplotlib.ticker as mticker
 
 
+def opt_to_bde_files(gap_ats_in, dft_ats_in,
+                     iso_h_fname, output_dir='bdes_from_optimisations',
+                     max_no_files=50):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    dft_dir = os.path.join(output_dir, 'dft')
+    gap_dir = os.path.join(output_dir, 'gap')
+    if not os.path.exists(dft_dir):
+        os.makedirs(dft_dir)
+    if not os.path.exists(gap_dir):
+        os.makedirs(gap_dir)
+
+    gap_atoms = read(gap_ats_in, ':')
+    dft_atoms = read(dft_ats_in, ':')
+    hydrogen = read(iso_h_fname)
+
+    assert len(gap_atoms) == len(dft_atoms)
+
+    compounds1 = [at.info['compound'] for at in gap_atoms]
+    compounds2 = [at.info['compound'] for at in dft_atoms]
+    mol_or_rad1 = [at.info['mol_or_rad'] for at in gap_atoms]
+    mol_or_rad2 = [at.info['mol_or_rad'] for at in dft_atoms]
+
+    assert np.all(compounds1 == compounds2)
+    assert np.all(mol_or_rad1 == mol_or_rad2)
+
+
+    mol_indices = np.nonzero(np.array(mol_or_rad1) == 'mol')[0]
+
+    for file_idx, (start, end) in enumerate(zip(mol_indices[0:-1], mol_indices[1:])):
+
+        dft_bde_atoms = dft_atoms[start:end]
+        gap_bde_atoms = [hydrogen] + gap_atoms[start:end]
+
+        fname_prefix = gap_atoms[start].info['compound']
+
+        for idx in range(max_no_files):
+            gap_fname = os.path.join(gap_dir,
+                                     f'{fname_prefix}_{idx}_gap_optimised.xyz')
+            dft_fname = os.path.join(dft_dir,
+                                     f'{fname_prefix}_{idx}_optimised.xyz')
+
+            if os.path.exists(gap_fname) or os.path.exists(dft_fname):
+                continue
+            else:
+                break
+        else:
+            raise RuntimeError(f'Havve {max_no_files} bde '
+                               f'files for {fname_prefix} already')
+
+        # print(f'{file_idx}. {gap_fname}')
+        # print(f'   {dft_fname}')
+        write(gap_fname, gap_bde_atoms)
+        write(dft_fname, dft_bde_atoms)
+
 
 def dirs_to_fnames(dft_dir, gap_dir=None, start_dir=None, exclude=None):
     dft_basenames = util.natural_sort(os.listdir(dft_dir))
@@ -98,6 +154,7 @@ def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None,
     if gap_fname is not None and os.path.isfile(gap_fname):
         gap_ats = read(gap_fname, ':')
     elif gap_fname is not None and not os.path.isfile(gap_fname):
+        print(gap_fname)
         try:
             gap_optimise(start_fname, gap_fname, calculator)
         except RuntimeError as e:
@@ -126,8 +183,8 @@ def bde_summary(dft_fname, gap_fname=None, calculator=None, start_fname=None,
 
 
 def gap_optimise(start_fnames, gap_fnames, calculator):
+    print('hiiii')
     if start_fnames is None or start_fnames[0] is None:
-        print(f'gap_fname: {gap_fnames}')
         raise RuntimeError('Don\'t have a start file to optimise')
 
     if isinstance(start_fnames, str) and isinstance(gap_fnames, str):
@@ -511,29 +568,44 @@ def scatter_plot(all_data,
         fill_label = f'$\pm$ 50 meV'
         ylabel='GAP BDE / eV'
 
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(10, 6))
     ax = plt.gca()
+
     # plt.axhline(shade, linewidth=0.8, color='k', zorder=2,
     # label=hline_label)
 
+    n_colors = len(all_data[0].keys())
     cmap = plt.get_cmap('tab10')
-    colors = [cmap(idx) for idx in np.arange(10)]
+    colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
+    done_labels = []
 
     ref_data = all_data[0]
+    color_idx = -1
 
     for idx, label in enumerate(ref_data.keys()):
 
         print_label = label.replace('_gap_optimised', '')
+        # print(print_label)
         phrase_2 = '_bde_train_set'
         if phrase_2 in print_label:
             print_label = print_label.replace(phrase_2, '')
+            # print(print_label)
+        print_label = ' '.join(print_label.split('_')[:-1])
+        # print(print_label)
+        if print_label in done_labels:
+            print_label = None
+        else:
+            color_idx += 1
+            done_labels.append(print_label)
+
+        color = colors[color_idx]
 
         for set_name, m in zip(ref_data[label].keys(), ['.', 'x']):
 
             if len(ref_data[label][set_name]['dft']) == 0:
                 continue
 
-            color = colors[idx % 10]
+            # color = colors[idx % 10]
 
             if which_data in ['rmsd', 'soap_dist', 'gap_e_error', 'gap_f_rmse', 
                               'gap_f_max']:
@@ -612,10 +684,10 @@ def scatter_plot(all_data,
             #              label=label, capsize=2)
             marker = 'o'
             if set_name == 'test':
-                label += '_test'
+                print_label += ' test'
                 marker = 'x'
 
-            plt.scatter(xs, ys, zorder=3, label=print_label, marker=marker)
+            plt.scatter(xs, ys, zorder=3, label=print_label,  color=color,  marker=marker)
 
     if shade is not None:
         xmin, xmax = ax.get_xlim()
@@ -640,7 +712,7 @@ def scatter_plot(all_data,
 
     if which_data != 'bde_correlation':
         plt.yscale('log')
-        plt.legend(title=legend_title, bbox_to_anchor=[1, 1])
+        plt.legend(title=legend_title, bbox_to_anchor=(1, 1))
     else:
         if len(ref_data.keys()) <11:
             plt.legend(title=legend_title)
@@ -772,6 +844,11 @@ def iter_plot(all_data,
                     if print_label is not None:
                         print_label = None
             else:
+                # print(f'{idx}. {print_label}')
+                # print(f'all_ys:, {all_ys.shape}')
+                # print(all_ys)
+                # if means_data is not None:
+                    # print(f'means_data: {means_data.shape}')
                 if means_data is None:
                     means_data = np.array(all_ys.T)
                 else:

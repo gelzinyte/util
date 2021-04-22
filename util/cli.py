@@ -1,5 +1,7 @@
 import click
+from ase import Atoms
 from util import compare_minima
+from util import bde
 from util import error_table
 from util import tmp
 from util import plot
@@ -9,6 +11,7 @@ from util.plot import rmse_scatter_evaled
 from util.plot import iterations
 from util import data
 from util import select_configs
+from util.plot import rmsd_table
 from util import old_nms_to_new
 from util import configs
 from util import atom_types
@@ -71,6 +74,41 @@ def subcli_configs(ctx):
 @cli.group('tmp')
 def subcli_tmp():
     pass
+
+@subcli_bde.command('from-opt')
+@click.option('--gap-fname', '-g', help='filename with gap optimised atoms')
+@click.option('--dft-fname', '-d', help='filename with dft optimised atoms')
+@click.option('--h-fname', '-h', help='isolated hydrogen filename with same gap prefix as gap file')
+@click.option('--output-dir', '-o', default='bdes_from_optimisation')
+@click.option('--max_no_files', default=50, type=click.INT,
+              help='how many existing names to cycle through before giving up')
+def bde_files_from_optimised(gap_fname, dft_fname, h_fname, output_dir, max_no_files):
+    """takes mol/rad/rad/... optimised files and derives bde files"""
+    bde.opt_to_bde_files(gap_ats_in=gap_fname,
+                         dft_ats_in=dft_fname,
+                         iso_h_fname=h_fname,
+                         output_dir=output_dir,
+                         max_no_files=max_no_files)
+
+
+@subcli_gap.command('eval-h')
+@click.argument('gap-fname')
+@click.option('--output', '-o')
+@click.option('--prop-prefix', '-p')
+def eval_h(gap_fname, output, prop_prefix):
+    gap = Potential(param_filename=gap_fname)
+    at = Atoms('H', positions=[(0, 0, 0)])
+    at.calc = gap
+    at.info[f'{prop_prefix}energy'] = at.get_potential_energy()
+    write(output, at)
+
+@subcli_plot.command('rmsd-table')
+@click.option('--fname1', '-f1')
+@click.option('--fname2', '-f2')
+@click.option('--key', '-k', default='compound')
+def print_rmsd_table(fname1, fname2, key):
+    rmsd_table.rmsd_table(fname1, fname2, group_key=key)
+
 
 @subcli_plot.command('dft-dimer')
 @click.argument('dimer-fnames', nargs=-1)
@@ -549,7 +587,7 @@ def bde_bar_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
 @click.option('--gap_dir', '-g', type=click.Path())
 @click.option('--start_dir', '-s', type=click.Path())
 @click.option('--gap_xml_fname', type=click.Path())
-@click.option('--plot_title', '-t', type=click.STRING, default='bde_bar_plot')
+@click.option('--plot_title', '-t', type=click.STRING, default='bde')
 @click.option('--output_dir', type=click.Path(), default='pictures')
 @click.option('--exclude', '-e', help='string of dft fnames to exclude')
 @click.option('--measure', default='bde_correlation',
@@ -557,7 +595,7 @@ def bde_bar_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
                                 'gap_f_rmse', 'gap_f_max', 'bde_correlation']),
              help='which property to look at')
 def bde_scatter_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
-                 plot_title='bde_bar_plot', output_dir='pictures',
+                 plot_title='bde', output_dir='pictures',
                 exclude=None, measure='bde'):
     if gap_dir is not None:
         if not os.path.isdir(gap_dir):
@@ -588,7 +626,7 @@ def bde_scatter_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
     data = bde.get_data(dft_fnames, gap_fnames, start_fnames=start_fnames,
                         calculator=calculator, which_data=measure)
 
-    bde.scatter_plot(all_data=data, plot_title=plot_title,
+    bde.scatter_plot(all_data=data, plot_title=plot_title+'_'+measure,
                          output_dir=output_dir, which_data=measure  )
 
 
