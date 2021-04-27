@@ -150,3 +150,50 @@ def energies_for_weighting_normal_modes(frequencies, temp, threshold_invcm=200,
                      units.kB * temp
                      for freq in frequencies])
 
+
+
+def process_config_info(fname_in, fname_out):
+
+    ats = read(fname_in, ':')
+    ats = process_config_info_on_atoms(ats)
+
+    write(fname_out, ats)
+
+
+def process_config_info_on_atoms(ats, verbose=True):
+
+    all_mol_or_rad_entries = []
+    all_compound_entries = []
+
+    for at in ats:
+
+        cfg = at.info['config_type']
+        words = cfg.split('_')
+
+        mol_or_rad = words[-1]
+
+        if 'mol' not in mol_or_rad and 'rad' not in mol_or_rad:
+            raise RuntimeError(
+                f'{mol_or_rad} isn\'t eiter molecule or radical')
+
+        all_mol_or_rad_entries.append(mol_or_rad)
+        at.info['mol_or_rad'] = mol_or_rad
+
+        compound = '-'.join(words[:-1])
+        all_compound_entries.append(compound)
+        at.info['compound'] = compound
+
+    if verbose:
+        print(f'all mol_or_rad entries: {set(all_mol_or_rad_entries)}')
+        print(f' all compound entries: {set(all_compound_entries)}')
+
+    return ats
+
+#creates unique hash for a matrix of numbers
+def hash_array(v):
+    return hashlib.md5(np.array2string(v, precision=8, sign='+', floatmode='fixed').encode()).hexdigest()
+
+#creates unique hash for Atoms from atomic numbers and positions
+def hash_atoms(at):
+    v = np.concatenate((at.numbers.reshape(-1,1), at.positions),axis=1)
+    return hash_array(v)

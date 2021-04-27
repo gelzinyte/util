@@ -121,7 +121,7 @@ def plot_dft_dimers(dimer_fnames, prefix):
 @click.argument('input-fname')
 @click.option('--output-fname', '-o')
 def cleanup_info_entries(input_fname, output_fname):
-    tmp.process_config_info(input_fname, output_fname)
+    configs.process_config_info(input_fname, output_fname)
 
 @subcli_configs.command('sample-normal-modes')
 @click.argument('input-fname')
