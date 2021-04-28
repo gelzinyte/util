@@ -20,7 +20,7 @@ try:
     from quippy.potential import Potential
 except ModuleNotFoundError:
     pass
-from util import bde
+# from util import bde
 from util import mem_tracker
 from util import iter_fit
 from util import iter_tools
@@ -74,6 +74,27 @@ def subcli_configs(ctx):
 def subcli_tmp():
     pass
 
+@subcli_bde.command('gap-generate')
+@click.argument('smiles-csv', help='csv with smiles/name entries')
+@click.option('--num-repeats', '-n', help='number of conformers to generate for each smiles')
+@click.option('--gap-prefix', '-p', help='how to name all gap entries')
+@click.option('--gap-filename', '-g')
+@click.option('--non-opt-filename', help='where to save non-optimised molecules')
+@click.option('--output-filename', '-o')
+def derive_gap_bdes(smiles_csv, num_repeats, gap_prefix, gap_filename, non_opt_filename,
+                    output_filename):
+
+     molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
+
+     if non_opt__filename is not None:
+         write(non_opt_filename, molecules)
+
+     outputs = ConfigSet_out(output_files=output_filename)
+     calculator = (Potential, [], {'param_filename':gap_filename})
+
+     bde.gap_prepare_bde_structures_parallel(molecules, outputs=outputs,
+                                             calculator=calculator,
+                                             gap_prop_prefix=gap_prefix)
 
 
 # @subcli_bde.command('from-opt')
