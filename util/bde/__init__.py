@@ -33,88 +33,71 @@ def evaluate_gap_on_h(gap_filename, gap_prop_prefix, output_filename):
     return H
 
 
-def gap_prepare_bde_structures_parallel(smiles_str, outputs, calculator,
+def gap_prepare_bde_structures_parallel(molecules, outputs, calculator,
                                         gap_prop_prefix, chunksize=1):
     """using iterable_loop"""
-    return iterable_loop(iterable=smiles_str, configset_out=outputs,
+    return iterable_loop(iterable=molecules, configset_out=outputs,
                          op=gap_prepare_bde_structures, chunksize=chunksize,
                          gap_prop_prefix=gap_prop_prefix,
                          calculator=calculator)
-    
 
-def gap_prepare_bde_structures(smiles_str, name, calculator, gap_prop_prefix):
-    """takes in single smiles, makes 3D structure, optimises with GAP,
+
+def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix):
+    """takes in single molecule,  optimises with GAP,
     removes sp3 hydrogens, optimises with GAP"""
 
-    # make molecule
-    mol = smiles.run_op(smiles_str)[0]
-    mol.info['config_type'] = name
+    if isinstance(molecules, Atoms):
+        molecules = [molecules]
 
-    # gap-optimise
-    mol = gap_optimise(mol, calculator)
+    configs_out = []
 
-    # make radicals
-    mol_and_rads = ConfigSet_out()
-    radicals.abstract_sp3_hydrogen_atoms(inputs=mol,
-                            outputs=mol_and_rads)
+    for mol in molecules:
+        # gap-optimise
+        mol = gap_optimise(mol, calculator)
 
-    # gap-optimise
-    mol_and_rads = gap_optimise(mol_and_rads.to_ConfigSet_in(),
-                                          calculator)
+        # make radicals
+        mol_and_rads = ConfigSet_out()
+        radicals.abstract_sp3_hydrogen_atoms(inputs=mol,
+                                outputs=mol_and_rads)
 
-    # evaluate everyone with gap
-    output_prefix = f'{gap_prop_prefix}opt_'
-    mol_and_rads = generic.run_op(mol_and_rads,
-                  calculator,
-                  properties=['energy', 'forces'],
-                  output_prefix=output_prefix)
+        # gap-optimise
+        mol_and_rads = gap_optimise(mol_and_rads.to_ConfigSet_in(),
+                                              calculator)
 
-    # process config_type, compound and mol_or_rad labels
-    mol_and_rads = configs.process_config_info_on_atoms(mol_and_rads,
-                                                        verbose=False)
+        # evaluate everyone with gap
+        output_prefix = f'{gap_prop_prefix}opt_'
+        mol_and_rads = generic.run_op(mol_and_rads,
+                      calculator,
+                      properties=['energy', 'forces'],
+                      output_prefix=output_prefix)
 
-    # label gap_optimised positions
-    for at in mol_and_rads:
-        at.arrays[f'{gap_prop_prefix}opt_positions'] = at.positions.copy()
+        # process config_type, compound and mol_or_rad labels
+        mol_and_rads = configs.process_config_info_on_atoms(mol_and_rads,
+                                                            verbose=False)
 
-    # assign molecule positions' hash
-    assert mol_and_rads[0].info['mol_or_rad'] == 'mol'
-    mol_hash = configs.hash_atoms(mol_and_rads[0])
-    mol_and_rads[0].info[f'{gap_prop_prefix}opt_positions_hash'] = mol_hash
-    for at in mol_and_rads[1:]:
-        at.info[f'mol_{gap_prop_prefix}opt_positions_hash'] = mol_hash
+        # label gap_optimised positions
+        for at in mol_and_rads:
+            at.arrays[f'{gap_prop_prefix}opt_positions'] = at.positions.copy()
 
-    # reevaluate with dft
-    default_kw = Config.from_yaml(os.path.join(cfg['util_root'], 'default_kwargs.yml'))
-    smearing = default_kw['orca']['smearing']
-    orcasimpleinput = default_kw['orca']['orcasimpleinput']
-    orcablocks=f'%scf Convergence Tight\nSmearTemp {smearing}\nmaxiter 500\nend'
-    orca_kwargs = {'orcasimpleinput':orcasimpleinput,
-                   'orcablocks':orcablocks}
+        # assign molecule positions' hash
+        mol_and_rads = assign_hash(mol_and_rads, gap_prop_prefix)
 
-    output_prefix = f'{gap_prop_prefix}opt_dft_'
-    logger.info(f'Running ORCA with orca_kwargs {orca_kwargs}')
-    mol_and_rads = orca.evaluate_op(mol_and_rads, base_rundir='orca_outputs',
-                                   orca_kwargs=orca_kwargs,
-                                   output_prefix=output_prefix)
+        # reevaluate with dft
+        mol_and_rads = setup_evaluate_orca(mol_and_rads, gap_prop_prefix)
 
-    return mol_and_rads
+        configs_out += mol_and_rads
+
+    return configs_out
 
 
 def dft_reoptimise(inputs, outputs, dft_prefix):
     """reoptimises all the structures given and puts them in appropriate
     atoms.info/arrays entries"""
 
-    default_kw = Config.from_yaml(
-        os.path.join(cfg['util_root'], 'default_kwargs.yml'))
-    smearing = default_kw['orca']['smearing']
-    orcasimpleinput = default_kw['orca']['orcasimpleinput']
-    orcablocks = f'%scf Convergence Tight\nSmearTemp {smearing}\nmaxiter 500\nend'
 
+    orca_kwargs = setup_orca_kwargs()
+    orca_kwargs['task'] = 'opt'
 
-    orca_kwargs = {'orcasimpleinput': orcasimpleinput,
-                   'orcablocks': orcablocks,
-                   'task':'opt'}
 
     output_prefix = f'{dft_prefix}opt_'
 
@@ -140,3 +123,45 @@ def gap_optimise(atoms, calculator):
     atoms_opt = [traj[-1] for traj in atoms_opt_traj]
 
     return atoms_opt
+
+
+def assign_hash(mol_and_rads, gap_prop_prefix):
+
+    assert mol_and_rads[0].info['mol_or_rad'] == 'mol'
+
+    mol_hash = configs.hash_atoms(mol_and_rads[0])
+    mol_and_rads[0].info[f'{gap_prop_prefix}opt_positions_hash'] = mol_hash
+
+    for at in mol_and_rads[1:]:
+        at.info[f'mol_{gap_prop_prefix}opt_positions_hash'] = mol_hash
+
+    return mol_and_rads
+
+def setup_orca_kwargs():
+
+    default_kw = Config.from_yaml(
+        os.path.join(cfg['util_root'], 'default_kwargs.yml'))
+
+    smearing = default_kw['orca']['smearing']
+    orcasimpleinput = default_kw['orca']['orcasimpleinput']
+    orcablocks = f'%scf Convergence Tight\nSmearTemp {smearing}\nmaxiter ' \
+                 f'500\nend'
+
+    orca_kwargs = {'orcasimpleinput': orcasimpleinput,
+                   'orcablocks': orcablocks}
+    print(orca_kwargs)
+
+    return orca_kwargs
+
+def setup_evaluate_orca(mol_and_rads, gap_prop_prefix):
+
+    orca_kwargs = setup_orca_kwargs()
+
+    output_prefix = f'{gap_prop_prefix}opt_dft_'
+
+    logger.info(f'Running ORCA with orca_kwargs {orca_kwargs}')
+
+    mol_and_rads = orca.evaluate_op(mol_and_rads, base_rundir='orca_outputs',
+                                    orca_kwargs=orca_kwargs,
+                                    output_prefix=output_prefix)
+    return mol_and_rads
