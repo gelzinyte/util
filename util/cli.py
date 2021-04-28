@@ -3,7 +3,6 @@ from ase import Atoms
 from util import compare_minima
 from util import bde
 from util import error_table
-from util import tmp
 from util import plot
 from util.plot import dimer
 from util import iter_tools as it

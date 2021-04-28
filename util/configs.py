@@ -7,6 +7,7 @@ from ase import neighborlist
 import numpy as np
 from util import grouper
 import os
+import hashlib
 
 
 def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_',

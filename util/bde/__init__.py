@@ -1,3 +1,6 @@
+import os
+import logging
+
 from ase import Atoms
 from ase.io import read, write
 
@@ -14,32 +17,37 @@ from util import radicals  # TODO change to wfl once merged
 from util import configs
 from util.util_config import Config
 
+logger = logging.getLogger(__name__)
+
 cfg = Config.load()
 
 def evaluate_gap_on_h(gap_filename, gap_prop_prefix, output_filename):
     """Evaluates isolted atom with gap needed to derive BDEs"""
-    H = Atoms('H', position=[(0, 0, 0)])
+    H = Atoms('H', positions=[(0, 0, 0)])
     gap = Potential(param_filename=gap_filename)
     H.calc = gap
     H.info[f'{gap_prop_prefix}energy'] = H.get_potential_energy()
+    H.info['config_type'] = 'isolated_atom'
     write(output_filename, H)
 
     return H
 
 
-def gap_prepare_bde_structures_parallel(smiles, outputs, calculator,
+def gap_prepare_bde_structures_parallel(smiles_str, outputs, calculator,
                                         gap_prop_prefix, chunksize=1):
     """using iterable_loop"""
-    return iterable_loop(iterable=smiles, configset_out=outputs,
-                         op=gap_prepare_bde_structures, chunksize=chunksize)
+    return iterable_loop(iterable=smiles_str, configset_out=outputs,
+                         op=gap_prepare_bde_structures, chunksize=chunksize,
+                         gap_prop_prefix=gap_prop_prefix,
+                         calculator=calculator)
     
 
-def gap_prepare_bde_structures(smiles, name, calculator, gap_prop_prefix):
+def gap_prepare_bde_structures(smiles_str, name, calculator, gap_prop_prefix):
     """takes in single smiles, makes 3D structure, optimises with GAP,
     removes sp3 hydrogens, optimises with GAP"""
 
     # make molecule
-    mol = smiles.run_op(smiles)[0]
+    mol = smiles.run_op(smiles_str)[0]
     mol.info['config_type'] = name
 
     # gap-optimise
@@ -48,14 +56,14 @@ def gap_prepare_bde_structures(smiles, name, calculator, gap_prop_prefix):
     # make radicals
     mol_and_rads = ConfigSet_out()
     radicals.abstract_sp3_hydrogen_atoms(inputs=mol,
-                            outputs=mols_and_rads)
+                            outputs=mol_and_rads)
 
     # gap-optimise
     mol_and_rads = gap_optimise(mol_and_rads.to_ConfigSet_in(),
                                           calculator)
 
     # evaluate everyone with gap
-    output_prefix = f'{gap_prop_prefix}_opt_'
+    output_prefix = f'{gap_prop_prefix}opt_'
     mol_and_rads = generic.run_op(mol_and_rads,
                   calculator,
                   properties=['energy', 'forces'],
@@ -67,14 +75,14 @@ def gap_prepare_bde_structures(smiles, name, calculator, gap_prop_prefix):
 
     # label gap_optimised positions
     for at in mol_and_rads:
-        at.arrays[f'{gap_prop_prefix}_opt_positions'] = at.positions.copy()
+        at.arrays[f'{gap_prop_prefix}opt_positions'] = at.positions.copy()
 
     # assign molecule positions' hash
     assert mol_and_rads[0].info['mol_or_rad'] == 'mol'
     mol_hash = configs.hash_atoms(mol_and_rads[0])
-    mol_and_rads[0].info[f'{gap_proP_prefix}_opt_positions_hash'] = mol_hash
+    mol_and_rads[0].info[f'{gap_prop_prefix}opt_positions_hash'] = mol_hash
     for at in mol_and_rads[1:]:
-        at.info[f'mol_{gap_prop_prefix}_opt_positions_hash'] = mol_hash
+        at.info[f'mol_{gap_prop_prefix}opt_positions_hash'] = mol_hash
 
     # reevaluate with dft
     default_kw = Config.from_yaml(os.path.join(cfg['util_root'], 'default_kwargs.yml'))
@@ -84,8 +92,9 @@ def gap_prepare_bde_structures(smiles, name, calculator, gap_prop_prefix):
     orca_kwargs = {'orcasimpleinput':orcasimpleinput,
                    'orcablocks':orcablocks}
 
-    output_prefix = f'{gap_prop_prefix}_opt_dft_'
-    mol_and_rads = orca.evalute_op(atoms, base_rundir='orca_outputs',
+    output_prefix = f'{gap_prop_prefix}opt_dft_'
+    logger.info(f'Running ORCA with orca_kwargs {orca_kwargs}')
+    mol_and_rads = orca.evaluate_op(mol_and_rads, base_rundir='orca_outputs',
                                    orca_kwargs=orca_kwargs,
                                    output_prefix=output_prefix)
 
@@ -107,14 +116,14 @@ def dft_reoptimise(inputs, outputs, dft_prefix):
                    'orcablocks': orcablocks,
                    'task':'opt'}
 
-    output_prefix = f'{dft_prefix}_opt_'
+    output_prefix = f'{dft_prefix}opt_'
 
     orca.evaluate(inputs, outputs, base_rundir='orca_opt_outputs',
                   orca_kwargs=orca_kwargs, output_prefix=output_prefix)
 
     atoms_out = []
     for at in outputs.to_ConfigSet_in():
-        at.arrays[f'{dft_prefix}_opt_positions'] = at.positions.copy()
+        at.arrays[f'{dft_prefix}opt_positions'] = at.positions.copy()
         atoms_out.append(at)
 
     return atoms_out
