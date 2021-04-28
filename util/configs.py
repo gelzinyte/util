@@ -1,4 +1,6 @@
 from ase.io import read, write
+from util import smiles
+from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.generate_configs.vib import Vibrations
 from ase import units
 from ase import Atoms
@@ -8,6 +10,25 @@ import numpy as np
 from util import grouper
 import os
 import hashlib
+
+def smiles_csv_to_molecules(smiles_csv, repeat=1):
+
+    df = pd.read_csv(smiles_csv)
+    smi_names = []
+    smiles_to_convert = []
+    for smi, name in zip(df['SMILES'], df['Name']):
+        smiles_to_convert += [smi] * repeat
+        smi_names += [name] * repeat
+
+    molecules = ConfigSet_out()
+    smiles.run(outputs=molecules, smiles=smiles_to_convert)
+    for at, name in zip(molecules.output_configs, smi_names):
+        at.info['config_type'] = name
+        at.cell = [50, 50, 50]
+
+    return molecules.output_configs
+
+
 
 
 def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_',

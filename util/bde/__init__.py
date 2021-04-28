@@ -42,7 +42,8 @@ def gap_prepare_bde_structures_parallel(molecules, outputs, calculator,
                          calculator=calculator)
 
 
-def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix):
+def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix,
+                               run_dft=True):
     """takes in single molecule,  optimises with GAP,
     removes sp3 hydrogens, optimises with GAP"""
 
@@ -82,8 +83,9 @@ def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix):
         # assign molecule positions' hash
         mol_and_rads = assign_hash(mol_and_rads, gap_prop_prefix)
 
-        # reevaluate with dft
-        mol_and_rads = setup_evaluate_orca(mol_and_rads, gap_prop_prefix)
+        if run_dft:
+            # reevaluate with dft
+            mol_and_rads = setup_evaluate_orca(mol_and_rads, gap_prop_prefix)
 
         configs_out += mol_and_rads
 
@@ -97,7 +99,6 @@ def dft_reoptimise(inputs, outputs, dft_prefix):
 
     orca_kwargs = setup_orca_kwargs()
     orca_kwargs['task'] = 'opt'
-
 
     output_prefix = f'{dft_prefix}opt_'
 
