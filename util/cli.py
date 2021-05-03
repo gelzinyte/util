@@ -74,6 +74,18 @@ def subcli_configs(ctx):
 def subcli_tmp():
     pass
 
+
+@subcli_configs.command('csv-to-mols')
+@click.argument('smiles-csv')
+@click.option('--num-repeats', '-n', type=click.INT)
+@click.option('--output-fname', '-o')
+def smiles_to_molecules(smiles_csv, num_repeats, output_fname):
+
+    molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
+    write(output_fname, molecules)
+
+
+
 @subcli_bde.command('gap-generate')
 @click.option('--smiles-csv', '-s', help='csv file with smiles and structures names')
 @click.option('--molecules-fname', '-m', help='filename with non-optimised molecule structures')
@@ -102,6 +114,7 @@ def derive_gap_bdes(smiles_csv, molecules_fname, num_repeats, gap_prefix, gap_fi
                                              calculator=calculator,
                                              gap_prop_prefix=gap_prefix)
 
+
 @subcli_bde.command('dft-reoptimise')
 @click.argument('input-filename')
 @click.option('--output-filename', '-o')
@@ -111,7 +124,7 @@ def reoptimise_with_dft(input_filename, output_filename, dft_prop_prefix):
     inputs = ConfigSet_in(input_files=input_filename)
     outputs = ConfigSet_out(output_files=output_filename)
 
-    bde.dft_reoptimise(inputs=inputs, outputs=outputs, dft_prefix=dft_prop_prefix)
+    bde.dft_optimise(inputs=inputs, outputs=outputs, dft_prefix=dft_prop_prefix)
 
 
 # @subcli_bde.command('from-opt')

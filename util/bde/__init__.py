@@ -44,6 +44,8 @@ def gap_prepare_bde_structures_parallel(molecules, outputs, calculator,
                          run_dft=run_dft)
 
 
+
+
 def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix,
                                run_dft=True):
     """takes in single molecule,  optimises with GAP,
@@ -98,21 +100,31 @@ def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix,
     return configs_out
 
 
-def dft_reoptimise(inputs, outputs, dft_prefix):
+
+def dft_optimise(inputs, outputs, dft_prefix, parallel=True):
     """reoptimises all the structures given and puts them in appropriate
     atoms.info/arrays entries"""
-
 
     orca_kwargs = setup_orca_kwargs()
     orca_kwargs['task'] = 'opt'
 
     output_prefix = f'{dft_prefix}opt_'
 
-    orca.evaluate(inputs, outputs, base_rundir='orca_opt_outputs',
-                  orca_kwargs=orca_kwargs, output_prefix=output_prefix)
+    base_rundir='orca_opt_outputs'
+
+    if parallel:
+        orca.evaluate(inputs, outputs, base_rundir=base_rundir,
+                      orca_kwargs=orca_kwargs, output_prefix=output_prefix)
+        atoms_optimised = outputs.output_configs
+    else:
+        atoms_optimised = orca.evaluate_op(inputs,  base_rundir=base_rundir, orca_kwargs=orca_kwargs,
+                         output_prefix=output_prefix)
+
+    if isinstance(atoms_optimised, Atoms):
+        atoms_optimised = [atoms_optimised]
 
     atoms_out = []
-    for at in outputs.to_ConfigSet_in():
+    for at in atoms_optimised:
         at.arrays[f'{dft_prefix}positions'] = at.positions.copy()
         atoms_out.append(at)
 
@@ -132,15 +144,14 @@ def gap_optimise(atoms, calculator):
     return atoms_opt
 
 
-def assign_hash(mol_and_rads, gap_prop_prefix):
+def assign_hash(mol_and_rads, prop_prefix):
 
     assert mol_and_rads[0].info['mol_or_rad'] == 'mol'
 
     mol_hash = configs.hash_atoms(mol_and_rads[0])
-    mol_and_rads[0].info[f'{gap_prop_prefix}opt_positions_hash'] = mol_hash
 
-    for at in mol_and_rads[1:]:
-        at.info[f'mol_{gap_prop_prefix}opt_positions_hash'] = mol_hash
+    for at in mol_and_rads:
+        at.info[f'mol_{prop_prefix}opt_positions_hash'] = mol_hash
 
     return mol_and_rads
 

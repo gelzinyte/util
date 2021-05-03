@@ -1,5 +1,6 @@
 from util import bde
 import numpy as np
+from util import configs
 import shutil
 from ase.io import read, write
 import os
@@ -7,6 +8,8 @@ import pytest
 from quippy.potential import Potential
 from util import smiles
 from wfl.configset import ConfigSet_in, ConfigSet_out
+
+
 
 
 def get_gap_filename():
