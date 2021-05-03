@@ -75,26 +75,43 @@ def subcli_tmp():
     pass
 
 @subcli_bde.command('gap-generate')
-@click.argument('smiles-csv', help='csv with smiles/name entries')
-@click.option('--num-repeats', '-n', help='number of conformers to generate for each smiles')
+@click.option('--smiles-csv', '-s', help='csv file with smiles and structures names')
+@click.option('--molecules-fname', '-m', help='filename with non-optimised molecule structures')
+@click.option('--num-repeats', '-n', type=click.INT, help='number of conformers to generate for each smiles')
 @click.option('--gap-prefix', '-p', help='how to name all gap entries')
 @click.option('--gap-filename', '-g')
 @click.option('--non-opt-filename', help='where to save non-optimised molecules')
 @click.option('--output-filename', '-o')
-def derive_gap_bdes(smiles_csv, num_repeats, gap_prefix, gap_filename, non_opt_filename,
+def derive_gap_bdes(smiles_csv, molecules_fname, num_repeats, gap_prefix, gap_filename, non_opt_filename,
                     output_filename):
 
-     molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
+    assert smiles_csv is None or molecules_fname is None
 
-     if non_opt__filename is not None:
-         write(non_opt_filename, molecules)
+    if smiles_csv:
+        molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
+    elif molecules_fname:
+        molecules = read(molecules_fname, ':')
 
-     outputs = ConfigSet_out(output_files=output_filename)
-     calculator = (Potential, [], {'param_filename':gap_filename})
+    if non_opt_filename is not None:
+        write(non_opt_filename, molecules)
 
-     bde.gap_prepare_bde_structures_parallel(molecules, outputs=outputs,
+    outputs = ConfigSet_out(output_files=output_filename)
+    calculator = (Potential, [], {'param_filename':gap_filename})
+
+    bde.gap_prepare_bde_structures_parallel(molecules, outputs=outputs,
                                              calculator=calculator,
                                              gap_prop_prefix=gap_prefix)
+
+@subcli_bde.command('dft-reoptimise')
+@click.argument('input-filename')
+@click.option('--output-filename', '-o')
+@click.option('--dft-prop-prefix', '-p', default='dft_reopt_')
+def reoptimise_with_dft(input_filename, output_filename, dft_prop_prefix):
+
+    inputs = ConfigSet_in(input_files=input_filename)
+    outputs = ConfigSet_out(output_files=output_filename)
+
+    bde.dft_reoptimise(inputs=inputs, outputs=outputs, dft_prefix=dft_prop_prefix)
 
 
 # @subcli_bde.command('from-opt')

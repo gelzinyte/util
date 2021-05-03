@@ -34,12 +34,14 @@ def evaluate_gap_on_h(gap_filename, gap_prop_prefix, output_filename):
 
 
 def gap_prepare_bde_structures_parallel(molecules, outputs, calculator,
-                                        gap_prop_prefix, chunksize=1):
+                                        gap_prop_prefix, chunksize=1,
+                                        run_dft=True):
     """using iterable_loop"""
     return iterable_loop(iterable=molecules, configset_out=outputs,
                          op=gap_prepare_bde_structures, chunksize=chunksize,
                          gap_prop_prefix=gap_prop_prefix,
-                         calculator=calculator)
+                         calculator=calculator,
+                         run_dft=run_dft)
 
 
 def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix,
@@ -56,14 +58,18 @@ def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix,
         # gap-optimise
         mol = gap_optimise(mol, calculator)
 
+
         # make radicals
         mol_and_rads = ConfigSet_out()
         radicals.abstract_sp3_hydrogen_atoms(inputs=mol,
                                 outputs=mol_and_rads)
 
+
         # gap-optimise
         mol_and_rads = gap_optimise(mol_and_rads.to_ConfigSet_in(),
                                               calculator)
+
+
 
         # evaluate everyone with gap
         output_prefix = f'{gap_prop_prefix}opt_'
@@ -87,7 +93,7 @@ def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix,
             # reevaluate with dft
             mol_and_rads = setup_evaluate_orca(mol_and_rads, gap_prop_prefix)
 
-        configs_out += mol_and_rads
+        configs_out.append(mol_and_rads)
 
     return configs_out
 
@@ -107,7 +113,7 @@ def dft_reoptimise(inputs, outputs, dft_prefix):
 
     atoms_out = []
     for at in outputs.to_ConfigSet_in():
-        at.arrays[f'{dft_prefix}opt_positions'] = at.positions.copy()
+        at.arrays[f'{dft_prefix}positions'] = at.positions.copy()
         atoms_out.append(at)
 
     return atoms_out
