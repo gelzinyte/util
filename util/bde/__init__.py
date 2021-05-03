@@ -100,7 +100,6 @@ def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix,
     return configs_out
 
 
-
 def dft_optimise(inputs, outputs, dft_prefix, parallel=True):
     """reoptimises all the structures given and puts them in appropriate
     atoms.info/arrays entries"""
