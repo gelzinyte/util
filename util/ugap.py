@@ -30,8 +30,9 @@ def make_descr_str(descr_dict):
 
 
 def make_config_type_sigma_str(dct):
-    """Converts config_type sigma values to string to be included in GAP command"""
-    '''dct should be {config_type,str:values,float list}'''
+    """Converts config_type sigma values to string to be included in GAP command.
+       dct should be {str:list(float)} where str is the config_type and list of floats are the sigmas."""
+
     string = ' config_type_kernel_regularisation={'
 
     for i, key in enumerate(dct.keys()):

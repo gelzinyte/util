@@ -1,7 +1,9 @@
 import click
+import subprocess
 from ase import Atoms
 from util import compare_minima
 from util import bde
+from util import radicals
 from util import error_table
 from util import plot
 from util.plot import dimer
@@ -74,6 +76,34 @@ def subcli_configs(ctx):
 def subcli_tmp():
     pass
 
+@cli.group('jobs')
+def subcli_jobs():
+    pass
+
+@subcli_jobs.command('from-pattern')
+@click.argument('pattern-fname')
+@click.option('--start', '-s',  type=click.INT, default=1, show_default=True,
+                help='no to start with')
+@click.option('--num', '-n', type=click.INT, help='how many scripts to make')
+@click.option('--submit', is_flag=True, help='whether to submit the scripts')
+def sub_from_pattern(pattern_fname, start, num, submit):
+
+    with open(pattern_fname, 'r') as f:
+        pattern = f.read()
+
+    for idx in range(start, num+1):
+
+        text = pattern.replace('{idx}', str(idx))
+        sub_name = f'sub_{idx}.sh'
+
+        with open(sub_name, 'w') as f:
+            f.write(text)
+
+        if submit:
+            subprocess.run(f'qsub {sub_name}', shell=True)
+
+
+
 
 @subcli_configs.command('csv-to-mols')
 @click.argument('smiles-csv')
@@ -83,6 +113,58 @@ def smiles_to_molecules(smiles_csv, num_repeats, output_fname):
 
     molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
     write(output_fname, molecules)
+
+@subcli_bde.command('rads-from-opt-mols')
+@click.argument('molecules-fname')
+@click.option('--output-fname', '-o')
+@click.option('--info-to-keep', '-i', help='info entries in molecules to keep in radicals')
+@click.option('--arrays-to-keep', '-a')
+def rads_from_opt_mols(molecules_fname, output_fname, info_to_keep, arrays_to_keep):
+
+    if info_to_keep is not None:
+        info_to_keep = info_to_keep.split()
+    if arrays_to_keep is not None:
+        arrays_to_keep = arrays_to_keep.split()
+
+    molecules = read(molecules_fname, ':')
+    outputs = ConfigSet_out()
+
+    radicals.abstract_sp3_hydrogen_atoms(inputs = molecules,
+                                         outputs = outputs)
+
+    mols_and_rads = []
+    for at in outputs.output_configs:
+
+        if 'mol' in at.info['config_type']:
+            mols_and_rads.append(at)
+        else:
+            rad = configs.strip_info_arrays(at, info_to_keep, arrays_to_keep)
+            mols_and_rads.append(rad)
+
+    write(output_fname, mols_and_rads)
+
+
+
+
+
+
+
+
+@subcli_configs.command('hash')
+@click.argument('input-fname')
+@click.option('--output-fname', '-o')
+@click.option('--prefix', '-p', help='prefix for info entries')
+def hash_structures(input_fname, output_fname, prefix):
+    """assigns positions/numbers hash to all structures in the file"""
+
+    atoms = read(input_fname, ':')
+    for at in atoms:
+        at.info[f'{prefix}hash'] = configs.hash_atoms(at)
+
+    write(output_fname, atoms)
+
+
+
 
 
 
