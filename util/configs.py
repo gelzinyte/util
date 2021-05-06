@@ -12,6 +12,40 @@ from util import grouper
 import os
 import hashlib
 
+
+def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
+
+    if info_to_keep is None:
+        info_to_keep = []
+
+    if arrays_to_keep is None:
+        arrays_to_keep = []
+
+    if isinstance(atoms, Atoms):
+        atoms = [atoms]
+
+    for at in atoms:
+
+        info_keys = list(at.info.keys())
+        for key in info_keys:
+            if key not in info_to_keep:
+                at.info.pop(key)
+
+        arrays_keys = list(at.arrays.keys())
+        for key in arrays_keys:
+            if key in ['numbers', 'positions']:
+                continue
+            elif key not in arrays_to_keep:
+                at.arrays.pop(key)
+
+    if len(atoms) == 1:
+        atoms = atoms[0]
+
+    return atoms
+
+
+
+
 def smiles_csv_to_molecules(smiles_csv, repeat=1):
 
     df = pd.read_csv(smiles_csv)

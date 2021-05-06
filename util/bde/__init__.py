@@ -150,7 +150,7 @@ def assign_hash(mol_and_rads, prop_prefix):
     mol_hash = configs.hash_atoms(mol_and_rads[0])
 
     for at in mol_and_rads:
-        at.info[f'mol_{prop_prefix}opt_positions_hash'] = mol_hash
+        at.info[f'{prop_prefix}opt_mol_positions_hash'] = mol_hash
 
     return mol_and_rads
 
