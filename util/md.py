@@ -5,7 +5,12 @@ from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from ase import units
 from ase.md.langevin import Langevin
 import numpy as np
-from quippy.potential import Potential
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
+
+    
 
 
 def run_md(gap_filename, mol_filename):
