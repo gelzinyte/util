@@ -1,8 +1,12 @@
 import io
 
 from ase.io import read
-from rdkit import Chem
-from rdkit.Chem import AllChem
+
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+except ModuleNotFoundError:
+    pass
 
 from wfl.pipeline import iterable_loop
 
