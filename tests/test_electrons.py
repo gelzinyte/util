@@ -12,6 +12,6 @@ def test_getting_eps_ij(mp2):
                        [-0.00027806, -0.007555  , -0.01605793, -0.01749857, -0.01491374],
                        [-0.00029513, -0.00749152, -0.01445048, -0.01491374, -0.0168985 ]])
 
-    eps_ij = correlation.get_eps_ij(mp2)
+    eps_ij = electrons.get_eps_ij(mp2)
 
     assert np.all(approx(expected, rel=1e-4) == eps_ij)
