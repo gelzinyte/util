@@ -4,8 +4,8 @@ from pytest import approx
 def get_eps_ij(mp2):
     """returns MP2 correlation energy for each pair of occupied orbitals"""
 
-    N_occ = mp2.get_nocc() #sum(mp2.mo_occ != 0)
-    N =  mp2.get_nmo()  #len(mp2.mo_occ)
+    N_occ = mp2.get_nocc()
+    N =  mp2.get_nmo()  
     N_virt = N - N_occ
 
     t2 = mp2.t2
