@@ -1,7 +1,7 @@
 import numpy as np
 from pytest import approx
 
-from util import correlation
+from util import electrons
 
 
 def test_getting_eps_ij(mp2):
