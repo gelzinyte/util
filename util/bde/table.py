@@ -1,5 +1,6 @@
 from util import natural_sort
 import pandas as pd
+import numpy as np
 from tabulate import tabulate
 
 def atom_sorter(atoms, info_key='mol_or_rad'):
@@ -65,7 +66,7 @@ def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False,
               'gap_bde',                # eV on gap opt mol and rad
               'dft_opt_dft_energy',             # eV on dft opt mol/rad
               'dft_opt_gap_energy',
-              'gap_opt_gap_energy'              # eV on gap opt mol/rad
+              'gap_opt_gap_energy',              # eV on gap opt mol/rad
               'gap_opt_dft_energy'
               ]
 
@@ -76,12 +77,12 @@ def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False,
                    dft_prefix=dft_prefix)
 
     mol = atoms[0]
-    rads = [atoms[1:]]
+    rads = atoms[1:]
 
     add_mol_data(t, mol=mol, gap_prefix=gap_prefix, dft_prefix=dft_prefix)
     for rad in rads:
         add_rad_data(t, mol=mol, rad=rad, isolated_h=isolated_h,
-                     gap_prefix=gap_prefx, dft_prefix=dft_prefix)
+                     gap_prefix=gap_prefix, dft_prefix=dft_prefix)
 
     print('-'*30)
 
@@ -118,7 +119,7 @@ def add_mol_data(t, mol, gap_prefix, dft_prefix):
     gap_opt_gap_forces = mol.arrays[f'{gap_prefix}opt_{gap_prefix}forces']
     gap_opt_dft_forces = mol.arrays[f'{gap_prefix}opt_{dft_prefix}forces']
 
-    t['energy_absolute_error'][label] = abs_error(gap_opt_gap_energy,
+    t['energy_absolute_error'] = abs_error(gap_opt_gap_energy,
                                                   gap_opt_dft_energy)
 
     t['force_rmse'][label] = force_rmse(gap_opt_gap_forces,
@@ -205,7 +206,7 @@ def add_H_data(t, isolated_h, gap_prefix, dft_prefix):
 
     t['energy_absolute_error']['H'] = abs_error(gap_energy, dft_energy)
     t['dft_opt_dft_energy']['H'] = dft_energy
-    t['gap_opt_gap_energy']['H'] = gap_energy
+    # t['gap_opt_gap_energy']['H'] = gap_energy
 
 
 
