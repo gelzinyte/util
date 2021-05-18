@@ -84,20 +84,21 @@ def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False,
         add_rad_data(t, mol=mol, rad=rad, isolated_h=isolated_h,
                      gap_prefix=gap_prefix, dft_prefix=dft_prefix)
 
-    print('-'*30)
 
-    pd.options.display.float_format = lambda x: '{:.0f}'.format(x) if int(
-        x) == x else f'{{:,.{precision}f}}'.format(x)
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', None)
-    print(t)
+    if printing:
+        pd.options.display.float_format = lambda x: f'{{:,.{precision}f}}'.format(x) if int(
+            x) == x else f'{{:,.{precision}f}}'.format(x)
+        pd.set_option('display.max_rows', None)
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.width', None)
+        pd.set_option('display.max_colwidth', None)
+        print(t)
 
     return t
 
 def abs_error(energy1, energy2):
-    return np.abs(energy2 - energy1) * 1e3
+    abs_err = np.abs(energy2 - energy1) * 1e3
+    return abs_err
 
 def force_rmse(forces1, forces2):
     return np.sqrt(np.mean(forces1 - forces2)**2) * 1e3
@@ -119,24 +120,24 @@ def add_mol_data(t, mol, gap_prefix, dft_prefix):
     gap_opt_gap_forces = mol.arrays[f'{gap_prefix}opt_{gap_prefix}forces']
     gap_opt_dft_forces = mol.arrays[f'{gap_prefix}opt_{dft_prefix}forces']
 
-    t['energy_absolute_error'] = abs_error(gap_opt_gap_energy,
+    t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
                                                   gap_opt_dft_energy)
 
-    t['force_rmse'][label] = force_rmse(gap_opt_gap_forces,
+    t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
                                         gap_opt_dft_forces)
 
-    t['max_abs_force_error'][label] = max_abs_force_error(gap_opt_gap_forces,
+    t.loc[label, 'max_abs_force_error'] = max_abs_force_error(gap_opt_gap_forces,
                                                           gap_opt_dft_forces)
 
-    t['max_distance_best_RMSD'][label] = 'to do'
+    t.loc[label, 'max_distance_best_RMSD'] = 'to do'
 
-    t['dft_energy_difference'][label] = abs_error(gap_opt_dft_energy,
+    t.loc[label, 'dft_energy_difference'] = abs_error(gap_opt_dft_energy,
                                                   dft_opt_dft_energy)
 
-    t['dft_opt_dft_energy'][label] = dft_opt_dft_energy
-    t['gap_opt_dft_energy'][label] = gap_opt_dft_energy
-    t['gap_opt_gap_energy'][label] = gap_opt_gap_energy
-    t['dft_opt_gap_energy'][label] = dft_opt_gap_energy
+    t.loc[label, 'dft_opt_dft_energy'] = dft_opt_dft_energy
+    t.loc[label, 'gap_opt_dft_energy'] = gap_opt_dft_energy
+    t.loc[label, 'gap_opt_gap_energy'] = gap_opt_gap_energy
+    t.loc[label, 'dft_opt_gap_energy'] = dft_opt_gap_energy
 
 def get_bde(mol_energy, rad_energy, isolated_h_energy):
     return (rad_energy + isolated_h_energy - mol_energy)
@@ -157,26 +158,26 @@ def add_rad_data(t, mol, rad, isolated_h, gap_prefix, dft_prefix):
     gap_opt_dft_forces = rad.arrays[f'{gap_prefix}opt_{dft_prefix}forces']
 
     # gap performance alone
-    t['energy_absolute_error'][label] = abs_error(gap_opt_gap_energy,
+    t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
                                                   gap_opt_dft_energy)
 
-    t['force_rmse'][label] = force_rmse(gap_opt_gap_forces,
+    t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
                                         gap_opt_dft_forces)
 
-    t['max_abs_force_error'][label] = max_abs_force_error(gap_opt_gap_forces,
+    t.loc[label, 'max_abs_force_error'] = max_abs_force_error(gap_opt_gap_forces,
                                                           gap_opt_dft_forces)
 
     # gap optimisation wrt dft optimisation
-    t['max_distance_best_RMSD'][label] = 'to do'
+    t.loc[label, 'max_distance_best_RMSD'] = 'to do'
 
-    t['dft_energy_difference'][label] = abs_error(gap_opt_dft_energy,
+    t.loc[label, 'dft_energy_difference'] = abs_error(gap_opt_dft_energy,
                                                   dft_opt_dft_energy)
 
     # just original energy values
-    t['dft_opt_dft_energy'][label] = dft_opt_dft_energy
-    t['gap_opt_dft_energy'][label] = gap_opt_dft_energy
-    t['gap_opt_gap_energy'][label] = gap_opt_gap_energy
-    t['dft_opt_gap_energy'][label] = dft_opt_gap_energy
+    t.loc[label, 'dft_opt_dft_energy'] = dft_opt_dft_energy
+    t.loc[label, 'gap_opt_dft_energy'] = gap_opt_dft_energy
+    t.loc[label, 'gap_opt_gap_energy'] = gap_opt_gap_energy
+    t.loc[label, 'dft_opt_gap_energy'] = dft_opt_gap_energy
 
     # bde stuff
     mol_gap_opt_gap_energy = mol.info[f'{gap_prefix}opt_{gap_prefix}energy']
@@ -192,9 +193,9 @@ def add_rad_data(t, mol, rad, isolated_h, gap_prefix, dft_prefix):
                       rad_energy = dft_opt_dft_energy,
                       isolated_h_energy = isolated_h_dft_energy)
 
-    t['absolute_bde_error'] = abs_error(dft_bde, gap_bde)
-    t['dft_bde'] = dft_bde
-    t['gap_bde'] = gap_bde
+    t.loc[label, 'absolute_bde_error'] = abs_error(dft_bde, gap_bde)
+    t.loc[label, 'dft_bde'] = dft_bde
+    t.loc[label, 'gap_bde'] = gap_bde
 
 
 
@@ -204,9 +205,9 @@ def add_H_data(t, isolated_h, gap_prefix, dft_prefix):
     gap_energy = isolated_h.info[f'{gap_prefix}energy']
     dft_energy = isolated_h.info[f'{dft_prefix}energy']
 
-    t['energy_absolute_error']['H'] = abs_error(gap_energy, dft_energy)
-    t['dft_opt_dft_energy']['H'] = dft_energy
-    # t['gap_opt_gap_energy']['H'] = gap_energy
+    t.loc['H', 'energy_absolute_error'] = abs_error(gap_energy, dft_energy)
+    t.loc['H', 'dft_opt_dft_energy']= dft_energy
+    t.loc['H', 'gap_opt_gap_energy'] = gap_energy
 
 
 
