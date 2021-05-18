@@ -244,6 +244,7 @@ def test_total_e_from_dm_hcore_F(mf, mol):
     assert approx(total_energy) == HF_energy + nuclear_repulsion
 
 
+@pytest.mark.skip(reason='Doesn\'t test whether I can get a Fock in MO basis')
 def test_diagonalise_fock(mf):
     ## diagonalise fock
 
@@ -254,9 +255,6 @@ def test_diagonalise_fock(mf):
     orb_es, mo_coeff = mf.canonicalize(mo_coeff=mf.mo_coeff, mo_occ=mf.mo_occ)
     # print('canonicalisation:', orb_es, '\n', mo_coeff)
 
-    # isn't canonical anymore.
-    fock = mf.get_fock()
-    # print(fock)
 
     assert np.all(approx(mf.mo_energy) == orb_es)
 

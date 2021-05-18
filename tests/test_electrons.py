@@ -15,3 +15,4 @@ def test_getting_eps_ij(mp2):
     eps_ij = electrons.get_eps_ij(mp2)
 
     assert np.all(approx(expected, rel=1e-4) == eps_ij)
+

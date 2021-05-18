@@ -5,7 +5,7 @@ def get_eps_ij(mp2):
     """returns MP2 correlation energy for each pair of occupied orbitals"""
 
     N_occ = mp2.get_nocc()
-    N =  mp2.get_nmo()  
+    N =  mp2.get_nmo()
     N_virt = N - N_occ
 
     t2 = mp2.t2
@@ -18,7 +18,15 @@ def get_eps_ij(mp2):
     eps_ij = positive + negative
 
     # eps_ij should sum to correlation energy
-    assert approx(mp2.e_corr) == eps_ij.sum()
+    assert approx(mp2.e_corr) == eps_ij.sum(), \
+        f'have error of {mp2.e_corr - eps_ij.sum()}'
 
     return eps_ij
+
+
+def ase_to_pyscf(ase_atoms):
+    """prepares array for pyscf.mol.atom from ase atoms"""
+    return [[at.symbol, at.position] for at in
+     ase_atoms]
+
 
