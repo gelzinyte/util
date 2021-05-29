@@ -8,6 +8,42 @@ def atom_sorter(atoms, info_key='mol_or_rad'):
     alphanum_key = lambda at: [convert(c) for c in at.info[info_key]]
     return sorted(atoms, key=alphanum_key)
 
+def multiple_tables_from_atoms(all_atoms, isolated_h, gap_prefix,
+                              dft_prefix='dft_', printing=False, precision=3):
+    """sorts atoms in file by their hash and prints/collects bde tables:
+    """
+
+    atoms_by_hash = get_atoms_by_hash_dict(all_atoms, dft_prefix)
+
+    data_out = []
+
+    for hash, atoms in atoms_by_hash.items():
+
+        if printing:
+            print(f'\n{hash}')
+
+        data = bde_table(atoms=atoms,
+                         gap_prefix=gap_prefix,
+                         isolated_h=isolated_h,
+                         dft_prefix=dft_prefix,
+                         printing=printing,
+                         precision=precision)
+        data_out.append(data)
+
+    return data_out
+
+def get_atoms_by_hash_dict(atoms, dft_prefix):
+    """returns dictionary of hash:[Atoms]"""
+
+    atoms_by_hash = {}
+    for at in atoms:
+        hash = at.info[f'{dft_prefix}opt_mol_positions_hash']
+        if hash not in atoms_by_hash.keys():
+            atoms_by_hash[hash] = []
+        atoms_by_hash[hash].append(at)
+
+    return atoms_by_hash
+
 
 def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False, precision=3):
     """makes a pd/other t of bde properties for mol/rads with a given hash:

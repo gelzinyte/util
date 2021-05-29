@@ -30,7 +30,7 @@ def test_bde_table(fake_atoms, fake_isolated_h):
     t = table.bde_table(fake_atoms, gap_prefix='gap_',
                             isolated_h=fake_isolated_h,
                             dft_prefix='dft_',
-                            printing=False)
+                            printing=True)
 
     # can't really compare np.nan, so expecting pi instead
     t = t.fillna(np.pi)
@@ -78,7 +78,7 @@ def test_bde_table(fake_atoms, fake_isolated_h):
 
 
 
-
+    assert False
 
 
 

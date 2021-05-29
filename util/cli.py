@@ -18,6 +18,7 @@ except ModuleNotFoundError:
 
 from util import compare_minima
 import util.bde.generate
+import util.bde.table
 from util import radicals
 from util import error_table
 from util import plot
@@ -54,7 +55,9 @@ def cli(ctx, verbose):
                             module="ase.calculators.calculator")
 
     if verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(message)s',
+                            datefmt='%Y-%M-%D %H:%M:%S')
 
 
 @cli.group("bde")
@@ -95,6 +98,28 @@ def subcli_tmp():
 @cli.group('jobs')
 def subcli_jobs():
     pass
+
+
+@subcli_bde.command('print-tables')
+@click.pass_context
+@click.argument('gap-bde-file')
+@click.option('--isolated-h-fname', '-h', help='GAP evaluated on isolated H')
+@click.option('--gap-prefix', '-g', help='prefix for gap properties')
+@click.option('--dft-prefix', '-d', help='prefix for dft properties')
+@click.option('--precision', default=3, type=click.INT, help='number of digits in the table')
+def print_tables(ctx, gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
+                 precision):
+
+    isolated_h = read(isolated_h_fname)
+    all_atoms = read(gap_bde_file, ':')
+
+    _ = util.bde.table.multiple_tables_from_atoms(all_atoms=all_atoms,
+                                             isolated_h=isolated_h,
+                                             gap_prefix=gap_prefix,
+                                             dft_prefix=dft_prefix,
+                                             printing=True,
+                                             precision=precision)
+
 
 @subcli_bde.command('generate')
 @click.pass_context
