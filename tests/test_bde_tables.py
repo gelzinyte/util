@@ -40,7 +40,7 @@ def test_bde_table(fake_atoms, fake_isolated_h):
     assert np.all(t.index == expected_idx)
 
     assert approx(t.loc[:, 'energy_absolute_error']) == \
-           [500.0, 2000.0, 1000.0, 3000.0]
+           [500.0, 400.0, 250.0, 750.0]
 
     assert approx(t.loc[:, 'force_rmse']) == \
            [np.pi, 100, 100, 100]
@@ -74,11 +74,6 @@ def test_bde_table(fake_atoms, fake_isolated_h):
 
     assert approx(t.loc[:, 'gap_opt_dft_energy']) == \
            [np.pi, 10, 10, 10]
-
-
-
-
-    assert False
 
 
 

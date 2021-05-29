@@ -100,9 +100,9 @@ def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False,
               'absolute_bde_error',     # meV between gap opt and dft opt configs
               'dft_bde',                # eV on dft opt mol and rad
               'gap_bde',                # eV on gap opt mol and rad
-              'dft_opt_dft_energy',             # eV on dft opt mol/rad
+              'dft_opt_dft_energy',     # eV on dft opt mol/rad
               'dft_opt_gap_energy',
-              'gap_opt_gap_energy',              # eV on gap opt mol/rad
+              'gap_opt_gap_energy',     # eV on gap opt mol/rad
               'gap_opt_dft_energy'
               ]
 
@@ -146,6 +146,8 @@ def add_mol_data(t, mol, gap_prefix, dft_prefix):
 
     assert mol.info['mol_or_rad'] == 'mol'
 
+    n_atoms = len(mol)
+
     label = 'mol'
 
     gap_opt_gap_energy = mol.info[f'{gap_prefix}opt_{gap_prefix}energy']
@@ -157,7 +159,7 @@ def add_mol_data(t, mol, gap_prefix, dft_prefix):
     gap_opt_dft_forces = mol.arrays[f'{gap_prefix}opt_{dft_prefix}forces']
 
     t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
-                                                  gap_opt_dft_energy)
+                                                  gap_opt_dft_energy) / n_atoms
 
     t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
                                         gap_opt_dft_forces)
@@ -182,8 +184,9 @@ def add_rad_data(t, mol, rad, isolated_h, gap_prefix, dft_prefix):
     """ adds radical data"""
 
     label =  rad.info['mol_or_rad']
-
     assert 'rad' in label, f'"rad" not in label {label}'
+
+    n_atoms = len(rad)
 
     gap_opt_gap_energy = rad.info[f'{gap_prefix}opt_{gap_prefix}energy']
     gap_opt_dft_energy = rad.info[f'{gap_prefix}opt_{dft_prefix}energy']
@@ -195,7 +198,7 @@ def add_rad_data(t, mol, rad, isolated_h, gap_prefix, dft_prefix):
 
     # gap performance alone
     t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
-                                                  gap_opt_dft_energy)
+                                                  gap_opt_dft_energy) / n_atoms
 
     t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
                                         gap_opt_dft_forces)
