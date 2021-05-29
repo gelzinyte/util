@@ -1,6 +1,21 @@
 import click
 import subprocess
+import logging
+import warnings
+import os
+import numpy as np
+
 from ase import Atoms
+from ase.io import read, write
+from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.calculators import orca
+from ase.io.extxyz import key_val_str_to_dict
+
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
+
 from util import compare_minima
 import util.bde.generate
 from util import radicals
@@ -16,22 +31,11 @@ from util.plot import rmsd_table
 from util import old_nms_to_new
 from util import configs
 from util import atom_types
-import os 
-import numpy as np
-try:
-    from quippy.potential import Potential
-except ModuleNotFoundError:
-    pass
-# from util import bde
 from util import mem_tracker
 from util import iter_fit
 from util import iter_tools
 from util import md
 import util
-from ase.io import read, write
-from wfl.configset import ConfigSet_in, ConfigSet_out
-from wfl.calculators import orca
-from ase.io.extxyz import key_val_str_to_dict
 from util.plot import dataset
 
 
@@ -46,6 +50,8 @@ def cli(ctx, verbose):
     if not verbose:
         warnings.filterwarnings("ignore", category=UserWarning, module="ase.io.extxyz")
 
+    if verbose:
+        logging.basicConfig(level=logging.INFO)
 
 
 @cli.group("bde")
@@ -91,7 +97,9 @@ def subcli_jobs():
 @click.pass_context
 @click.argument('dft-bde-file')
 @click.option('--gap-fname', '-g', help='gap xml filename')
-@click.option('--iso-h-fname', help='filename for isolated H evaluated with gap')
+@click.option('--iso-h-fname',
+              help='if not None, evaluate isolated H energy with GAP'
+                   'and save to given file.')
 @click.option('--output-fname_prefix', '-o',
               help='prefix for main and all working files with all gap and dft properties')
 @click.option('--dft-prop-prefix', default='dft_', show_default=True,
@@ -102,22 +110,25 @@ def subcli_jobs():
 def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_prefix,
                       dft_prop_prefix, gap_prop_prefix, wdir):
 
+    logging.info('Generating gap bde things')
+
     calculator = (Potential, [], {'param_filename':gap_fname})
 
-    # generate isolated atom stuff
-    util.bde.generate.gap_isolated_h(calculator=calculator,
-                                     dft_prop_prefix=dft_prop_prefix,
-                                     gap_prop_prefix=gap_prop_prefix,
-                                     output_fname=iso_h_fname,
-                                     wdir=wdir)
+    if iso_h_fname is not None:
+        # generate isolated atom stuff
+        util.bde.generate.gap_isolated_h(calculator=calculator,
+                                         dft_prop_prefix=dft_prop_prefix,
+                                         gap_prop_prefix=gap_prop_prefix,
+                                         output_fname=iso_h_fname,
+                                         wdir=wdir)
 
-    # # generate all molecule stuff
-    # util.bde.generate.everything(calculator=calculator,
-    #                              dft_bde_filename=dft_bde_file,
-    #                              output_fname_prefix=output_fname_prefix,
-    #                              dft_prop_prefix=dft_prop_prefix,
-    #                              gap_prop_prefix=gap_prop_prefix,
-    #                              wdir=wdir)
+    # generate all molecule stuff
+    util.bde.generate.everything(calculator=calculator,
+                                 dft_bde_filename=dft_bde_file,
+                                 output_fname_prefix=output_fname_prefix,
+                                 dft_prop_prefix=dft_prop_prefix,
+                                 gap_prop_prefix=gap_prop_prefix,
+                                 wdir=wdir)
 
 
 

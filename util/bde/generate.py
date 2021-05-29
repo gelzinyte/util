@@ -1,5 +1,6 @@
 import os
 import random
+import logging
 
 from os.path import join as pj
 
@@ -14,6 +15,8 @@ from wfl.calculators import orca
 from wfl.generate_configs import minim
 
 from util.util_config import Config
+
+logger = logging.getLogger(__name__)
 
 
 def gap_isolated_h(calculator, dft_prop_prefix, gap_prop_prefix, output_fname,
@@ -94,7 +97,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     gap_reopt_with_gap_fname = pj(wdir, output_fname_prefix + '_gap_reopt_w_gap.xyz')
     gap_reopt_with_dft_fname = output_fname_prefix + 'gap_bde.xyz'
 
-    # get gap energies on dft structures
+
+    logger.info('Evaluating GAP on DFT structures')
     output_prefix = f'{dft_prop_prefix}opt_{gap_prop_prefix}'
     inputs = ConfigSet_in(input_files=dft_bde_filename)
     outputs_gap_energies = ConfigSet_out(output_files=dft_bde_with_gap_fname)
@@ -102,14 +106,14 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
                 properties=['energy', 'forces'], output_prefix=output_prefix)
 
 
-    # gap-optimise
+    logger.info('GAP-optimising DFT structures')
     outputs_gap_reopt = ConfigSet_out(output_files=gap_reopt_fname)
     gap_reoptimised = gap_optimise(inputs=outputs_gap_energies.to_ConfigSet_in(),
                                     outputs=outputs_gap_reopt,
                                    calculator=calculator)
 
 
-    # evaluate with gap
+    logger.info('Evaluating GAP-optimised structures with GAP')
     output_prefix = f'{gap_prop_prefix}opt_{gap_prop_prefix}'
     inputs_to_gap_opt_regap = ConfigSet_in(input_configs=gap_reoptimised)
     outputs_gap_opt_w_gap = ConfigSet_out(output_files=gap_reopt_with_gap_fname)
@@ -118,12 +122,12 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
                 calculator=calculator, properties=['energy', 'forces'],
                 output_prefix=output_prefix)
 
-    # label positions
+    logger.info('Labeling GAP-optimised positions')
     atoms = read(gap_reopt_with_gap_fname, ':')
     for at in atoms:
         at.arrays[f'{gap_prop_prefix}opt_positions'] = at.positions.copy()
-        
-    # dft re-evaluate
+
+    logger.info('Re-evaluating gap-optimised structures with DFT')
     output_prefix=f'{gap_prop_prefix}opt_{dft_prop_prefix}'
     inputs_to_dft_reeval = ConfigSet_in(input_configs=atoms)
     final_outputs = ConfigSet_out(output_files=gap_reopt_with_dft_fname)
