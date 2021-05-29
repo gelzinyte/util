@@ -50,6 +50,9 @@ def cli(ctx, verbose):
     if not verbose:
         warnings.filterwarnings("ignore", category=UserWarning, module="ase.io.extxyz")
 
+    warnings.filterwarnings("ignore", category=FutureWarning,
+                            module="ase.calculators.calculator")
+
     if verbose:
         logging.basicConfig(level=logging.INFO)
 

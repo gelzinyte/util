@@ -110,7 +110,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     outputs_gap_reopt = ConfigSet_out(output_files=gap_reopt_fname)
     gap_reoptimised = gap_optimise(inputs=outputs_gap_energies.to_ConfigSet_in(),
                                     outputs=outputs_gap_reopt,
-                                   calculator=calculator)
+                                   calculator=calculator,
+                                   wdir=wdir)
 
 
     logger.info('Evaluating GAP-optimised structures with GAP')
@@ -159,9 +160,11 @@ def setup_orca_kwargs():
     return orca_kwargs
 
 
-def gap_optimise(inputs, outputs, calculator):
+def gap_optimise(inputs, outputs, calculator, wdir):
 
-    opt_kwargs = {'logfile':'log.txt', 'master':True, 'precon':None,
+    logfile = os.path.join(wdir, 'optimisation.log')
+
+    opt_kwargs = {'logfile':logfile, 'master':True, 'precon':None,
                     'use_armijo':False}
 
     optimised_configset = minim.run(inputs, outputs,  calculator,
