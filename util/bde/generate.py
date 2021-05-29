@@ -5,9 +5,39 @@ from os.path import join as pj
 
 import numpy as np
 
+from ase.io import read, write
+from ase import Atoms
+
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.calculators import generic
 from wfl.calculators import orca
+from wfl.generate_configs import minim
+
+from util.util_config import Config
+
+
+def gap_isolated_h(calculator, dft_prop_prefix, gap_prop_prefix, output_fname,
+                   wdir='gap_bde_wdir'):
+
+    dft_h = Atoms('H', positions=[(0, 0, 0)])
+    dft_h.info['config_type'] = 'H'
+
+
+    output_prefix=dft_prop_prefix
+    inputs = ConfigSet_in(input_configs=dft_h)
+    dft_outputs = ConfigSet_out()
+    orca_kwargs = setup_orca_kwargs()
+    orca.evaluate(inputs=inputs,
+                  outputs=dft_outputs,
+                  base_rundir=pj(wdir, 'orca_outputs'),
+                  orca_kwargs=orca_kwargs,
+                  output_prefix=output_prefix)
+
+    outputs = ConfigSet_out(output_files=output_fname)
+    generic.run(inputs=dft_outputs.output_configs,
+                outputs=outputs,
+                calculator=calculator, properties=['energy'],
+                output_prefix=gap_prop_prefix)
 
 
 
@@ -53,8 +83,11 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
     """
     random_at = random.choice(read(dft_bde_filename, ':'))
-    assert f'{dft_prop_prefix}opt_positions_hash' in random_at.info.keys()
+    assert f'{dft_prop_prefix}opt_mol_positions_hash' in random_at.info.keys()
     assert f'{dft_prop_prefix}opt_positions' in random_at.arrays.keys()
+
+    if not os.path.exists(wdir):
+        os.mkdir(wdir)
 
     dft_bde_with_gap_fname = pj(wdir, output_fname_prefix + '_gap.xyz')
     gap_reopt_fname = pj(wdir, output_fname_prefix + '_gap_reopt_trajectories.xyz')
@@ -68,11 +101,14 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     generic.run(inputs=inputs, outputs=outputs_gap_energies, calculator=calculator,
                 properties=['energy', 'forces'], output_prefix=output_prefix)
 
+
     # gap-optimise
     outputs_gap_reopt = ConfigSet_out(output_files=gap_reopt_fname)
     gap_reoptimised = gap_optimise(inputs=outputs_gap_energies.to_ConfigSet_in(),
                                     outputs=outputs_gap_reopt,
-                                   calculator=claculator)
+                                   calculator=calculator)
+
+
     # evaluate with gap
     output_prefix = f'{gap_prop_prefix}opt_{gap_prop_prefix}'
     inputs_to_gap_opt_regap = ConfigSet_in(input_configs=gap_reoptimised)
@@ -90,7 +126,7 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     # dft re-evaluate
     output_prefix=f'{gap_prop_prefix}opt_{dft_prop_prefix}'
     inputs_to_dft_reeval = ConfigSet_in(input_configs=atoms)
-    final_outputs = ConfigSet_out(output_configs=gap_reopt_with_dft_fname)
+    final_outputs = ConfigSet_out(output_files=gap_reopt_with_dft_fname)
     orca_kwargs = setup_orca_kwargs()
     orca.evaluate(inputs=inputs_to_dft_reeval,
                   outputs=final_outputs,
@@ -102,6 +138,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
 def setup_orca_kwargs():
 
+
+    cfg=Config.load()
     default_kw = Config.from_yaml(
         os.path.join(cfg['util_root'], 'default_kwargs.yml'))
 
@@ -122,10 +160,12 @@ def gap_optimise(inputs, outputs, calculator):
     opt_kwargs = {'logfile':'log.txt', 'master':True, 'precon':None,
                     'use_armijo':False}
 
-    minim.run(inputs, outputs,  calculator, keep_symmetry=False,
+    optimised_configset = minim.run(inputs, outputs,  calculator,
+                                    keep_symmetry=False,
                              update_config_type=False, **opt_kwargs)
 
-    atoms_opt = [traj[-1] for traj in outputs.output_configs]
+    atoms_opt = [at for at in optimised_configset
+                    if at.info['minim_config_type']=='minim_last_converged']
 
     return atoms_opt
 

@@ -2,7 +2,7 @@ import click
 import subprocess
 from ase import Atoms
 from util import compare_minima
-from util import bde
+import util.bde.generate
 from util import radicals
 from util import error_table
 from util import plot
@@ -36,9 +36,16 @@ from util.plot import dataset
 
 
 @click.group('util')
+@click.option('--verbose', '-v', is_flag=True)
 @click.pass_context
-def cli(ctx):
-    pass
+def cli(ctx, verbose):
+    ctx.ensure_object(dict)
+    ctx.obj['verbose'] = verbose
+
+    # ignore calculator writing warnings
+    if not verbose:
+        warnings.filterwarnings("ignore", category=UserWarning, module="ase.io.extxyz")
+
 
 
 @cli.group("bde")
@@ -79,6 +86,40 @@ def subcli_tmp():
 @cli.group('jobs')
 def subcli_jobs():
     pass
+
+@subcli_bde.command('generate')
+@click.pass_context
+@click.argument('dft-bde-file')
+@click.option('--gap-fname', '-g', help='gap xml filename')
+@click.option('--iso-h-fname', help='filename for isolated H evaluated with gap')
+@click.option('--output-fname_prefix', '-o',
+              help='prefix for main and all working files with all gap and dft properties')
+@click.option('--dft-prop-prefix', default='dft_', show_default=True,
+              help='label for all dft properties')
+@click.option('--gap-prop-prefix', help='label for all gap properties')
+@click.option('--wdir', default='gap_bde_wdir', show_default=True,
+              help='working directory for all interrim files')
+def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_prefix,
+                      dft_prop_prefix, gap_prop_prefix, wdir):
+
+    calculator = (Potential, [], {'param_filename':gap_fname})
+
+    # generate isolated atom stuff
+    util.bde.generate.gap_isolated_h(calculator=calculator,
+                                     dft_prop_prefix=dft_prop_prefix,
+                                     gap_prop_prefix=gap_prop_prefix,
+                                     output_fname=iso_h_fname,
+                                     wdir=wdir)
+
+    # # generate all molecule stuff
+    # util.bde.generate.everything(calculator=calculator,
+    #                              dft_bde_filename=dft_bde_file,
+    #                              output_fname_prefix=output_fname_prefix,
+    #                              dft_prop_prefix=dft_prop_prefix,
+    #                              gap_prop_prefix=gap_prop_prefix,
+    #                              wdir=wdir)
+
+
 
 @subcli_jobs.command('from-pattern')
 @click.argument('pattern-fname')
