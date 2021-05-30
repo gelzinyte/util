@@ -92,9 +92,9 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     if not os.path.exists(wdir):
         os.mkdir(wdir)
 
-    dft_bde_with_gap_fname = pj(wdir, output_fname_prefix + '_gap.xyz')
-    gap_reopt_fname = pj(wdir, output_fname_prefix + '_gap_reopt_trajectories.xyz')
-    gap_reopt_with_gap_fname = pj(wdir, output_fname_prefix + '_gap_reopt_w_gap.xyz')
+    dft_bde_with_gap_fname = pj(wdir, output_fname_prefix + 'gap.xyz')
+    gap_reopt_fname = pj(wdir, output_fname_prefix + 'gap_reopt_trajectories.xyz')
+    gap_reopt_with_gap_fname = pj(wdir, output_fname_prefix + 'gap_reopt_w_gap.xyz')
     gap_reopt_with_dft_fname = output_fname_prefix + 'gap_bde.xyz'
 
 
