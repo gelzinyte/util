@@ -19,6 +19,7 @@ except ModuleNotFoundError:
 from util import compare_minima
 import util.bde.generate
 import util.bde.table
+import util.bde.plot
 from util import radicals
 from util import error_table
 from util import plot
@@ -119,6 +120,43 @@ def print_tables(ctx, gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
                                              dft_prefix=dft_prefix,
                                              printing=True,
                                              precision=precision)
+
+@subcli_bde.command('scatter')
+@click.argument('gap-bde-file')
+@click.option('--isolated-h-fname', '-h', required=True,
+              help='Gap evaluated on isolated H')
+@click.option('--gap-prefix', '-g', required=True, help='prefix for gap properties')
+@click.option('--dft-prefix', '-d', default='dft_', show_default=True,
+              help='prefix for dft properties')
+@click.option('--measure', '-m', required=True,
+              type=click.Choice(['bde_error', 'bde_correlation', 'rmsd', 'energy_error']),
+              help='what to plot')
+@click.option('--plot-title', help='optional plot title')
+@click.option('--output_dir', default='pictures', show_default=True)
+@click.option('--color-by', default='compound_type', show_default=True,
+              help='Atoms.info key to color by')
+def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
+                 measure, plot_title, output_dir, color_by):
+
+    isolated_h = read(isolated_h_fname)
+    all_atoms = read(gap_bde_file, ':')
+
+    labeled_atoms = util.sort_atoms_by_label(all_atoms, color_by)
+
+    data_to_scatter = {}
+    for label, atoms in labeled_atoms.items():
+        data_to_scatter[label] = \
+            util.bde.table.multiple_tables_from_atoms(all_atoms=atoms,
+                                                      isolated_h=isolated_h,
+                                                      gap_prefix=gap_prefix,
+                                                      dft_prefix=dft_prefix,
+                                                      printing=False)
+
+    util.bde.plot.scatter(measure=measure,
+                          all_data=data_to_scatter,
+                          plot_title=plot_title,
+                          output_dir=output_dir)
+
 
 
 @subcli_bde.command('generate')
@@ -222,11 +260,6 @@ def rads_from_opt_mols(molecules_fname, output_fname, info_to_keep, arrays_to_ke
             mols_and_rads.append(rad)
 
     write(output_fname, mols_and_rads)
-
-
-
-
-
 
 
 
