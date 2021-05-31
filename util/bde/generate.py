@@ -169,7 +169,8 @@ def gap_optimise(inputs, outputs, calculator, wdir):
 
     optimised_configset = minim.run(inputs, outputs,  calculator,
                                     keep_symmetry=False,
-                             update_config_type=False, **opt_kwargs)
+                             update_config_type=False, fmax=1e-2,
+                                **opt_kwargs)
 
     atoms_opt = [at for at in optimised_configset
                     if at.info['minim_config_type']=='minim_last_converged']
