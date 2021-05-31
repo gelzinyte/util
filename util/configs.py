@@ -1,4 +1,7 @@
 from ase.io import read, write
+import pandas as pd
+from util import smiles
+from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.generate_configs.vib import Vibrations
 from ase import units
 from ase import Atoms
@@ -7,6 +10,60 @@ from ase import neighborlist
 import numpy as np
 from util import grouper
 import os
+import hashlib
+
+
+def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
+
+    if info_to_keep is None:
+        info_to_keep = []
+
+    if arrays_to_keep is None:
+        arrays_to_keep = []
+
+    if isinstance(atoms, Atoms):
+        atoms = [atoms]
+
+    for at in atoms:
+
+        info_keys = list(at.info.keys())
+        for key in info_keys:
+            if key not in info_to_keep:
+                at.info.pop(key)
+
+        arrays_keys = list(at.arrays.keys())
+        for key in arrays_keys:
+            if key in ['numbers', 'positions']:
+                continue
+            elif key not in arrays_to_keep:
+                at.arrays.pop(key)
+
+    if len(atoms) == 1:
+        atoms = atoms[0]
+
+    return atoms
+
+
+
+
+def smiles_csv_to_molecules(smiles_csv, repeat=1):
+
+    df = pd.read_csv(smiles_csv)
+    smi_names = []
+    smiles_to_convert = []
+    for smi, name in zip(df['SMILES'], df['Name']):
+        smiles_to_convert += [smi] * repeat
+        smi_names += [name] * repeat
+
+    molecules = ConfigSet_out()
+    smiles.run(outputs=molecules, smiles=smiles_to_convert)
+    for at, name in zip(molecules.output_configs, smi_names):
+        at.info['config_type'] = name
+        at.cell = [50, 50, 50]
+
+    return molecules.output_configs
+
+
 
 
 def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_',
@@ -150,3 +207,50 @@ def energies_for_weighting_normal_modes(frequencies, temp, threshold_invcm=200,
                      units.kB * temp
                      for freq in frequencies])
 
+
+
+def process_config_info(fname_in, fname_out):
+
+    ats = read(fname_in, ':')
+    ats = process_config_info_on_atoms(ats)
+
+    write(fname_out, ats)
+
+
+def process_config_info_on_atoms(ats, verbose=True):
+
+    all_mol_or_rad_entries = []
+    all_compound_entries = []
+
+    for at in ats:
+
+        cfg = at.info['config_type']
+        words = cfg.split('_')
+
+        mol_or_rad = words[-1]
+
+        if 'mol' not in mol_or_rad and 'rad' not in mol_or_rad:
+            raise RuntimeError(
+                f'{mol_or_rad} isn\'t eiter molecule or radical')
+
+        all_mol_or_rad_entries.append(mol_or_rad)
+        at.info['mol_or_rad'] = mol_or_rad
+
+        compound = '-'.join(words[:-1])
+        all_compound_entries.append(compound)
+        at.info['compound'] = compound
+
+    if verbose:
+        print(f'all mol_or_rad entries: {set(all_mol_or_rad_entries)}')
+        print(f' all compound entries: {set(all_compound_entries)}')
+
+    return ats
+
+#creates unique hash for a matrix of numbers
+def hash_array(v):
+    return hashlib.md5(np.array2string(v, precision=8, sign='+', floatmode='fixed').encode()).hexdigest()
+
+#creates unique hash for Atoms from atomic numbers and positions
+def hash_atoms(at):
+    v = np.concatenate((at.numbers.reshape(-1,1), at.positions),axis=1)
+    return hash_array(v)
