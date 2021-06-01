@@ -37,6 +37,17 @@ def suppress_stdout_stderr():
         with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
             yield (err, out)
 
+def sort_atoms_by_label(atoms, label):
+    """returns dictionary of {value:list(atoms)} based on atoms.info[label] values"""
+    dict_out = {}
+    for at in atoms:
+        value = at.info[label]
+        if value not in dict_out.keys():
+            dict_out[value] = []
+        dict_out[value].append(at)
+
+    return dict_out
+
 def get_binding_energy_per_at(atoms, isolated_atoms, prop_prefix):
 
     isolated_at_data = {}

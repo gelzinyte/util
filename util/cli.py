@@ -1,9 +1,27 @@
 import click
+import subprocess
+import logging
+import warnings
+import os
+import numpy as np
+
 from ase import Atoms
+from ase.io import read, write
+from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.calculators import orca
+from ase.io.extxyz import key_val_str_to_dict
+
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
+
 from util import compare_minima
-from util import bde
+import util.bde.generate
+import util.bde.table
+import util.bde.plot
+from util import radicals
 from util import error_table
-from util import tmp
 from util import plot
 from util.plot import dimer
 from util import iter_tools as it
@@ -15,29 +33,32 @@ from util.plot import rmsd_table
 from util import old_nms_to_new
 from util import configs
 from util import atom_types
-import os 
-import numpy as np
-try:
-    from quippy.potential import Potential
-except ModuleNotFoundError:
-    pass
-from util import bde
 from util import mem_tracker
 from util import iter_fit
 from util import iter_tools
 from util import md
 import util
-from ase.io import read, write
-from wfl.configset import ConfigSet_in, ConfigSet_out
-from wfl.calculators import orca
-from ase.io.extxyz import key_val_str_to_dict
 from util.plot import dataset
 
 
 @click.group('util')
+@click.option('--verbose', '-v', is_flag=True)
 @click.pass_context
-def cli(ctx):
-    pass
+def cli(ctx, verbose):
+    ctx.ensure_object(dict)
+    ctx.obj['verbose'] = verbose
+
+    # ignore calculator writing warnings
+    if not verbose:
+        warnings.filterwarnings("ignore", category=UserWarning, module="ase.io.extxyz")
+
+    warnings.filterwarnings("ignore", category=FutureWarning,
+                            module="ase.calculators.calculator")
+
+    if verbose:
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(message)s',
+                            datefmt='%Y-%M-%D %H:%M:%S')
 
 
 @cli.group("bde")
@@ -75,20 +96,233 @@ def subcli_configs(ctx):
 def subcli_tmp():
     pass
 
-@subcli_bde.command('from-opt')
-@click.option('--gap-fname', '-g', help='filename with gap optimised atoms')
-@click.option('--dft-fname', '-d', help='filename with dft optimised atoms')
-@click.option('--h-fname', '-h', help='isolated hydrogen filename with same gap prefix as gap file')
-@click.option('--output-dir', '-o', default='bdes_from_optimisation')
-@click.option('--max_no_files', default=50, type=click.INT,
-              help='how many existing names to cycle through before giving up')
-def bde_files_from_optimised(gap_fname, dft_fname, h_fname, output_dir, max_no_files):
-    """takes mol/rad/rad/... optimised files and derives bde files"""
-    bde.opt_to_bde_files(gap_ats_in=gap_fname,
-                         dft_ats_in=dft_fname,
-                         iso_h_fname=h_fname,
-                         output_dir=output_dir,
-                         max_no_files=max_no_files)
+@cli.group('jobs')
+def subcli_jobs():
+    pass
+
+
+@subcli_bde.command('print-tables')
+@click.pass_context
+@click.argument('gap-bde-file')
+@click.option('--isolated-h-fname', '-h', help='GAP evaluated on isolated H')
+@click.option('--gap-prefix', '-g', help='prefix for gap properties')
+@click.option('--dft-prefix', '-d', help='prefix for dft properties')
+@click.option('--precision', default=3, type=click.INT, help='number of digits in the table')
+def print_tables(ctx, gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
+                 precision):
+
+    isolated_h = read(isolated_h_fname)
+    all_atoms = read(gap_bde_file, ':')
+
+    _ = util.bde.table.multiple_tables_from_atoms(all_atoms=all_atoms,
+                                             isolated_h=isolated_h,
+                                             gap_prefix=gap_prefix,
+                                             dft_prefix=dft_prefix,
+                                             printing=True,
+                                             precision=precision)
+
+@subcli_bde.command('scatter')
+@click.argument('gap-bde-file')
+@click.option('--isolated-h-fname', '-h', required=True,
+              help='Gap evaluated on isolated H')
+@click.option('--gap-prefix', '-g', required=True, help='prefix for gap properties')
+@click.option('--dft-prefix', '-d', default='dft_', show_default=True,
+              help='prefix for dft properties')
+@click.option('--measure', '-m', required=True,
+              type=click.Choice(['bde_error', 'bde_correlation', 'rmsd', 'energy_error']),
+              help='what to plot')
+@click.option('--plot-title', help='optional plot title')
+@click.option('--output_dir', default='pictures', show_default=True)
+@click.option('--color-by', default='compound_type', show_default=True,
+              help='Atoms.info key to color by')
+def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
+                 measure, plot_title, output_dir, color_by):
+
+    isolated_h = read(isolated_h_fname)
+    all_atoms = read(gap_bde_file, ':')
+
+    labeled_atoms = util.sort_atoms_by_label(all_atoms, color_by)
+
+    data_to_scatter = {}
+    for label, atoms in labeled_atoms.items():
+        data_to_scatter[label] = \
+            util.bde.table.multiple_tables_from_atoms(all_atoms=atoms,
+                                                      isolated_h=isolated_h,
+                                                      gap_prefix=gap_prefix,
+                                                      dft_prefix=dft_prefix,
+                                                      printing=False)
+
+    util.bde.plot.scatter(measure=measure,
+                          all_data=data_to_scatter,
+                          plot_title=plot_title,
+                          output_dir=output_dir)
+
+
+
+@subcli_bde.command('generate')
+@click.pass_context
+@click.argument('dft-bde-file')
+@click.option('--gap-fname', '-g', help='gap xml filename')
+@click.option('--iso-h-fname',
+              help='if not None, evaluate isolated H energy with GAP'
+                   'and save to given file.')
+@click.option('--output-fname_prefix', '-o',
+              help='prefix for main and all working files with all gap and dft properties')
+@click.option('--dft-prop-prefix', default='dft_', show_default=True,
+              help='label for all dft properties')
+@click.option('--gap-prop-prefix', help='label for all gap properties')
+@click.option('--wdir', default='gap_bde_wdir', show_default=True,
+              help='working directory for all interrim files')
+def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_prefix,
+                      dft_prop_prefix, gap_prop_prefix, wdir):
+
+    logging.info('Generating gap bde things')
+
+    calculator = (Potential, [], {'param_filename':gap_fname})
+
+    if iso_h_fname is not None:
+        # generate isolated atom stuff
+        util.bde.generate.gap_isolated_h(calculator=calculator,
+                                         dft_prop_prefix=dft_prop_prefix,
+                                         gap_prop_prefix=gap_prop_prefix,
+                                         output_fname=iso_h_fname,
+                                         wdir=wdir)
+
+    # generate all molecule stuff
+    util.bde.generate.everything(calculator=calculator,
+                                 dft_bde_filename=dft_bde_file,
+                                 output_fname_prefix=output_fname_prefix,
+                                 dft_prop_prefix=dft_prop_prefix,
+                                 gap_prop_prefix=gap_prop_prefix,
+                                 wdir=wdir)
+
+
+
+@subcli_jobs.command('from-pattern')
+@click.argument('pattern-fname')
+@click.option('--start', '-s',  type=click.INT, default=1, show_default=True,
+                help='no to start with')
+@click.option('--num', '-n', type=click.INT, help='how many scripts to make')
+@click.option('--submit', is_flag=True, help='whether to submit the scripts')
+def sub_from_pattern(pattern_fname, start, num, submit):
+
+    with open(pattern_fname, 'r') as f:
+        pattern = f.read()
+
+    for idx in range(start, num+1):
+
+        text = pattern.replace('{idx}', str(idx))
+        sub_name = f'sub_{idx}.sh'
+
+        with open(sub_name, 'w') as f:
+            f.write(text)
+
+        if submit:
+            subprocess.run(f'qsub {sub_name}', shell=True)
+
+
+
+
+@subcli_configs.command('csv-to-mols')
+@click.argument('smiles-csv')
+@click.option('--num-repeats', '-n', type=click.INT)
+@click.option('--output-fname', '-o')
+def smiles_to_molecules(smiles_csv, num_repeats, output_fname):
+
+    molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
+    write(output_fname, molecules)
+
+@subcli_bde.command('rads-from-opt-mols')
+@click.argument('molecules-fname')
+@click.option('--output-fname', '-o')
+@click.option('--info-to-keep', '-i', help='info entries in molecules to keep in radicals')
+@click.option('--arrays-to-keep', '-a')
+def rads_from_opt_mols(molecules_fname, output_fname, info_to_keep, arrays_to_keep):
+
+    if info_to_keep is not None:
+        info_to_keep = info_to_keep.split()
+    if arrays_to_keep is not None:
+        arrays_to_keep = arrays_to_keep.split()
+
+    molecules = read(molecules_fname, ':')
+    outputs = ConfigSet_out()
+
+    radicals.abstract_sp3_hydrogen_atoms(inputs = molecules,
+                                         outputs = outputs)
+
+    mols_and_rads = []
+    for at in outputs.output_configs:
+
+        if 'mol' in at.info['config_type']:
+            mols_and_rads.append(at)
+        else:
+            rad = configs.strip_info_arrays(at, info_to_keep, arrays_to_keep)
+            mols_and_rads.append(rad)
+
+    write(output_fname, mols_and_rads)
+
+
+
+@subcli_configs.command('hash')
+@click.argument('input-fname')
+@click.option('--output-fname', '-o')
+@click.option('--prefix', '-p', help='prefix for info entries')
+def hash_structures(input_fname, output_fname, prefix):
+    """assigns positions/numbers hash to all structures in the file"""
+
+    atoms = read(input_fname, ':')
+    for at in atoms:
+        at.info[f'{prefix}hash'] = configs.hash_atoms(at)
+
+    write(output_fname, atoms)
+
+
+
+
+
+
+@subcli_bde.command('gap-generate')
+@click.option('--smiles-csv', '-s', help='csv file with smiles and structures names')
+@click.option('--molecules-fname', '-m', help='filename with non-optimised molecule structures')
+@click.option('--num-repeats', '-n', type=click.INT, help='number of conformers to generate for each smiles')
+@click.option('--gap-prefix', '-p', help='how to name all gap entries')
+@click.option('--gap-filename', '-g')
+@click.option('--non-opt-filename', help='where to save non-optimised molecules')
+@click.option('--output-filename', '-o')
+def derive_gap_bdes(smiles_csv, molecules_fname, num_repeats, gap_prefix, gap_filename, non_opt_filename,
+                    output_filename):
+
+    assert smiles_csv is None or molecules_fname is None
+
+    if smiles_csv:
+        molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
+    elif molecules_fname:
+        molecules = read(molecules_fname, ':')
+
+    if non_opt_filename is not None:
+        write(non_opt_filename, molecules)
+
+    outputs = ConfigSet_out(output_files=output_filename)
+    calculator = (Potential, [], {'param_filename':gap_filename})
+
+    bde.gap_prepare_bde_structures_parallel(molecules, outputs=outputs,
+                                             calculator=calculator,
+                                             gap_prop_prefix=gap_prefix)
+
+
+@subcli_bde.command('dft-reoptimise')
+@click.argument('input-filename')
+@click.option('--output-filename', '-o')
+@click.option('--dft-prop-prefix', '-p', default='dft_reopt_')
+def reoptimise_with_dft(input_filename, output_filename, dft_prop_prefix):
+
+    inputs = ConfigSet_in(input_files=input_filename)
+    outputs = ConfigSet_out(output_files=output_filename)
+
+    bde.dft_optimise(inputs=inputs, outputs=outputs, dft_prefix=dft_prop_prefix)
+
+
+
 
 
 @subcli_gap.command('eval-h')
@@ -121,7 +355,7 @@ def plot_dft_dimers(dimer_fnames, prefix):
 @click.argument('input-fname')
 @click.option('--output-fname', '-o')
 def cleanup_info_entries(input_fname, output_fname):
-    tmp.process_config_info(input_fname, output_fname)
+    configs.process_config_info(input_fname, output_fname)
 
 @subcli_configs.command('sample-normal-modes')
 @click.argument('input-fname')
@@ -490,207 +724,6 @@ def track_mem(my_job_id, period=10, max_time=100000, out_fname_prefix='mem_usage
     out_fname = f'{out_fname_prefix}_{my_job_id}.txt'
     mem_tracker.track_mem(my_job_id=my_job_id, period=period, max_time=max_time,
                      out_fname=out_fname   )
-
-
-@subcli_bde.command("multi")
-@click.option('--dft_dir', '-d', type=click.Path())
-@click.option('--gap_dir', '-g', type=click.Path())
-@click.option('--gap_xml_fname', type=click.Path())
-@click.option('--start_dir', '-s', type=click.Path())
-@click.option('--precision', '-p', type=int, default=3)
-@click.option('--exclude', '-e', help='list of thing to exclude')
-def multi_bde_summaries(dft_dir, gap_dir=None, gap_xml_fname=None, start_dir=None,
-                        precision=3, exclude=None):
-    if gap_xml_fname is not None:
-        calculator = (Potential, [], {'param_filename': gap_xml_fname})
-    else:
-        calculator = None
-
-    bde.multi_bde_summaries(dft_dir=dft_dir, gap_dir=gap_dir, calculator=calculator,
-                            start_dir=start_dir,  precision=precision,
-                            exclude=exclude)
-
-
-@subcli_bde.command('single')
-@click.option('--dft_fname', '-d', type=click.Path(exists=True), help='dft reference fname')
-@click.option('--gap_fname', '-g', type=click.Path(), help='gap bde filename')
-@click.option('--gap_xml_fname', '-x', type=click.Path(exists=True),
-              help='Gap.xml for optimising structures')
-@click.option('--start_fname', '-s', type=click.Path(exists=True),
-              help='structures to optimise with gap')
-@click.option('--precision', '-p', type=click.INT, default=3,
-              help='how many digits to print in the table')
-@click.option('--printing', type=click.BOOL, default=True, help='whether to print the table')
-@click.option('--no-dft-prefix', is_flag=True )
-def single_bde_summary(dft_fname, gap_fname=None, gap_xml_fname=None, start_fname=None, precision=3,
-                       printing=True, no_dft_prefix=False):
-    """ BDE for single file"""
-
-    if gap_xml_fname is not None:
-        calculator = (Potential, [], {'param_filename': gap_xml_fname})
-    else:
-        calculator = None
-
-    if no_dft_prefix:
-        dft_prefix=''
-    else:
-        dft_prefix='dft_'
-
-    bde.bde_summary(dft_fname=dft_fname, gap_fname=gap_fname, calculator=calculator,
-                    start_fname=start_fname, precision=precision, printing=printing,
-                    dft_prefix=dft_prefix)
-
-
-@subcli_bde.command("bar-plot")
-@click.option('--dft_dir', '-d', type=click.Path())
-@click.option('--gap_dir', '-g', type=click.Path())
-@click.option('--start_dir', '-s', type=click.Path())
-@click.option('--gap_xml_fname', type=click.Path())
-@click.option('--plot_title', '-t', type=click.STRING, default='bde_bar_plot')
-@click.option('--output_dir', type=click.Path(), default='pictures')
-@click.option('--exclude', '-e', help='string of dft fnames to exclude')
-def bde_bar_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
-                 plot_title='bde_bar_plot', output_dir='pictures',
-                 exclude=None):
-    if gap_dir is not None:
-        if not os.path.isdir(gap_dir):
-            os.makedirs(gap_dir)
-
-    if gap_xml_fname is not None:
-        calculator = (Potential, [], {'param_filename': gap_xml_fname})
-    else:
-        calculator = None
-
-    dft_basenames = util.natural_sort(os.listdir(dft_dir))
-
-    if exclude is not None:
-        exclude = exclude.split(' ')
-        dft_basenames = [bn for bn in dft_basenames if bn not in exclude]
-
-
-    dft_fnames = [os.path.join(dft_dir, fname) for fname in dft_basenames]
-    gap_fnames = [os.path.join(gap_dir, basename.replace('optimised', 'gap_optimised')) for
-                  basename in dft_basenames]
-
-    if start_dir is not None:
-        start_fnames = [os.path.join(start_dir, basename.replace('optimised', 'non_optimised')) for
-                        basename in dft_basenames]
-    else:
-        start_fnames = [None for _ in dft_fnames]
-
-    bde.bde_bar_plot(gap_fnames=gap_fnames, dft_fnames=dft_fnames, plot_title=plot_title,
-                     start_fnames=start_fnames, calculator=calculator, output_dir=output_dir)
-
-
-@subcli_bde.command("scatter")
-@click.option('--dft_dir', '-d', type=click.Path())
-@click.option('--gap_dir', '-g', type=click.Path())
-@click.option('--start_dir', '-s', type=click.Path())
-@click.option('--gap_xml_fname', type=click.Path())
-@click.option('--plot_title', '-t', type=click.STRING, default='bde')
-@click.option('--output_dir', type=click.Path(), default='pictures')
-@click.option('--exclude', '-e', help='string of dft fnames to exclude')
-@click.option('--measure', default='bde_correlation',
-              type=click.Choice(['bde', 'rmsd', 'soap_dist', 'gap_e_error', \
-                                'gap_f_rmse', 'gap_f_max', 'bde_correlation']),
-             help='which property to look at')
-def bde_scatter_plot(dft_dir, gap_dir, start_dir=None, gap_xml_fname=None,
-                 plot_title='bde', output_dir='pictures',
-                exclude=None, measure='bde'):
-    if gap_dir is not None:
-        if not os.path.isdir(gap_dir):
-            os.makedirs(gap_dir)
-
-
-    if gap_xml_fname is not None:
-        calculator = (Potential, [], {'param_filename': gap_xml_fname})
-    else:
-        calculator = None
-
-    dft_basenames = util.natural_sort(os.listdir(dft_dir))
-
-    if exclude is not None:
-        exclude = exclude.split(' ')
-        dft_basenames = [bn for bn in dft_basenames if bn not in exclude]
-
-    dft_fnames = [os.path.join(dft_dir, fname) for fname in dft_basenames]
-    gap_fnames = [os.path.join(gap_dir, basename.replace('optimised', 'gap_optimised')) for
-                  basename in dft_basenames]
-
-    if start_dir is not None:
-        start_fnames = [os.path.join(start_dir, basename.replace('optimised', 'non_optimised')) for
-                        basename in dft_basenames]
-    else:
-        start_fnames = [None for _ in dft_fnames]
-
-    data = bde.get_data(dft_fnames, gap_fnames, start_fnames=start_fnames,
-                        calculator=calculator, which_data=measure)
-
-    bde.scatter_plot(all_data=data, plot_title=plot_title+'_'+measure,
-                         output_dir=output_dir, which_data=measure  )
-
-
-
-@subcli_bde.command("from-mols")
-@click.argument('mols_fname')
-@click.option('--starts-dir', '-s', help='where to put start files')
-@click.option('--dft-dir', '-d', help='optimised files destination')
-@click.option('--calc-kwargs', help='orca kw arguments for optimisation')
-@click.option('--h_to_remove', '-h', type=click.INT, help='h_idx to remove')
-def multi_bdes(mols_fname, starts_dir, dft_dir, calc_kwargs, h_to_remove):
-    """makes radicals and optimises them """
-    # TODO - exclude something if dft file exists
-
-    start_fname_end = '_non_optimised.xyz'
-
-    for dir_name in [starts_dir, dft_dir]:
-        if not os.path.isdir(dir_name):
-            os.makedirs(dir_name)
-
-    atoms = read(mols_fname, ':')
-    start_fnames = []
-    dft_fnames = []
-    for atom in atoms:
-
-        start_basename = os.path.join(starts_dir, atom.info['config_type'])
-        for idx in range(1, 10):
-            if os.path.exists(start_basename + start_fname_end):
-                continue
-                # start_basename += f'_{idx}'
-            else:
-                start_fname = start_basename + start_fname_end
-                break
-        else:
-            raise RuntimeError(f'All attempted fnames were taken, last one: {start_basename}')
-
-        start_fnames.append(start_fname)
-        dft_fname = os.path.basename(start_fname).replace('_non', '')
-        dft_fnames.append(os.path.join(dft_dir, dft_fname))
-
-        mol = atom.copy()
-        mol.info['config_type'] += '_mol'
-        rad = atom.copy()
-        rad.info['config_type'] += f'_rad{h_to_remove}'
-        del rad[h_to_remove]
-
-        write(start_fname, [mol, rad])
-
-    output_dict = {}
-    for st, dft in zip(start_fnames, dft_fnames):
-        output_dict[st] = dft
-
-    # do optimisation
-    inputs = ConfigSet_in(input_files=start_fnames)
-    outputs = ConfigSet_out(output_files=output_dict)
-
-    calc_kwargs = key_val_str_to_dict(calc_kwargs)
-    calc_kwargs['orca_kwargs'] = key_val_str_to_dict(calc_kwargs['orca_kwargs'])
-    if 'task' not in calc_kwargs['orca_kwargs'].keys():
-        calc_kwargs['orca_kwargs']['task'] = 'optimise'
-
-    print(f'orca_parameters: {calc_kwargs}')
-
-    orca.evaluate(inputs=inputs, outputs=outputs, **calc_kwargs)
 
 
 @subcli_plot.command('dimer')

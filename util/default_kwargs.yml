@@ -3,6 +3,7 @@ orca:
   smearing: 5000
   n_run: 1
   n_hop: 1
-  scratch_path: /tmp/eg475
+  scratch_path: /scratch-ssd/eg475
   orcasimpleinput: UKS B3LYP def2-SV(P) def2/J D3BJ
+
 
