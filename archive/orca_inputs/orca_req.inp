@@ -1,0 +1,8 @@
+! engrad UKS B3LYP def2-SV(P) def2/J D3BJ Opt Freq
+%scf Convergence Tight 
+SmearTemp 2000 
+maxiter 500 
+  AutoStart false 
+end 
+ 
+*xyzfile 0 1 5_p_cresol_in_dft_optimised.xyz

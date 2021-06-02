@@ -1,0 +1,55 @@
+#!/bin/bash
+#$ -pe smp 16        # number of cores requested
+#$ -l h_rt=12:00:00  # time requested in HH:MM:SS format
+#$ -S /bin/bash      # shell to run the job in
+#$ -N lc1
+#$ -j yes            # combine error and output logs
+#$ -cwd              # execute job in directory from which it was submitted
+
+echo $(date)
+
+test_dset=../xyzs/test.xyz
+e_sigma=0.001
+f_sigma=0.02
+l_max=4
+n_max=8
+cutoff=5
+delta=1
+zeta=4
+n_sparse=200
+atom_gaussian_width=0.3
+
+dset_sizes=( 50 100 250 500 1500 )
+
+
+source /home/eg475/programs/miniconda3/etc/profile.d/conda.sh
+conda activate wo0 
+export  OMP_NUM_THREADS=${NSLOTS}
+
+mkdir -p xyzs 
+
+for dset_size in "${dset_sizes[@]}"
+do
+
+	gap_name=gap${dset_size}
+	train_dset=../xyzs/train${dset_size}.xyz
+
+	eval_train_name=xyzs/${gap_name}_on_train${dset_size}.xyz
+	eval_test_name=xyzs/${gap_name}_on_test.xyz
+
+	echo "gap_name: ${gap_name};"
+        echo "train_fname: ${train_dset}"
+
+
+	/home/eg475/programs/QUIPwo0/build/linux_x86_64_gfortran_openmp/gap_fit energy_parameter_name=dft_energy force_parameter_name=dft_forces  sparse_separate_file=F default_sigma={${e_sigma} ${f_sigma} 0.0 0.0} config_type_kernel_regularisation={isolated_atom:0.0001:0.0:0.0:0.0} core_param_file=/home/eg475/scripts/source_files/glue_orca.xml core_ip_args={IP Glue} gap={soap l_max=$l_max n_max=$n_max cutoff=$cutoff delta=$cutoff covariance_type=dot_product zeta=$zeta n_sparse=$n_sparse sparse_method=cur_points atom_gaussian_width=$atom_gaussian_width add_species=True} atoms_filename=$train_dset gp_file=${gap_name}.xml > out_${gap_name}.txt 2>&1 
+
+	/home/eg475/programs/QUIPwo0/build/linux_x86_64_gfortran_openmp/quip E=T F=T atoms_filename=${train_dset} param_filename=${gap_name}.xml  | grep AT | sed 's/AT//' > $eval_train_name
+	/home/eg475/programs/QUIPwo0/build/linux_x86_64_gfortran_openmp/quip E=T F=T atoms_filename=${test_dset} param_filename=${gap_name}.xml  | grep AT | sed 's/AT//' > $eval_test_name
+
+
+	python ~/scripts/gap_plots_evaled.py --ref_energy_name dft_energy --ref_force_name dft_forces --pred_energy_name energy --pred_force_name force --evaluated_train_fname $eval_train_name --evaluated_test_fname $eval_test_name  --prefix $gap_name
+
+done
+
+python -c "from util.plot import learning_curves as lc; lc.learning_curves_100K([50, 100, 250, 500, 1500])"
+
