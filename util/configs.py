@@ -1,4 +1,5 @@
 from ase.io import read, write
+import logging
 import pandas as pd
 from util import smiles
 from wfl.configset import ConfigSet_in, ConfigSet_out
@@ -11,6 +12,8 @@ import numpy as np
 from util import grouper
 import os
 import hashlib
+
+logger = logging.getLogger(__name__)
 
 
 def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
@@ -103,8 +106,9 @@ def cleanup_configs(num_tasks=8, batch_in_fname_prefix='in_',
             os.remoe(out_fname)
 
 
-def filter_expanded_geometries(atoms_list, mult=1.2):
+def filter_insane_geometries(atoms_list, mult=1.2, bad_structures_fname=None):
 
+    bad_atoms = []
     atoms_out = []
     skipped_idx = []
     for idx, atoms in enumerate(atoms_list):
@@ -119,27 +123,35 @@ def filter_expanded_geometries(atoms_list, mult=1.2):
                                                   bothways=True)
         _ = neighbor_list.update(atoms)
 
+        
+
         for at in atoms:
 
             indices, offsets = neighbor_list.get_neighbors(at.index)
             if at.symbol == 'H':
-                if len(indices) == 0:
+                if len(indices) != 1:
                     skipped_idx.append(idx)
-                    # print(f'skipped {idx} because of atom {at.index}')
+                    bad_atoms.append(atoms)
                     break
 
             elif at.symbol == 'C':
                 if len(indices) < 2:
                     skipped_idx.append(idx)
+                    bad_atoms.append(atoms)
                     break
             elif at.symbol == 'O':
                 if len(indices) == 0:
                     skipped_idx.append(idx)
+                    bad_atoms.append(atoms)
                     break
 
         else:
             atoms_out.append(atoms)
-    warnings.warn(f'skipped {len(skipped_idx)} atoms, because couldn\'t find '
+
+    if bad_structures_fname is not None and len(bad_atoms) > 0:
+        print(type(bad_atoms))
+        write(bad_structures_fname, bad_atoms)
+    logger.info(f'skipped {len(skipped_idx)} atoms, because couldn\'t find '
                   f'a H whithin reasonable cutoff. Nos: {skipped_idx}')
 
     return atoms_out

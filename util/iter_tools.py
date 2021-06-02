@@ -82,3 +82,5 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, opt_starts_fname):
 
 
 
+
+

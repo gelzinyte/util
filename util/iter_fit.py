@@ -18,6 +18,7 @@ from wfl.generate_configs import vib
 
 # will be changed
 # from wfl.plotting import error_table
+
 logger = logging.getLogger(__name__)
 
 
@@ -183,6 +184,7 @@ def fit(no_cycles,
         opt_traj_fname = f'xyzs/opt_trajs/opt_{cycle_idx}.xyz'
         train_set_fname = f'xyzs/train_{cycle_idx}.xyz'
         opt_logfile = f'xyzs/opt_trajs/opt_log_{cycle_idx}.txt'
+        bad_geometries_file = f'xyzs/filtered_out_geometriew_{cycle_idx}.xyz'
 
 
         calculator = (Potential, [], {'param_filename':gap_fname})
@@ -249,6 +251,8 @@ def fit(no_cycles,
             # filter by energy
             if not os.path.exists(structures_to_derive_normal_modes):
                 atoms = read(opt_fname_w_dft_and_gap, ':')
+                atoms = configs.filter_insane_geometries(atoms, mult=1,
+                                                         bad_structures_fname=bad_geometries_file)
                 atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
                                            f_threshold=None)
                 write(structures_to_derive_normal_modes, atoms)
@@ -346,7 +350,7 @@ def fit(no_cycles,
 
             if not os.path.exists(additional_data):
                 atoms = read(extra_data_with_dft_and_gap, ':')
-                # atoms = it.filter_insane_geometries(atoms)
+                atoms = it.filter_insane_geometries(atoms)
                 atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
                                            f_threshold=None)
                 write(additional_data, atoms)
