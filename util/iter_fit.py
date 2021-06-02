@@ -338,6 +338,7 @@ def fit(no_cycles,
 
             if not os.path.exists(additional_data):
                 atoms = read(extra_data_with_dft_and_gap, ':')
+                # atoms = it.filter_insane_geometries(atoms)
                 atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
                                            f_threshold=None)
                 write(additional_data, atoms)
