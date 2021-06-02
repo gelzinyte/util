@@ -5,7 +5,7 @@ from wfl.configset import ConfigSet_in, ConfigSet_out
 try:
     from wfl.generate_configs import smiles, radicals
 except ImportError:
-    pass
+    from util import smiles, radicals
 from ase.optimize.precon import PreconLBFGS
 from wfl.pipeline import iterable_loop
 from wfl.utils.parallel import construct_calculator_picklesafe
@@ -59,28 +59,58 @@ def filter_by_error(atoms, gap_prefix='gap_', dft_prefix='dft_',
     return atoms_out
 
 
-def make_structures(smiles_csv, iter_no, num_smi_repeat, opt_starts_fname):
+def make_structures(smiles_csv, iter_no, num_smi_repeat, output_fname):
+
+    atoms_out = []
 
     # generate molecules
     df = pd.read_csv(smiles_csv)
-    smiles_to_convert = []
-    smi_names = []
     for smi, name in zip(df['SMILES'], df['Name']):
-        smiles_to_convert += [smi] * num_smi_repeat
-        smi_names += [name] * num_smi_repeat
+        for _ in range(num_smi_repeat):
+            mol = smiles.smi_to_atoms(smi)
+            mol.info['config_type'] = name
+
+            outputs = ConfigSet_out()
+            radicals.abstract_sp3_hydrogen_atoms(mol, outputs=outputs)
+            num_mols_and_rads = len(outputs.output_configs)
+
+            for idx in range(num_mols_and_rads):
+                # make a new conformer for each molecule/radical I take
+                mol = smiles.smi_to_atoms(smi)
+                mol.info['config_type'] = name
+
+                outputs = ConfigSet_out()
+                radicals.abstract_sp3_hydrogen_atoms(mol, outputs=outputs)
+
+                atoms_out.append(outputs.output_configs[idx])
+
+    for at in atoms_out:
+        at.cell = [50, 50, 50]
+        at.info['iter_no'] = iter_no
+
+    write(output_fname, atoms_out)
 
 
-    molecules = ConfigSet_out()
-    smiles.run(outputs=molecules, smiles=smiles_to_convert, extra_info={'iter_no':iter_no})
-    for at, name in zip(molecules.output_configs, smi_names):
-        at.info['config_type'] = name
-        at.cell = [40, 40, 40]
-
-    # generate radicals
-    mols_rads = ConfigSet_out(output_files=opt_starts_fname)
-    radicals.abstract_sp3_hydrogen_atoms(molecules.output_configs, outputs=mols_rads)
-
-
-
-
+    #
+    #
+    # smiles_to_convert = []
+    # smi_names = []
+    # for smi, name in zip(df['SMILES'], df['Name']):
+    #     smiles_to_convert += [smi] * num_smi_repeat
+    #     smi_names += [name] * num_smi_repeat
+    #
+    #
+    # molecules = ConfigSet_out()
+    # smiles.run(outputs=molecules, smiles=smiles_to_convert, extra_info={'iter_no':iter_no})
+    # for at, name in zip(molecules.output_configs, smi_names):
+    #     at.info['config_type'] = name
+    #     at.cell = [40, 40, 40]
+    #
+    # # generate radicals
+    # mols_rads = ConfigSet_out(output_files=opt_starts_fname)
+    # radicals.abstract_sp3_hydrogen_atoms(molecules.output_configs, outputs=mols_rads)
+    #
+    #
+    #
+    #
 
