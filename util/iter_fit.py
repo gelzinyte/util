@@ -201,10 +201,18 @@ def fit(no_cycles,
             # optimise
             if not os.path.exists(opt_fname):
                 logger.info(f'gap-optimising {opt_starts_fname} to {opt_fname}')
-                
-                it.optimise(calculator=calculator, opt_starts_fname=opt_starts_fname,
-                            opt_fname=opt_fname, opt_traj_fname=opt_traj_fname,
-                            logfile=opt_logfile)
+
+                opt_inputs = ConfigSet_in(input_files=opt_starts_fname)
+                opt_outputs = ConfigSet_out(output_files=opt_traj_fname)
+                opt_wdir='xyzs'
+
+                opt_atoms = ugap.optimise(inputs=opt_inputs,
+                                          outputs=opt_outputs,
+                                          calculator=calculator,
+                                          wdir=opt_wdir)
+
+                write(opt_fname, opt_atoms)
+
 
             # evaluate with dft
             if not os.path.exists(opt_fname_w_dft):

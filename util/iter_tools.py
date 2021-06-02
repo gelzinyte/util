@@ -82,31 +82,3 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, opt_starts_fname):
 
 
 
-
-def  optimise(calculator, opt_starts_fname,
-                    opt_fname, opt_traj_fname, logfile=None):
-
-    # determine optimal chunksize
-    no_structures = len(read(opt_starts_fname, ':'))
-    no_cores = int(os.environ['AUTOPARA_NPOOL'])
-    chunksize = int(no_structures/no_cores) + 1
-
-    # optimise
-    opt_trajectory = ConfigSet_out(output_files=opt_traj_fname)
-    inputs = ConfigSet_in(input_files=opt_starts_fname)
-
-    run_opt(inputs=inputs,
-               outputs=opt_trajectory, chunksize=chunksize,
-              calculator=calculator, return_traj=True, logfile=logfile)
-
-    opt_trajectory = read(opt_traj_fname, ':')
-
-    opt_ats = [at for at in opt_trajectory if 'minim_config_type' in
-               at.info.keys() and 'converged' in at.info['minim_config_type']]
-    
-    write(opt_fname, opt_ats)
-
-
-
-
-

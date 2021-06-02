@@ -19,6 +19,23 @@ import matplotlib as mpl
 from util import plot
 
 
+def optimise(inputs, outputs, calculator, wdir):
+    logfile = os.path.join(wdir, 'optimisation.log')
+
+    opt_kwargs = {'logfile': logfile, 'master': True, 'precon': None,
+                  'use_armijo': False}
+
+    optimised_configset = minim.run(inputs, outputs, calculator,
+                                    keep_symmetry=False,
+                                    update_config_type=False, fmax=1e-2,
+                                    **opt_kwargs, chunksize=50)
+
+    atoms_opt = [at for at in optimised_configset
+                 if
+                 at.info['minim_config_type'] == 'minim_last_converged']
+
+    return atoms_opt
+
 
 def make_descr_str(descr_dict):
     """ given dictionary of {"name":"desc_name", "param":"value", ...} converts to string "desc_name param=value ...", suitable for GAP"""

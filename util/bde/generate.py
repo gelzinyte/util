@@ -15,6 +15,7 @@ from wfl.calculators import orca
 from wfl.generate_configs import minim
 
 from util.util_config import Config
+from util import ugap
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +109,7 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
     logger.info('GAP-optimising DFT structures')
     outputs_gap_reopt = ConfigSet_out(output_files=gap_reopt_fname)
-    gap_reoptimised = gap_optimise(inputs=outputs_gap_energies.to_ConfigSet_in(),
+    gap_reoptimised = ugap.optimise(inputs=outputs_gap_energies.to_ConfigSet_in(),
                                     outputs=outputs_gap_reopt,
                                    calculator=calculator,
                                    wdir=wdir)
@@ -160,22 +161,6 @@ def setup_orca_kwargs():
     return orca_kwargs
 
 
-def gap_optimise(inputs, outputs, calculator, wdir):
-
-    logfile = os.path.join(wdir, 'optimisation.log')
-
-    opt_kwargs = {'logfile':logfile, 'master':True, 'precon':None,
-                    'use_armijo':False}
-
-    optimised_configset = minim.run(inputs, outputs,  calculator,
-                                    keep_symmetry=False,
-                             update_config_type=False, fmax=1e-2,
-                                **opt_kwargs)
-
-    atoms_opt = [at for at in optimised_configset
-                    if at.info['minim_config_type']=='minim_last_converged']
-
-    return atoms_opt
 
 
 
