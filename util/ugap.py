@@ -1,21 +1,26 @@
+import subprocess
+import util
+import os
+import re
 
+import numpy as np
 from copy import deepcopy
+import xml.etree.ElementTree as et
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
 from ase.io.extxyz import key_val_str_to_dict
 from ase.io.extxyz import key_val_dict_to_str
+from ase.build import molecule
+from ase.io import read, write
+
 try:
     from quippy.potential import Potential
 except ModuleNotFoundError:
     pass
-from ase.build import molecule
-import numpy as np
-import xml.etree.ElementTree as et
-import re
-from ase.io import read, write
-import subprocess
-import util
-import os
-import matplotlib.pyplot as plt
-import matplotlib as mpl
+
+from wfl.generate_configs import minim
+
 from util import plot
 
 

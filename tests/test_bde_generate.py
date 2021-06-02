@@ -36,7 +36,7 @@ def test_generate(atoms, gap_filename, tmp_path):
 
     print(gap_filename)
     calculator = (Potential, [], {'param_filename':gap_filename})
-    output_filename_prefix = 'out_bde_atoms_'
+    output_filename_prefix = f'{tmp_path}/out_bde_atoms_'
     dft_prop_prefix='dft_'
     gap_prop_prefix='gappy_'
     wdir=os.path.join(tmp_path, 'bde_wdir')
@@ -62,7 +62,8 @@ def test_generate(atoms, gap_filename, tmp_path):
     assert 'gappy_opt_dft_forces' in arrays_keys
 
     # optimisation log
-    os.remove('log.txt')
+    if os.path.isfile('log.txt'):
+        os.remove('log.txt')
     os.remove(output_filename_prefix + 'gap_bde.xyz')
 
 def test_get_gap_isolated_h(gap_filename, tmp_path):
