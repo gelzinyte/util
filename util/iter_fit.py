@@ -134,7 +134,16 @@ def fit(no_cycles,
                                             glue_fname=glue_fname, config_type_sigma=config_type_sigma)
 
         logger.info(f'gap 0 command:\n{gap_command}')
+
+        orig_omp_n = os.environ.get('OMP_NUM_THREADS', None)
+        if 'GAP_FIT_OMP_NUM_THREADS' in os.environ:
+            os.environ['OMP_NUM_THREADS'] = os.environ['GAP_FIT_OMP_NUM_THREADS']
+
         stdout, stderr = util.shell_stdouterr(gap_command)
+
+        if orig_omp_n is not None:
+            os.environ['OMP_NUM_THREADS'] = str(orig_omp_n)
+
         logger.info(f'stdout: {stdout}')
         logger.info(f'stderr: {stderr}')
 
@@ -214,7 +223,7 @@ def fit(no_cycles,
                 inputs = ConfigSet_in(input_files=opt_fname_w_dft)
                 outputs = ConfigSet_out(output_files=opt_fname_w_dft_and_gap)
 
-                no_cores = int(os.environ['AUTOPARA_NPOOL'])
+                no_cores = int(os.environ['WFL_AUTOPARA_NPOOL'])
                 no_compounds = len(read(opt_fname_w_dft, ':'))
 
                 chunksize = int(no_compounds/no_cores) + 1
@@ -312,7 +321,7 @@ def fit(no_cycles,
                 inputs = ConfigSet_in(input_files=extra_data_with_dft)
                 outputs = ConfigSet_out(output_files=extra_data_with_dft_and_gap)
 
-                no_cores = int(os.environ['AUTOPARA_NPOOL'])
+                no_cores = int(os.environ['WFL_AUTOPARA_NPOOL'])
                 no_compounds = len(read(extra_data_with_dft, ':'))
 
                 chunksize = int(no_compounds/no_cores) + 1
@@ -348,12 +357,23 @@ def fit(no_cycles,
 
         if not os.path.exists(gap_fname):
             logger.info('fitting gap')
+
             gap_command = ugap.make_gap_command(gap_filename=gap_fname, training_filename=train_set_fname,
                                                 descriptors_dict=descriptors, default_sigma=default_sigma,
                                                 gap_fit_path=gap_fit_path, output_filename=out_fname,
                                                 glue_fname=glue_fname, config_type_sigma=config_type_sigma)
             logger.info(f'-' * 15, f'gap {cycle_idx} command: {gap_command}')
+
+            orig_omp_n = os.environ.get('OMP_NUM_THREADS', None)
+            if 'GAP_FIT_OMP_NUM_THREADS' in os.environ:
+                os.environ['OMP_NUM_THREADS'] = os.environ[
+                    'GAP_FIT_OMP_NUM_THREADS']
+
             stdout, stderr = util.shell_stdouterr(gap_command)
+
+            if orig_omp_n is not None:
+                os.environ['OMP_NUM_THREADS'] = str(orig_omp_n)
+
             logger.info(f'stdout: {stdout}')
             logger.info(f'stderr: {stderr}')
 
