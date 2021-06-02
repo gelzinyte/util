@@ -1,5 +1,6 @@
 import os
 import yaml
+import logging
 import numpy as np
 from ase.io import read, write
 try:
@@ -60,7 +61,7 @@ def fit(no_cycles,
     """
 
     assert smiles_csv is None or opt_starts_fname is None
-    
+
     if smiles_csv is not None:
         logger.info(f'Optimising structures from {smiles_csv}, {num_smiles_opt} times')
     elif opt_starts_fname is not None:

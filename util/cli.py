@@ -603,17 +603,17 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 
 
 @subcli_gap.command('fit')
-@click.option('--no_cycles', type=click.INT, help='number of gap_fit - optimise cycles')
-@click.option('--train_fname', default='train.xyz', help='fname of first training set file')
-@click.option('--e_sigma', default=0.0005, type=click.FLOAT, help='energy default sigma')
-@click.option('--f_sigma', default=0.02, type=click.FLOAT, help='force default sigma')
+@click.option('--no-cycles', type=click.INT, help='number of gap_fit - optimise cycles')
+@click.option('--train-fname', default='train.xyz', help='fname of first training set file')
+@click.option('--e-sigma', default=0.0005, type=click.FLOAT, help='energy default sigma')
+@click.option('--f-sigma', default=0.02, type=click.FLOAT, help='force default sigma')
 @click.option('--descriptor-fname', default='descriptors.yml')
-@click.option('--smiles_csv', help='smiles to optimise')
-@click.option('--num_smiles_opt', type=click.INT, help='number of optimisations per smiles' )
-@click.option('--opt_starts_fname', help='filename where to optimise structures from')
-@click.option('--num_nm_displacements_per_temp', type=click.INT,
+@click.option('--smiles-csv', help='smiles to optimise')
+@click.option('--num-smiles-opt', type=click.INT, help='number of optimisations per smiles' )
+@click.option('--opt-starts-fname', help='filename where to optimise structures from')
+@click.option('--num-nm-displacements-per-temp', type=click.INT,
               help='number of normal modes displacements per structure per temperature')
-@click.option('--num_nm_temps', type=click.INT, help='how many nm temps to sample from')
+@click.option('--num-nm-temps', type=click.INT, help='how many nm temps to sample from')
 def fit(no_cycles, train_fname, e_sigma, descriptor_fname,
         f_sigma,  smiles_csv, num_smiles_opt, opt_starts_fname,
         num_nm_displacements_per_temp, num_nm_temps):
