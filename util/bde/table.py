@@ -8,6 +8,42 @@ def atom_sorter(atoms, info_key='mol_or_rad'):
     alphanum_key = lambda at: [convert(c) for c in at.info[info_key]]
     return sorted(atoms, key=alphanum_key)
 
+
+def assign_atoms_bde_info(all_atoms, h_energy, prop_prefix, dft_prefix):
+    """prop_prefix - which prefix to use for energies for bdes
+        dft_prefix - used to get dft_opt_mol_positions_hash"""
+
+    atoms_by_hash = get_atoms_by_hash_dict(all_atoms, dft_prefix)
+
+    atoms_out = []
+    for hash, atoms in atoms_by_hash.items():
+
+        keys = natural_sort([at.info['mol_or_rad'] for at in atoms])
+        atoms = sorted(atoms, key=lambda x: keys.index(x.info['mol_or_rad']))
+
+        mol = atoms[0]
+        rads = atoms[1:]
+
+        assert mol.info['mol_or_rad'] == 'mol'
+        rad_labels = [rad.info['mol_or_rad'] for rad in rads]
+        for label in rad_labels:
+            assert 'rad' in label
+
+        mol_energy = mol.info[f'{prop_prefix}energy']
+        for rad in rads:
+            rad_energy = rad.info[f'{prop_prefix}energy']
+            bde = get_bde(mol_energy=mol_energy,
+                          rad_energy=rad_energy,
+                          isolated_h_energy=h_energy)
+
+            rad.info[f'{prop_prefix}bde'] = bde
+
+        atoms_out += [mol] + rads
+
+    return atoms_out
+
+
+
 def multiple_tables_from_atoms(all_atoms, isolated_h, gap_prefix,
                               dft_prefix='dft_', printing=False, precision=3):
     """sorts atoms in file by their hash and prints/collects bde tables:
@@ -151,29 +187,35 @@ def add_mol_data(t, mol, gap_prefix, dft_prefix):
     label = 'mol'
 
     gap_opt_gap_energy = mol.info[f'{gap_prefix}opt_{gap_prefix}energy']
-    gap_opt_dft_energy = mol.info[f'{gap_prefix}opt_{dft_prefix}energy']
+    gap_opt_gap_forces = mol.arrays[f'{gap_prefix}opt_{gap_prefix}forces']
+
     dft_opt_dft_energy = mol.info[f'{dft_prefix}opt_{dft_prefix}energy']
     dft_opt_gap_energy = mol.info[f'{dft_prefix}opt_{gap_prefix}energy']
 
-    gap_opt_gap_forces = mol.arrays[f'{gap_prefix}opt_{gap_prefix}forces']
-    gap_opt_dft_forces = mol.arrays[f'{gap_prefix}opt_{dft_prefix}forces']
+    gap_opt_dft_energy = mol.info.get(f'{gap_prefix}opt_{dft_prefix}energy', None)
+    gap_opt_dft_forces = mol.arrays.get(f'{gap_prefix}opt_{dft_prefix}forces', None)
 
-    t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
-                                                  gap_opt_dft_energy) / n_atoms
 
-    t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
+    if gap_opt_dft_energy is not None:
+        t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
+                                                      gap_opt_dft_energy) / n_atoms
+
+        t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
                                         gap_opt_dft_forces)
 
-    t.loc[label, 'max_abs_force_error'] = max_abs_force_error(gap_opt_gap_forces,
-                                                          gap_opt_dft_forces)
+        t.loc[label, 'max_abs_force_error'] = max_abs_force_error(gap_opt_gap_forces,
+                                                              gap_opt_dft_forces)
+
+        t.loc[label, 'dft_energy_difference'] = abs_error(gap_opt_dft_energy,
+                                                          dft_opt_dft_energy)
 
     t.loc[label, 'max_distance_best_RMSD'] = 'to do'
 
-    t.loc[label, 'dft_energy_difference'] = abs_error(gap_opt_dft_energy,
-                                                  dft_opt_dft_energy)
+
 
     t.loc[label, 'dft_opt_dft_energy'] = dft_opt_dft_energy
-    t.loc[label, 'gap_opt_dft_energy'] = gap_opt_dft_energy
+    if gap_opt_dft_energy is not None:
+        t.loc[label, 'gap_opt_dft_energy'] = gap_opt_dft_energy
     t.loc[label, 'gap_opt_gap_energy'] = gap_opt_gap_energy
     t.loc[label, 'dft_opt_gap_energy'] = dft_opt_gap_energy
 
@@ -189,32 +231,37 @@ def add_rad_data(t, mol, rad, isolated_h, gap_prefix, dft_prefix):
     n_atoms = len(rad)
 
     gap_opt_gap_energy = rad.info[f'{gap_prefix}opt_{gap_prefix}energy']
-    gap_opt_dft_energy = rad.info[f'{gap_prefix}opt_{dft_prefix}energy']
+    gap_opt_gap_forces = rad.arrays[f'{gap_prefix}opt_{gap_prefix}forces']
+
     dft_opt_dft_energy = rad.info[f'{dft_prefix}opt_{dft_prefix}energy']
     dft_opt_gap_energy = rad.info[f'{dft_prefix}opt_{gap_prefix}energy']
 
-    gap_opt_gap_forces = rad.arrays[f'{gap_prefix}opt_{gap_prefix}forces']
-    gap_opt_dft_forces = rad.arrays[f'{gap_prefix}opt_{dft_prefix}forces']
+    gap_opt_dft_energy = rad.info.get(f'{gap_prefix}opt_{dft_prefix}energy', None)
+    gap_opt_dft_forces = rad.arrays.get(f'{gap_prefix}opt_{dft_prefix}forces', None)
 
-    # gap performance alone
-    t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
-                                                  gap_opt_dft_energy) / n_atoms
+    if gap_opt_dft_energy is not None:
+        # gap performance alone
+        t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
+                                                      gap_opt_dft_energy) / n_atoms
 
-    t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
-                                        gap_opt_dft_forces)
+        t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
+                                            gap_opt_dft_forces)
 
-    t.loc[label, 'max_abs_force_error'] = max_abs_force_error(gap_opt_gap_forces,
-                                                          gap_opt_dft_forces)
+        t.loc[label, 'max_abs_force_error'] = max_abs_force_error(gap_opt_gap_forces,
+                                                              gap_opt_dft_forces)
+
+        t.loc[label, 'dft_energy_difference'] = abs_error(gap_opt_dft_energy,
+                                                          dft_opt_dft_energy)
 
     # gap optimisation wrt dft optimisation
     t.loc[label, 'max_distance_best_RMSD'] = 'to do'
 
-    t.loc[label, 'dft_energy_difference'] = abs_error(gap_opt_dft_energy,
-                                                  dft_opt_dft_energy)
+
 
     # just original energy values
     t.loc[label, 'dft_opt_dft_energy'] = dft_opt_dft_energy
-    t.loc[label, 'gap_opt_dft_energy'] = gap_opt_dft_energy
+    if gap_opt_dft_energy is not None:
+        t.loc[label, 'gap_opt_dft_energy'] = gap_opt_dft_energy
     t.loc[label, 'gap_opt_gap_energy'] = gap_opt_gap_energy
     t.loc[label, 'dft_opt_gap_energy'] = dft_opt_gap_energy
 

@@ -18,6 +18,8 @@ from wfl.generate_configs import vib
 
 # will be changed
 # from wfl.plotting import error_table
+logger = logging.getLogger(__name__)
+
 
 def fit(no_cycles,
         first_train_fname='train.xyz', e_sigma=0.0005, f_sigma=0.02,
@@ -59,9 +61,9 @@ def fit(no_cycles,
     assert smiles_csv is None or opt_starts_fname is None
     
     if smiles_csv is not None:
-        print(f'Optimising structures from {smiles_csv}, {num_smiles_opt} times')
+        logger.info(f'Optimising structures from {smiles_csv}, {num_smiles_opt} times')
     elif opt_starts_fname is not None:
-        print(f'Optimising structures from {opt_starts_fname}')
+        logger.info(f'Optimising structures from {opt_starts_fname}')
     else:
         raise RuntimeError('Need either smiles csv or opt strart file for optimisations every cycle')
 
@@ -93,7 +95,7 @@ def fit(no_cycles,
     orca_kwargs = default_kw['orca']
 
 
-    print(f'orca_kwargs: {orca_kwargs}')
+    logger.info(f'orca_kwargs: {orca_kwargs}')
 
     ########################################################
     ## set up GAP
@@ -111,7 +113,7 @@ def fit(no_cycles,
 
     dset_0_fname = 'xyzs/train_0.xyz'
     if not os.path.exists(dset_0_fname):
-        print('generating 0-th dset')
+        logger.info('generating 0-th dset')
         dset = read(first_train_fname, ':')
         for at in dset:
             if 'iter_no' not in at.info.keys():
@@ -125,16 +127,16 @@ def fit(no_cycles,
 
     gap_fname = 'gaps/gap_0.xml'
     if not os.path.exists(gap_fname):
-        print('fitting 0-th gap')
+        logger.info('fitting 0-th gap')
         gap_command = ugap.make_gap_command(gap_filename=gap_fname, training_filename=dset_0_fname,
                                             descriptors_dict=descriptors, default_sigma=default_sigma,
                                             gap_fit_path=gap_fit_path, output_filename='gaps/out_0.txt',
                                             glue_fname=glue_fname, config_type_sigma=config_type_sigma)
 
-        print(f'gap 0 command:\n{gap_command}')
+        logger.info(f'gap 0 command:\n{gap_command}')
         stdout, stderr = util.shell_stdouterr(gap_command)
-        print(f'stdout: {stdout}')
-        print(f'stderr: {stderr}')
+        logger.info(f'stdout: {stdout}')
+        logger.info(f'stderr: {stderr}')
 
 
     ###############################
@@ -144,7 +146,7 @@ def fit(no_cycles,
 
     for cycle_idx in range(1, no_cycles + 1):
 
-        print(f'-' * 30, f'\nCycle {cycle_idx} \n', '-' * 30)
+        logger.info(f'-' * 30, f'\nCycle {cycle_idx} \n', '-' * 30)
 
         #################
         # define filenames
@@ -181,7 +183,7 @@ def fit(no_cycles,
             
             # generate structures for optimisation
             if not os.path.exists(opt_starts_fname):
-                print(f'making structures to optimise at {opt_starts_fname}')
+                logger.info(f'making structures to optimise at {opt_starts_fname}')
                 
                 it.make_structures(smiles_csv, iter_no=cycle_idx,
                                    num_smi_repeat=num_smiles_opt,
@@ -189,7 +191,7 @@ def fit(no_cycles,
 
             # optimise
             if not os.path.exists(opt_fname):
-                print(f'gap-optimising {opt_starts_fname} to {opt_fname}')
+                logger.info(f'gap-optimising {opt_starts_fname} to {opt_fname}')
                 
                 it.optimise(calculator=calculator, opt_starts_fname=opt_starts_fname,
                             opt_fname=opt_fname, opt_traj_fname=opt_traj_fname,
@@ -197,7 +199,7 @@ def fit(no_cycles,
 
             # evaluate with dft
             if not os.path.exists(opt_fname_w_dft):
-                print(f'Calculating dft energies')
+                logger.info(f'Calculating dft energies')
                 dft_evaled_opt_mols_rads = ConfigSet_out(output_files=opt_fname_w_dft)
                 inputs = ConfigSet_in(input_files=opt_fname)
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
@@ -208,7 +210,7 @@ def fit(no_cycles,
 
             # evaluate optimised with gap
             if not os.path.exists(opt_fname_w_dft_and_gap):
-                print('Reevaluating extra data with gap')
+                logger.info('Reevaluating extra data with gap')
                 inputs = ConfigSet_in(input_files=opt_fname_w_dft)
                 outputs = ConfigSet_out(output_files=opt_fname_w_dft_and_gap)
 
@@ -282,7 +284,7 @@ def fit(no_cycles,
 
             # training set dft
             if not os.path.exists(extra_data_with_dft):
-                print(f'Calculating train set dft energies')
+                logger.info(f'Calculating train set dft energies')
                 dft_evaled_opt_mols_rads = ConfigSet_out(output_files=extra_data_with_dft)
                 inputs = ConfigSet_in(input_files=file_for_dft)
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
@@ -293,7 +295,7 @@ def fit(no_cycles,
 
             # test set dft
             if not os.path.exists(nm_sample_fname_for_test_w_dft):
-                print(f'Calculating test set dft energies')
+                logger.info(f'Calculating test set dft energies')
                 dft_evaled_opt_mols_rads = ConfigSet_out(output_files=nm_sample_fname_for_test_w_dft)
                 inputs = ConfigSet_in(input_files=file_for_dft)
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
@@ -306,7 +308,7 @@ def fit(no_cycles,
 
 
             if not os.path.exists(extra_data_with_dft_and_gap):
-                print('Reevaluating extra data with gap')
+                logger.info('Reevaluating extra data with gap')
                 inputs = ConfigSet_in(input_files=extra_data_with_dft)
                 outputs = ConfigSet_out(output_files=extra_data_with_dft_and_gap)
 
@@ -337,7 +339,7 @@ def fit(no_cycles,
             new_atoms = read(additional_data, ':')
             write(train_set_fname, previous_dset + new_atoms, write_results=False)
         else:
-            print(f'Found {train_set_fname}, not re-generating')
+            logger.info(f'Found {train_set_fname}, not re-generating')
 
 
         # refit gap
@@ -345,15 +347,15 @@ def fit(no_cycles,
         out_fname = f'gaps/out_{cycle_idx}.xml'
 
         if not os.path.exists(gap_fname):
-            print('fitting gap')
+            logger.info('fitting gap')
             gap_command = ugap.make_gap_command(gap_filename=gap_fname, training_filename=train_set_fname,
                                                 descriptors_dict=descriptors, default_sigma=default_sigma,
                                                 gap_fit_path=gap_fit_path, output_filename=out_fname,
                                                 glue_fname=glue_fname, config_type_sigma=config_type_sigma)
-            print(f'-' * 15, f'gap {cycle_idx} command: {gap_command}')
+            logger.info(f'-' * 15, f'gap {cycle_idx} command: {gap_command}')
             stdout, stderr = util.shell_stdouterr(gap_command)
-            print(f'stdout: {stdout}')
-            print(f'stderr: {stderr}')
+            logger.info(f'stdout: {stdout}')
+            logger.info(f'stderr: {stderr}')
 
 
     ##################
@@ -362,4 +364,4 @@ def fit(no_cycles,
 
     # learning curves: rmse & bdes + final GAP's energy/bde by structure
 
-    print('Finised iterations')
+    logger.info('Finised iterations')

@@ -9,6 +9,7 @@ from ase import Atoms
 from ase.io import read, write
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.calculators import orca
+from wfl.calculators import generic
 from ase.io.extxyz import key_val_str_to_dict
 
 try:
@@ -166,7 +167,7 @@ def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
 @click.option('--iso-h-fname',
               help='if not None, evaluate isolated H energy with GAP'
                    'and save to given file.')
-@click.option('--output-fname_prefix', '-o',
+@click.option('--output-fname-prefix', '-o',
               help='prefix for main and all working files with all gap and dft properties')
 @click.option('--dft-prop-prefix', default='dft_', show_default=True,
               help='label for all dft properties')
@@ -195,6 +196,24 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
                                  dft_prop_prefix=dft_prop_prefix,
                                  gap_prop_prefix=gap_prop_prefix,
                                  wdir=wdir)
+
+
+@subcli_gap.command('evaluate')
+@click.argument('config-file')
+@click.option('--gap-fname', '-g', help='gap xml filename')
+@click.option('--output-fname', '-o')
+@click.option('--gap-prop-prefix', help='prefix for gap properties in xyz')
+def evaluate_gap_on_dft_bde_files(config_file, gap_fname, output_fname, gap_prop_prefix):
+
+    # logger.info('Evaluating GAP on DFT structures')
+
+    calculator = (Potential, [], {'param_filename':gap_fname})
+
+    inputs = ConfigSet_in(input_files=config_file)
+    outputs_gap_energies = ConfigSet_out(output_files=output_fname)
+    generic.run(inputs=inputs, outputs=outputs_gap_energies, calculator=calculator,
+                properties=['energy', 'forces'], output_prefix=gap_prop_prefix)
+
 
 
 
@@ -455,7 +474,7 @@ def plot_cycles(test_fname_pattern, train_fname_pattern, ref_prefix, pred_prefix
 
 @subcli_plot.command('data-summary')
 @click.argument('in-fname')
-@click.option('--fig-prefix', '-p')
+@click.option('--fig-prefix', '-p', default='dataset_summary')
 @click.option('--isolated_at_fname', '-i')
 @click.option('--cutoff', '-c', default=6.0, type=click.FLOAT,
               help='cutoff for counting distances')
