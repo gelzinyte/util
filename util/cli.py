@@ -58,8 +58,7 @@ def cli(ctx, verbose):
 
     if verbose:
         logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s %(message)s',
-                            datefmt='%Y-%M-%D %H:%M:%S')
+                            format='%(asctime)s %(message)s')
 
 
 @cli.group("bde")

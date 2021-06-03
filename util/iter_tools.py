@@ -91,26 +91,4 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, output_fname):
     write(output_fname, atoms_out)
 
 
-    #
-    #
-    # smiles_to_convert = []
-    # smi_names = []
-    # for smi, name in zip(df['SMILES'], df['Name']):
-    #     smiles_to_convert += [smi] * num_smi_repeat
-    #     smi_names += [name] * num_smi_repeat
-    #
-    #
-    # molecules = ConfigSet_out()
-    # smiles.run(outputs=molecules, smiles=smiles_to_convert, extra_info={'iter_no':iter_no})
-    # for at, name in zip(molecules.output_configs, smi_names):
-    #     at.info['config_type'] = name
-    #     at.cell = [40, 40, 40]
-    #
-    # # generate radicals
-    # mols_rads = ConfigSet_out(output_files=opt_starts_fname)
-    # radicals.abstract_sp3_hydrogen_atoms(molecules.output_configs, outputs=mols_rads)
-    #
-    #
-    #
-    #
 

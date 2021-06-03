@@ -16,7 +16,6 @@ from util import bde
 from util.util_config import Config
 from util import configs
 from wfl.generate_configs import vib
-
 # will be changed
 # from wfl.plotting import error_table
 
@@ -28,7 +27,8 @@ def fit(no_cycles,
         gap_descriptor_filename=None,
         smiles_csv=None, num_smiles_opt=None, 
         opt_starts_fname=None,  num_nm_displacements_per_temp=None,
-        num_nm_temps=None):
+        num_nm_temps=None, energy_filter_threshold=0.05,
+        max_force_energy_filter_threshold=0.5):
     """ iteratively fits and optimises stuff
     
     Parameters
@@ -57,6 +57,11 @@ def fit(no_cycles,
         temperature
     num_nm_temps: int, default=None
         how many temperatures to draw nm samples from
+    energy_filter_threshold: float, default 0.05
+        structures with total energy error above will be included in next training set
+    max_force_energy_filter_threshold: float, default=0.5
+        structures with largest force component error above this will be
+        included in the next training set
 
     """
 
@@ -78,7 +83,7 @@ def fit(no_cycles,
     glue_fname = cfg['gap_files']['glue_fname']
 
 
-    required_dirs = ['gaps', 'xyzs', 'bdes', 'xyzs/opt_trajs']
+    required_dirs = ['gaps', 'xyzs', 'xyzs/opt_trajs']
     for dir_name in required_dirs:
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
@@ -157,7 +162,7 @@ def fit(no_cycles,
 
     for cycle_idx in range(1, no_cycles + 1):
 
-        logger.info(f'-' * 30, f'\nCycle {cycle_idx} \n', '-' * 30)
+        logger.info(f'Cycle {cycle_idx}' + '-' * 20)
 
         #################
         # define filenames
@@ -185,7 +190,7 @@ def fit(no_cycles,
         opt_traj_fname = f'xyzs/opt_trajs/opt_{cycle_idx}.xyz'
         train_set_fname = f'xyzs/train_{cycle_idx}.xyz'
         opt_logfile = f'xyzs/opt_trajs/opt_log_{cycle_idx}.txt'
-        bad_geometries_file = f'xyzs/filtered_out_geometriew_{cycle_idx}.xyz'
+        bad_geometries_file = f'xyzs/filtered_out_geometries_{cycle_idx}.xyz'
 
 
         calculator = (Potential, [], {'param_filename':gap_fname})
@@ -199,7 +204,7 @@ def fit(no_cycles,
                 
                 it.make_structures(smiles_csv, iter_no=cycle_idx,
                                    num_smi_repeat=num_smiles_opt,
-                                   opt_starts_fname=opt_starts_fname)
+                                   output_fname=opt_starts_fname)
 
             # optimise
             if not os.path.exists(opt_fname):
@@ -225,7 +230,7 @@ def fit(no_cycles,
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
                                                          outputs=dft_evaled_opt_mols_rads,
                                                          orca_kwargs=orca_kwargs, output_prefix='dft_',
-                                                         keep_files=False, base_rundir=f'orca_outputs_{cycle_idx}'
+                                                         keep_files='default', base_rundir=f'orca_outputs_{cycle_idx}'
                                                          )
 
             # evaluate optimised with gap
@@ -255,7 +260,8 @@ def fit(no_cycles,
                 atoms = configs.filter_insane_geometries(atoms, mult=1,
                                                          bad_structures_fname=bad_geometries_file)
                 atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
-                                           f_threshold=None)
+                                            e_threshold=energy_filter_threshold,
+                                           f_threshold=max_force_energy_filter_threshold)
                 write(structures_to_derive_normal_modes, atoms)
 
 
@@ -312,7 +318,7 @@ def fit(no_cycles,
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
                                                          outputs=dft_evaled_opt_mols_rads,
                                                          orca_kwargs=orca_kwargs, output_prefix='dft_',
-                                                         keep_files=False, base_rundir=f'orca_outputs_{cycle_idx}'
+                                                         keep_files='default', base_rundir=f'orca_outputs_{cycle_idx}'
                                                          )
 
             # test set dft
@@ -324,7 +330,7 @@ def fit(no_cycles,
                                                          outputs=dft_evaled_opt_mols_rads,
                                                          orca_kwargs=orca_kwargs,
                                                          output_prefix='dft_',
-                                                         keep_files=False,
+                                                         keep_files='default',
                                                          base_rundir=f'orca_outputs_{cycle_idx}'
                                                          )
 
@@ -351,7 +357,6 @@ def fit(no_cycles,
 
             if not os.path.exists(additional_data):
                 atoms = read(extra_data_with_dft_and_gap, ':')
-                atoms = it.filter_insane_geometries(atoms)
                 atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
                                            f_threshold=None)
                 write(additional_data, atoms)
@@ -376,7 +381,7 @@ def fit(no_cycles,
                                                 descriptors_dict=descriptors, default_sigma=default_sigma,
                                                 gap_fit_path=gap_fit_path, output_filename=out_fname,
                                                 glue_fname=glue_fname, config_type_sigma=config_type_sigma)
-            logger.info(f'-' * 15, f'gap {cycle_idx} command: {gap_command}')
+            logger.info(f'gap {cycle_idx} command: {gap_command}')
 
             orig_omp_n = os.environ.get('OMP_NUM_THREADS', None)
             if 'GAP_FIT_OMP_NUM_THREADS' in os.environ:
