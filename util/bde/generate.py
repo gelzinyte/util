@@ -95,7 +95,7 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
     dft_bde_with_gap_fname = pj(wdir, output_fname_prefix + 'gap.xyz')
     gap_reopt_fname = pj(wdir, output_fname_prefix + 'gap_reopt_trajectories.xyz')
-    gap_reopt_with_gap_fname = pj(wdir, output_fname_prefix + 'gap_reopt_w_gap.xyz')
+    gap_reopt_with_gap_fname = output_fname_prefix + 'gap_bde_without_dft.xyz'
     gap_reopt_with_dft_fname = output_fname_prefix + 'gap_bde.xyz'
 
 
@@ -128,6 +128,7 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     atoms = read(gap_reopt_with_gap_fname, ':')
     for at in atoms:
         at.arrays[f'{gap_prop_prefix}opt_positions'] = at.positions.copy()
+    write(gap_reopt_with_gap_fname, atoms)
 
     logger.info('Re-evaluating gap-optimised structures with DFT')
     output_prefix=f'{gap_prop_prefix}opt_{dft_prop_prefix}'
@@ -144,21 +145,20 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
 def setup_orca_kwargs():
 
-
     cfg=Config.load()
     default_kw = Config.from_yaml(
         os.path.join(cfg['util_root'], 'default_kwargs.yml'))
 
-    smearing = default_kw['orca']['smearing']
-    orcasimpleinput = default_kw['orca']['orcasimpleinput']
-    orcablocks = f'%scf Convergence Tight\nSmearTemp {smearing}\nmaxiter ' \
-                 f'500\nend'
+    # smearing = default_kw['orca']['smearing']
+    # orcasimpleinput = default_kw['orca']['orcasimpleinput']
+    # orcablocks = f'%scf Convergence Tight\nSmearTemp {smearing}\nmaxiter ' \
+    #              f'500\nend'
+    #
+    # orca_kwargs = {'orcasimpleinput': orcasimpleinput,
+    #                'orcablocks': orcablocks}
+    # print(orca_kwargs)
 
-    orca_kwargs = {'orcasimpleinput': orcasimpleinput,
-                   'orcablocks': orcablocks}
-    print(orca_kwargs)
-
-    return orca_kwargs
+    return default_kw['orca']
 
 
 

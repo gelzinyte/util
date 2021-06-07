@@ -38,6 +38,7 @@ from util import mem_tracker
 from util import iter_fit
 from util import iter_tools
 from util import md
+from util import qm
 import util
 from util.plot import dataset
 
@@ -99,6 +100,31 @@ def subcli_tmp():
 @cli.group('jobs')
 def subcli_jobs():
     pass
+
+@cli.group('qm')
+def subcli_qm():
+    pass
+
+@subcli_qm.command('read-orca')
+@click.argument('input-xyz')
+@click.option('--output-xyz', '-o', help='output filename')
+@click.option('--orca-label', '-l', help='prefix to orca files to read from')
+def read_orca_stuff(input_xyz, output_xyz, orca_label):
+
+    at = qm.read_orca_output(input_xyz, orca_label)
+    write(output_xyz, at)
+
+@subcli_configs.command('remove-info')
+@click.argument('in-filename')
+@click.option('--output-file', '-o')
+@click.option('--info-key', '-i')
+def remove_info_entries(in_filename, output_file, info_key):
+
+    ats = read(in_filename, ':')
+    for at in ats:
+        del at.info[info_key]
+
+    write(output_file, ats)
 
 
 @subcli_bde.command('print-tables')
@@ -180,7 +206,7 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
 
     calculator = (Potential, [], {'param_filename':gap_fname})
 
-    if iso_h_fname is not None:
+    if iso_h_fname is not None and not os.path.isfile(iso_h_fname):
         # generate isolated atom stuff
         util.bde.generate.gap_isolated_h(calculator=calculator,
                                          dft_prop_prefix=dft_prop_prefix,
@@ -223,6 +249,7 @@ def evaluate_gap_on_dft_bde_files(config_file, gap_fname, output_fname, gap_prop
 @click.option('--num', '-n', type=click.INT, help='how many scripts to make')
 @click.option('--submit', is_flag=True, help='whether to submit the scripts')
 def sub_from_pattern(pattern_fname, start, num, submit):
+    """makes submission scripts from pattern"""
 
     with open(pattern_fname, 'r') as f:
         pattern = f.read()

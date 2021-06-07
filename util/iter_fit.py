@@ -322,17 +322,17 @@ def fit(no_cycles,
                                                          )
 
             # test set dft
-            if not os.path.exists(nm_sample_fname_for_test_w_dft):
-                logger.info(f'Calculating test set dft energies')
-                dft_evaled_opt_mols_rads = ConfigSet_out(output_files=nm_sample_fname_for_test_w_dft)
-                inputs = ConfigSet_in(input_files=file_for_dft)
-                dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
-                                                         outputs=dft_evaled_opt_mols_rads,
-                                                         orca_kwargs=orca_kwargs,
-                                                         output_prefix='dft_',
-                                                         keep_files='default',
-                                                         base_rundir=f'orca_outputs_{cycle_idx}'
-                                                         )
+            # if not os.path.exists(nm_sample_fname_for_test_w_dft):
+            #     logger.info(f'Calculating test set dft energies')
+            #     dft_evaled_opt_mols_rads = ConfigSet_out(output_files=nm_sample_fname_for_test_w_dft)
+            #     inputs = ConfigSet_in(input_files=file_for_dft)
+            #     dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
+            #                                              outputs=dft_evaled_opt_mols_rads,
+            #                                              orca_kwargs=orca_kwargs,
+            #                                              output_prefix='dft_',
+            #                                              keep_files='default',
+            #                                              base_rundir=f'orca_outputs_{cycle_idx}'
+            #                                              )
 
 
             if not os.path.exists(extra_data_with_dft_and_gap):
@@ -357,8 +357,8 @@ def fit(no_cycles,
 
             if not os.path.exists(additional_data):
                 atoms = read(extra_data_with_dft_and_gap, ':')
-                atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
-                                           f_threshold=None)
+                # atoms = it.filter_by_error(atoms, gap_prefix=f'gap_{cycle_idx-1}_',
+                #                            f_threshold=None)
                 write(additional_data, atoms)
 
 
