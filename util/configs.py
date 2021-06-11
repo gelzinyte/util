@@ -200,6 +200,9 @@ def sample_downweighted_normal_modes(inputs, outputs, temp, sample_size, prop_pr
         except TypeError as e:
             print(f'config type: {at_vib.atoms.info["config_type"]}')
             raise(e)
+        except ValueError as e:
+            logger.info(f'could not sample {at_vib.atoms.info["config_type"]}, adding original structure')
+            sample = atoms
         outputs.write(sample)
 
     outputs.end_write()

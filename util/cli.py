@@ -522,7 +522,7 @@ def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff):
 
     dataset.energy_by_idx(atoms, title=title_energy, isolated_atoms=isolated_ats)
     dataset.forces_by_idx(atoms, title=title_forces)
-    dataset.distances_distributions(atoms, title=title_geometry, cutoff=cutoff)
+    # dataset.distances_distributions(atoms, title=title_geometry, cutoff=cutoff)
 
 
 @subcli_configs.command('filter-geometry')
