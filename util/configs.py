@@ -70,7 +70,7 @@ def smiles_csv_to_molecules(smiles_csv, repeat=1):
 
 
 def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_',
-                  count_from=1):
+                  count_from=1, dir_prefix=None):
 
     all_atoms = read(in_fname, ':')
     batch_size = int(len(all_atoms) / num_tasks) + 1
@@ -79,7 +79,14 @@ def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_',
 
         batch = [b for b in batch if b is not None]
 
-        write(f'{batch_in_fname_prefix}{idx+count_from}.xyz', batch)
+        output_filename = f'{batch_in_fname_prefix}{idx+count_from}.xyz'
+        if dir_prefix is not None:
+            dir_name = dir_prefix + str(idx)
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+            output_filename = os.path.join(dir_name, output_filename)
+
+        write(output_filename, batch)
 
 
 def collect_configs(out_fname, num_tasks, batch_out_fname_prefix='out_', 
