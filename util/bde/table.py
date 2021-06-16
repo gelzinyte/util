@@ -36,7 +36,7 @@ def assign_atoms_bde_info(all_atoms, h_energy, prop_prefix, dft_prefix):
                           rad_energy=rad_energy,
                           isolated_h_energy=h_energy)
 
-            rad.info[f'{prop_prefix}bde'] = bde
+            rad.info[f'{prop_prefix}bde_energy'] = bde
 
         atoms_out += [mol] + rads
 
@@ -77,6 +77,15 @@ def get_atoms_by_hash_dict(atoms, dft_prefix):
         if hash not in atoms_by_hash.keys():
             atoms_by_hash[hash] = []
         atoms_by_hash[hash].append(at)
+
+    no_mol_hashes = []
+    for hash, atoms in atoms_by_hash.items():
+        mol_or_rads = [at.info['mol_or_rad'] for at in atoms]
+        if 'mol' not in mol_or_rads:
+            no_mol_hashes.append(hash)
+
+    for bad_hash in no_mol_hashes:
+        del atoms_by_hash[bad_hash]
 
     return atoms_by_hash
 
@@ -126,6 +135,10 @@ def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False,
     keys = natural_sort([at.info['mol_or_rad'] for at in atoms])
     atoms = sorted(atoms, key= lambda x: keys.index(x.info['mol_or_rad']))
     index = ['H'] + [at.info['mol_or_rad'] for at in atoms]
+
+    # if index[1] != 'mol':
+    # print(index)
+    # print(atoms[0].info['dft_opt_mol_positions_hash'])
 
 
     columns = ['energy_absolute_error',  # meV/atom  between gap and dft on gap opt config
