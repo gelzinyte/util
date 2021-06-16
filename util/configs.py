@@ -81,7 +81,7 @@ def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_',
 
         output_filename = f'{batch_in_fname_prefix}{idx+count_from}.xyz'
         if dir_prefix is not None:
-            dir_name = dir_prefix + str(idx)
+            dir_name = dir_prefix + str(idx+count_from)
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
             output_filename = os.path.join(dir_name, output_filename)

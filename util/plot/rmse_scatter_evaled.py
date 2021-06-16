@@ -155,7 +155,7 @@ def scatter_plot(train_ats, ax, test_ats, by_config_type,
             do_plot(test_ref_fs, error_dict(test_pred_fs, test_ref_fs), this_ax, 'Test', by_config_type)
         do_plot(train_ref_fs, error_dict(train_pred_fs, train_ref_fs), this_ax, 'Training', by_config_type)
         # print(f'element: {sym}, len(error_dict): {len(error_dict(train_pred_fs, train_ref_fs))}, len(fs): {len(train_pred_fs)}')
-        print(train_ref_fs.keys())
+        # print(train_ref_fs.keys())
         this_ax.set_xlabel(f'{ref_force_name} / eV/Å')
         this_ax.set_ylabel(f'|{pred_force_name} - {ref_force_name}| / eV/Å')
         this_ax.set_yscale('log')

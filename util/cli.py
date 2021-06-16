@@ -213,7 +213,7 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
                                          gap_prop_prefix=gap_prop_prefix,
                                          output_fname=iso_h_fname,
                                          wdir=wdir)
-
+    #
     # generate all molecule stuff
     util.bde.generate.everything(calculator=calculator,
                                  dft_bde_filename=dft_bde_file,
@@ -569,7 +569,7 @@ def atom_type(in_fname, output, cutoff_multiplier, elements, force):
 @click.option('--dir-prefix', help='prefix for directory to put file into')
 def distribute_configs(in_fname, num_tasks, prefix, dir_prefix):
     configs.batch_configs(in_fname=in_fname, num_tasks=num_tasks,
-                              batch_in_fname_prefix=prefix, dir_prefix)
+                              batch_in_fname_prefix=prefix, dir_prefix=dir_prefix)
 
 
 @subcli_configs.command('gather')
