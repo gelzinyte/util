@@ -105,6 +105,12 @@ def subcli_jobs():
 def subcli_qm():
     pass
 
+@subcli_qm.command('scf-conv')
+@click.argument('orca-output')
+@click.option('--plot-fname', '-o', default='orca_scf_convergence.png')
+def plot_scf_convergence_graph(orca_output, plot_fname):
+    qm.orca_scf_plot(orca_output, plot_fname)
+
 @subcli_qm.command('read-orca')
 @click.argument('input-xyz')
 @click.option('--output-xyz', '-o', help='output filename')
