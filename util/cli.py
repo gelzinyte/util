@@ -777,6 +777,26 @@ def recalc_dftb_ef(input_fn, output_fn, prefix='dftb_'):
 
     write(output_fn, ats_out)
 
+@subcli_data.command('assign-diff')
+@click.argument('input_fn')
+@click.option('--output-fn', '-o')
+@click.option('--prop-prefix-1', '-p1', help='property prefix for first set of values')
+@click.option('--prop-prefix-2', '-p2')
+@click.option('--diff-prop-prefix', '-d', help='prop prefix for differences')
+def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2,
+                       diff_prop_prefix):
+
+    ats = read(input_fn)
+    for at in ats:
+        at.info[f'{diff_prop_prefix}energy'] = \
+            at.info[f'{prop_prefix_1}energy'] - \
+            at.info[f'{prop_prefix_2}energy']
+
+        at.arrays[f'{diff_prop_prefix}forces'] = \
+            at.arrays[f'{prop_prefix_1}forces'] - \
+            at.arrays[f'{prop_prefix_2}forces']
+
+    write(output_fn, ats)
 
 @subcli_track.command('mem')
 @click.argument('my_job_id')
