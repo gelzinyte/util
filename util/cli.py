@@ -575,12 +575,15 @@ def atom_type_aromatic(in_fname, output, cutoff_multiplier, elements,
 @subcli_configs.command('atom-type')
 @click.argument('input-fname')
 @click.option('--output-fname', '-o')
-def atom_type(input_fname, output_fname):
+@click.option('--isolated_at', is_flag=True, help='whether should append '
+                                                  'isolated atoms')
+def atom_type(input_fname, output_fname, isolated_at):
     """assigns atom types based on given reference .yml files"""
 
     ats_in = read(input_fname, ':')
     ats_out = [atom_types.atom_type(at) for at in ats_in if len(at) != 1]
-    ats_out += atom_types.atom_type_isolated_at()
+    if isolated_at:
+        ats_out += atom_types.atom_type_isolated_at()
 
     write(output_fname, ats_out)
 
