@@ -105,6 +105,7 @@ def subcli_jobs():
 def subcli_qm():
     pass
 
+
 @subcli_qm.command('scf-conv')
 @click.argument('orca-output')
 @click.option('--plot-fname', '-o', default='orca_scf_convergence.png')
@@ -553,20 +554,34 @@ def filter_geometry(in_fname, mult, out_fname):
 
 
 
-@subcli_configs.command('atom-type')
+@subcli_configs.command('atom-type-aromatic')
 @click.argument('in-fname')
 @click.option('--output', '-o')
 @click.option('--cutoff-multiplier', '-m', type=click.FLOAT, default=1,
               help='multiplier for cutoffs')
 @click.option('--elements', '-e', help='List of elements to atom type in aromatic and non')
 @click.option('--force', '-f', is_flag=True, help='whether to force overwriting configs_out')
-def atom_type(in_fname, output, cutoff_multiplier, elements, force):
+def atom_type_aromatic(in_fname, output, cutoff_multiplier, elements,
+                         force):
+    """atom types aromatic vs not elements, based on neighbour count"""
+
     elements = elements.split(" ")
     inputs = ConfigSet_in(input_files=in_fname)
     outputs = ConfigSet_out(output_files=output, force=force)
     atom_types.assign_aromatic(inputs=inputs, outputs=outputs,
                                elements_to_type=elements,
                                mult=cutoff_multiplier)
+
+@subcli_configs.command('atom-type')
+@click.argument('input-fname')
+@click.option('--output-fname', '-o')
+def atom_type(input_fname, output_fname):
+    """assigns atom types based on given reference .yml files"""
+
+    ats_in = read(input_fname, ':')
+    ats_out = [atom_types.atom_type(at) for at in ats_in]
+    write(output_fname, ats_out)
+
 
 @subcli_configs.command('distribute')
 @click.argument('in-fname')

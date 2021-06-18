@@ -137,7 +137,8 @@ def yaml_data(numbers):
         yaml_list.append({str(number) : str(number)})
     return yaml_list
 
-def atom_type(at, atom_type_dir='atom_type_lookup'):
+def atom_type(at,
+              atom_type_dir='/home/eg475/scripts/source_files/atom_types'):
 
     config_type = at.info['config_type']
     orig_numbers, atom_typed_numbers = numbers_from_yaml(os.path.join(
@@ -151,7 +152,13 @@ def atom_type(at, atom_type_dir='atom_type_lookup'):
 
 def numbers_from_yaml(filename, config_type):
     with open(str(filename)) as yaml_file:
-        data = yaml.safe_load(yaml_file)[config_type]
+        data = yaml.safe_load(yaml_file)
+
+    try:
+        data = data[config_type]
+    except KeyError:
+        print(data.keys())
+        raise
 
     orig_numbers = []
     atom_typed_numbers = []
@@ -160,7 +167,7 @@ def numbers_from_yaml(filename, config_type):
             orig_numbers.append(key)
             atom_typed_numbers.append(val)
 
-    return orig_numbers, atom_typed_numbers
+    return np.array(orig_numbers), np.array(atom_typed_numbers)
 
 
 
