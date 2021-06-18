@@ -579,7 +579,9 @@ def atom_type(input_fname, output_fname):
     """assigns atom types based on given reference .yml files"""
 
     ats_in = read(input_fname, ':')
-    ats_out = [atom_types.atom_type(at) for at in ats_in]
+    ats_out = [atom_types.atom_type(at) for at in ats_in if len(at) != 1]
+    ats_out += atom_types.atom_type_isolated_at()
+
     write(output_fname, ats_out)
 
 
