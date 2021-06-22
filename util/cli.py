@@ -868,39 +868,39 @@ def make_plots(gap_fname=None, gap_dir=None, output_dir=None, prefix=None, glue_
 
 
 @subcli_plot.command('error-scatter')
-@click.option('--ref_energy_name', '-re', type=str)
-@click.option('--pred_energy_name', '-pe', type=str)
-@click.option('--ref_force_name', '-rf', type=str)
-@click.option('--pred_force_name', '-pf', type=str)
-@click.option('--evaluated_train_fname', '-te', type=click.Path(exists=True))
-@click.option('--evaluated_test_fname', '-tr', type=click.Path(exists=True))
-@click.option('--output_dir', default='pictures', show_default=True, type=click.Path(),
+@click.argument('atoms-filename')
+@click.option('--ref-energy-name', '-re', type=str)
+@click.option('--pred-energy-name', '-pe', type=str)
+@click.option('--ref-force-name', '-rf', type=str)
+@click.option('--pred-force-name', '-pf', type=str)
+@click.option('--output-dir', default='pictures', show_default=True, type=click.Path(),
               help='directory for figures. Create if not-existent')
 @click.option('--prefix', '-p', help='prefix to label plots')
-@click.option('--by_config_type', is_flag=True,
-              help='if structures should be coloured by config_type in plots')
-@click.option('--force_by_element', default=True, type=bool,
-              help='whether to evaluate force on each element separately')
+@click.option('--info-label',
+              help='info entry to label by')
+@click.option('--isolated-at-fname')
 def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name,
-               evaluated_train_fname, evaluated_test_fname,
-               output_dir, prefix, by_config_type, force_by_element):
+               atoms_filename,
+               output_dir, prefix, info_label, isolated_at_fname):
     """Makes energy and force scatter plots and dimer curves"""
 
     if output_dir:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-    if evaluated_test_fname is None and by_config_type != False:
-        by_config_type = True
+    all_atoms = read(atoms_filename, ':')
+    if isolated_at_fname is not None:
+        isolated_atoms = read(isolated_at_fname, ':')
+    else:
+        isolated_atoms = [at for at in all_atoms if len(at) == 1]
 
-    print('Scatter plotting')
-    rmse_scatter_evaled.make_scatter_plots_from_evaluated_atoms(ref_energy_name=ref_energy_name,
-                                                                pred_energy_name=pred_energy_name,
-                                                                ref_force_name=ref_force_name,
-                                                                pred_force_name=pred_force_name,
-                                                                evaluated_train_fname=evaluated_train_fname,
-                                                                evaluated_test_fname=evaluated_test_fname,
-                                                                output_dir=output_dir,
-                                                                prefix=prefix,
-                                                                by_config_type=by_config_type,
-                                                                force_by_element=force_by_element)
+    rmse_scatter_evaled.scatter_plot(ref_energy_name=ref_energy_name,
+                                     pred_energy_name=pred_energy_name,
+                                     ref_force_name=ref_force_name,
+                                     pred_force_name=pred_force_name,
+                                     all_atoms=all_atoms,
+                                     output_dir=output_dir,
+                                     prefix=prefix,
+                                     color_info_name=info_label,
+                                     isolated_atoms=isolated_atoms)
+
