@@ -86,10 +86,11 @@ def get_counts(at):
 
 
 def get_rmse(ref_ar, pred_ar):
-    sq_error = []
-    for val1, val2 in zip(ref_ar, pred_ar):
-        sq_error.append((val1-val2)**2)
-    return np.sqrt(np.mean(sq_error))
+    # sq_error = []
+    # for val1, val2 in zip(ref_ar, pred_ar):
+    #     sq_error.append((val1-val2)**2)
+    # return np.sqrt(np.mean(sq_error))
+    return np.sqrt(np.mean((ref_ar - pred_ar)**2))
 
 def get_rmse_over_ref_std(pred_ar, ref_ar):
     rmse = get_rmse(pred_ar, ref_ar)

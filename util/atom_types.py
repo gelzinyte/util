@@ -1,4 +1,6 @@
 import os
+from ase import Atoms
+from ase.io import read
 from ase import neighborlist
 import numpy as np
 import warnings
@@ -137,9 +139,13 @@ def yaml_data(numbers):
         yaml_list.append({str(number) : str(number)})
     return yaml_list
 
-def atom_type(at, atom_type_dir='atom_type_lookup'):
+def atom_type(at,
+              atom_type_dir='/home/eg475/scripts/source_files/atom_types'):
 
     config_type = at.info['config_type']
+
+
+
     orig_numbers, atom_typed_numbers = numbers_from_yaml(os.path.join(
         atom_type_dir, config_type+'.yml'), config_type)
 
@@ -150,9 +156,11 @@ def atom_type(at, atom_type_dir='atom_type_lookup'):
     return at
 
 def numbers_from_yaml(filename, config_type):
-    with open(str(filename)) as yaml_file:
-        data = yaml.safe_load(yaml_file)[config_type]
 
+    with open(str(filename)) as yaml_file:
+        data = yaml.safe_load(yaml_file)
+
+    data = data[config_type]
     orig_numbers = []
     atom_typed_numbers = []
     for num_pair in data:
@@ -160,10 +168,31 @@ def numbers_from_yaml(filename, config_type):
             orig_numbers.append(key)
             atom_typed_numbers.append(val)
 
-    return orig_numbers, atom_typed_numbers
+    return np.array(orig_numbers), np.array(atom_typed_numbers)
 
+def atom_type_isolated_at(iso_at_fname='/home/eg475/scripts'
+                                '/source_files/isolated_atoms.xyz',
+         atom_type_ref_yml='/home/eg475/scripts/source_files/atom_types'
+                       '/isolated_atoms.yml'):
 
+    orig_isolated_atoms = read(iso_at_fname, ':')
 
+    isolated_at_dict = {}
+    for at in orig_isolated_atoms:
+        isolated_at_dict[at.numbers[0]] = at
+
+    orig_numbers, atom_typed_numbers = numbers_from_yaml(atom_type_ref_yml,
+                                                         'isolated_atom')
+
+    atoms_out = []
+    for orig_num, at_num in zip(orig_numbers, atom_typed_numbers):
+        at = isolated_at_dict[orig_num].copy()
+        at.arrays['original_numbers'] = np.array([orig_num])
+        at.arrays['atom_typed_numbers'] = np.array([at_num])
+        at.numbers = np.array([at_num])
+        atoms_out.append(at)
+
+    return atoms_out
 
 
 

@@ -1,4 +1,4 @@
-
+import warnings
 from ase.io import read
 import util
 from util import ugap
@@ -11,35 +11,182 @@ import numpy as np
 import matplotlib as mpl
 
 
+def prepare_data(ref_values, pred_values, labels):
 
+    data = {}
+    for ref_val, pred_val, label in zip(ref_values, pred_values, labels):
 
-def make_scatter_plots_from_evaluated_atoms(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name, evaluated_train_fname, evaluated_test_fname,
-               output_dir, prefix, by_config_type, force_by_element=True):
+        if label not in data.keys():
+            data[label] = {}
+            data[label]['predicted'] = []
+            data[label]['reference'] = []
 
-    train_ats = read(evaluated_train_fname, ':')
-    if evaluated_test_fname:
-        test_ats = read(evaluated_test_fname, ':')
+        if isinstance(pred_val, int):
+            data[label]['predicted'].append(pred_val)
+            data[label]['reference'].append(ref_val)
+        else:
+            data[label]['predicted'] += list(pred_val.flatten())
+            data[label]['reference'] += list(ref_val.flatten())
+
+    for label in data.keys():
+        pred_vals = data[label]['predicted']
+        ref_vals = data[label]['reference']
+        data[label]['predicted'] = np.array(pred_vals)
+        data[label]['reference'] = np.array(ref_vals)
+
+    return data
+
+def scatter_plot(ref_energy_name,
+                pred_energy_name,
+                ref_force_name,
+                pred_force_name, all_atoms,
+               output_dir, prefix, color_info_name, isolated_atoms):
+
+    all_atoms = [at for at in all_atoms if len(at) != 1]
+
+    marker_kwargs = {'marker':'x', 'alpha':0.5, 's':10}
+
+    cmap = plt.get_cmap('tab10')
+    colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
+
+    num_columns = 2
+    if ref_force_name is None:
+        num_columns = 1
+
+    fig = plt.figure(figsize=(7*num_columns, 14))
+    gs = gridspec.GridSpec(2, num_columns)
+    axes = [plt.subplot(g) for g in gs]
+
+    if ref_force_name is None:
+        ax_e_err = axes[1]
+        ax_e_corr = axes[0]
+        ax_f_err = None
+        ax_f_corr = None
     else:
-        test_ats=None
+        ax_e_err = axes[2]
+        ax_e_corr = axes[0]
+        ax_f_err = axes[3]
+        ax_f_corr = axes[1]
 
-    counts = list(set(np.hstack([np.array(list(util.get_counts(at).keys())) for at in train_ats])))
-    no_unique_elements = len(counts)
-    width = 14
-    height = width * 0.5
-    if force_by_element:
-        height *= (no_unique_elements + 1)
-        no_rows = no_unique_elements + 1
+
+    if color_info_name is not None:
+        # TODO: label for no entry
+        info_entries = [at.info[color_info_name] if color_info_name in
+                                                    at.info.keys() else
+                        'no info' for at in all_atoms]
     else:
-        no_rows = 2
+        info_entries = ['no label' for at in all_atoms if len(at) != 1]
 
-    fig = plt.figure(figsize=(width, height))
-    gs = gridspec.GridSpec(no_rows, 2)
-    ax = [plt.subplot(g) for g in gs]
+   ################### energy plots
 
-    #main plot
-    lgd = scatter_plot(train_ats=train_ats, ax=ax, test_ats=test_ats, by_config_type=by_config_type,
-                       ref_energy_name=ref_energy_name, pred_energy_name=pred_energy_name,
-                       ref_force_name=ref_force_name, pred_force_name=pred_force_name, force_by_element=force_by_element)
+    ref_prefix = ref_energy_name.replace('energy', '')
+    pred_prefix = pred_energy_name.replace('energy', '')
+    # TODO: change the util function
+    ref_energies = [util.get_binding_energy_per_at(at, isolated_atoms,
+                                                   ref_prefix)
+                    for at in all_atoms if len(at) != 1]
+
+    pred_energies = [util.get_binding_energy_per_at(at, isolated_atoms,
+                                                   pred_prefix)
+                    for at in all_atoms if len(at) != 1]
+
+
+    all_plot_data = prepare_data(ref_values=ref_energies,
+                             pred_values=pred_energies, labels=info_entries)
+
+    ax_err = ax_e_err
+    ax_corr = ax_e_corr
+
+    for color, (label, data) in zip(colors, all_plot_data.items()):
+
+        ref = data['reference']
+        pred = data['predicted']
+
+        rmse = util.get_rmse(ref, pred) * 1e3
+
+        ax_corr.scatter(ref, pred, label=f'{label}: {rmse:.3f}', color=color,
+                       zorder=2, **marker_kwargs)
+        ax_err.scatter(ref, np.abs(ref - pred) * 1e3, **marker_kwargs,
+                       color=color, zorder=2)
+        ax_err.axhline(rmse, color=color, lw=0.8)
+
+
+    ax_corr.legend(title=f' {color_info_name}: RMSE / meV/at')
+    ax_corr.set_ylabel(f'Predicted binding {pred_energy_name} / eV/at')
+    ax_err.set_ylabel(f'absolute binding energy error / meV/at')
+    ax_err.set_yscale('log')
+    ax_err.set_title('Binding energy error')
+    ax_corr.set_title('Binding energy correlation')
+
+
+
+    xmin, xmax = ax_e_corr.get_xlim()
+    extend_axis = 0.1
+    xmin -= extend_axis
+    xmax += extend_axis
+    shade = 0.05
+    ax_e_corr.fill_between([xmin, xmax], [xmin - shade, xmax - shade],
+                           [xmin + shade, xmax + shade],
+                           color='lightgrey', alpha=0.25, zorder=3)
+    ax_e_err.fill_between([xmin, xmax], 0, shade*1e3, color='lightgrey',
+                          alpha=0.5, zorder=0)
+
+    for ax in [ax_e_corr, ax_e_err]:
+        ax.set_xlabel(f'Binding {ref_energy_name} / eV/at')
+        ax.set_xlim(xmin, xmax)
+
+    ######################### force plots
+
+
+    if ref_force_name is not None:
+
+
+        ref_forces = [at.arrays[ref_force_name] for at in all_atoms if len(at)
+                      != 1]
+        pred_forces = [at.arrays[pred_force_name] for at in all_atoms if len(at)
+                      != 1]
+
+        all_plot_data = prepare_data(ref_values=ref_forces,
+                                     pred_values=pred_forces, labels=info_entries)
+
+        ax_err = ax_f_err
+        ax_corr = ax_f_corr
+
+        for color, (label, data) in zip(colors, all_plot_data.items()):
+
+            ref = data['reference']
+            pred = data['predicted']
+
+            rmse = util.get_rmse(ref, pred)*1e3
+
+            ax_corr.scatter(ref, pred, label=f'{label}: {rmse:.3f}',
+                            color=color,
+                            **marker_kwargs)
+            ax_err.scatter(ref, np.abs(ref - pred)*1e3, color=color,
+            **marker_kwargs)
+            ax_err.axhline(rmse, color=color, lw=0.8)
+
+        ax_corr.legend(title=f'F component RMSE / meV/Å')
+        ax_corr.set_ylabel(f'Predicted {pred_force_name} / eV/Å')
+        ax_err.set_ylabel(f'absolute force component error / eV/Å')
+        ax_err.set_yscale('log')
+        ax_err.set_title('Force component error')
+        ax_corr.set_title('Force component correlation')
+
+        for ax in [ax_f_err, ax_f_corr]:
+            ax.set_xlabel(f'{ref_force_name} / eV/Å')
+
+    for ax in axes:
+        ax.grid(color='lightgrey', ls=':')
+
+    for ax in [ax_e_corr,ax_f_corr]:
+        if ax is not None:
+            left_lim, right_lim = ax.get_xlim()
+            bottom_lim, top_lim = ax.get_ylim()
+            lims = (min([left_lim, bottom_lim]), max(left_lim, top_lim))
+            ax.plot(lims, lims, c='k', linewidth=0.8)
+
+
 
     if not prefix:
         prefix = os.path.basename(param_fname)
@@ -48,190 +195,12 @@ def make_scatter_plots_from_evaluated_atoms(ref_energy_name, pred_energy_name, r
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
-    plt.suptitle(prefix, y=0.92)
-    plt.tight_layout(rect=[0, 0, 1, 1.1])
+    # plt.suptitle(prefix, y=0.92)
+    plt.tight_layout()
 
     if output_dir:
-        plt.savefig(picture_fname, dpi=300, bbox_extra_artists=(lgd,),
+        plt.savefig(picture_fname, dpi=300,
                     bbox_inches='tight')
         plt.close(fig)
     else:
         plt.show()
-
-
-def scatter_plot(train_ats, ax, test_ats, by_config_type,
-                       ref_energy_name, pred_energy_name,
-                       ref_force_name, pred_force_name, force_by_element):
-
-    test_set = False
-    if test_ats:
-        test_set = True
-
-    train_ref_data = util.get_E_F_dict_evaled(train_ats, energy_name=ref_energy_name, force_name=ref_force_name)
-    train_pred_data = util.get_E_F_dict_evaled(train_ats, energy_name=pred_energy_name, force_name=pred_force_name)
-
-
-
-    if not force_by_element:
-        tmp_no_f_sym_data = util.desymbolise_force_dict(train_ref_data['forces'])
-        # print('returned keys:', tmp_no_f_sym_data.keys())
-        train_ref_data['forces'].clear()
-        train_ref_data['forces']['all elements'] = tmp_no_f_sym_data
-
-        tmp_no_f_sym_data = util.desymbolise_force_dict(train_pred_data['forces'])
-        train_pred_data['forces'].clear()
-        train_pred_data['forces']['all elements'] = tmp_no_f_sym_data
-
-
-    if test_set:
-        test_ref_data = util.get_E_F_dict_evaled(test_ats, energy_name=ref_energy_name, force_name=ref_force_name)
-        test_pred_data = util.get_E_F_dict_evaled(test_ats, energy_name=pred_energy_name, force_name=pred_force_name)
-
-        if not force_by_element:
-            tmp_no_f_sym_data = util.desymbolise_force_dict(test_ref_data['forces'])
-            test_ref_data['forces'].clear()
-            test_ref_data['forces']['all elements'] = tmp_no_f_sym_data
-
-            tmp_no_f_sym_data = util.desymbolise_force_dict(test_pred_data['forces'])
-            test_pred_data['forces'].clear()
-            test_pred_data['forces']['all elements'] = tmp_no_f_sym_data
-
-    #####################################################################
-    # Energy plots
-    ####################################################################
-
-    #### error scatter
-    train_ref_es = train_ref_data['energy']
-    train_pred_es = train_pred_data['energy']
-
-    this_ax = ax[0]
-    if test_set:
-        test_ref_es = test_ref_data['energy']
-        test_pred_es = test_pred_data['energy']
-        do_plot(test_ref_es, error_dict(test_pred_es, test_ref_es), this_ax,
-                'Test', by_config_type)
-    do_plot(train_ref_es, error_dict(train_pred_es, train_ref_es), this_ax, 'Training', by_config_type)
-    this_ax.set_xlabel(f'{ref_energy_name} / eV/atom')
-    this_ax.set_ylabel(f'|{pred_energy_name} - {ref_energy_name}| / eV/atom')
-    this_ax.set_yscale('log')
-    this_ax.set_title('Energy errors')
-
-    #### predicted vs reference
-    this_ax = ax[1]
-    if test_set:
-        do_plot(test_ref_es, test_pred_es, this_ax, 'Test', by_config_type)
-
-    do_plot(train_ref_es, train_pred_es, this_ax, 'Training', by_config_type)
-
-    left_lim, right_lim = this_ax.get_xlim()
-    bottom_lim, top_lim = this_ax.get_ylim()
-    lims = (min([left_lim, bottom_lim]), max(left_lim, top_lim))
-    this_ax.plot(lims, lims, c='k', linewidth=0.8)
-
-    this_ax.set_xlabel(f'{ref_energy_name} / eV/atom')
-    this_ax.set_ylabel(f'{pred_energy_name} / eV/atom')
-    this_ax.set_title('Energies')
-    lgd = this_ax.legend(title='RMSE (meV/atom); RMSE/STD (%)', bbox_to_anchor=(1,1), loc="upper left")
-
-
-    #####################################################################################
-    # Force plots
-    #####################################################################################
-
-
-    for idx, sym in enumerate(train_ref_data['forces'].keys()):
-
-        train_ref_fs = train_ref_data['forces'][sym]
-        train_pred_fs = train_pred_data['forces'][sym]
-        if test_set:
-            test_ref_fs = test_ref_data['forces'][sym]
-            test_pred_fs = test_pred_data['forces'][sym]
-
-        # error
-        this_ax = ax[2 * (idx + 1) ]
-        # print(f'error: {sym}')
-
-        if test_set:
-            do_plot(test_ref_fs, error_dict(test_pred_fs, test_ref_fs), this_ax, 'Test', by_config_type)
-        do_plot(train_ref_fs, error_dict(train_pred_fs, train_ref_fs), this_ax, 'Training', by_config_type)
-        # print(f'element: {sym}, len(error_dict): {len(error_dict(train_pred_fs, train_ref_fs))}, len(fs): {len(train_pred_fs)}')
-        # print(train_ref_fs.keys())
-        this_ax.set_xlabel(f'{ref_force_name} / eV/Å')
-        this_ax.set_ylabel(f'|{pred_force_name} - {ref_force_name}| / eV/Å')
-        this_ax.set_yscale('log')
-        this_ax.set_title(f'Force component errors on {sym}')
-
-        this_ax = ax[2 * (idx + 1) + 1]
-        # print(f'correlation')
-        if test_set:
-            do_plot(test_ref_fs, test_pred_fs, this_ax, 'Test', by_config_type)
-        do_plot(train_ref_fs, train_pred_fs, this_ax, 'Training',
-                    by_config_type)
-
-        this_ax.set_xlabel(f'{ref_force_name} / eV/Å')
-        this_ax.set_ylabel(f'{pred_force_name} / eV/Å')
-        left_lim, right_lim = this_ax.get_xlim()
-        bottom_lim, top_lim = this_ax.get_ylim()
-        lims = (min([left_lim, bottom_lim]), max(left_lim, top_lim))
-        this_ax.plot(lims, lims, c='k', linewidth=0.8)
-        this_ax.set_title(f'Force components on {sym}')
-        this_ax.legend(title='RMSE (meV/Å); RMSE/STD (%)', bbox_to_anchor=(1,1), loc="upper left" )
-    
-    return lgd
-
-
-
-def error_dict(pred, ref):
-    errors = OrderedDict()
-    for pred_type, ref_type in zip(pred.keys(), ref.keys()):
-        if pred_type != ref_type:
-            raise ValueError('Reference and predicted config_types do not match')
-        errors[pred_type] = abs(pred[pred_type] - ref[ref_type])
-    return errors
-
-
-def do_plot(ref_values, pred_values, ax, label, by_config_type=False):
-
-    if not by_config_type:
-        ref_vals = dict_to_vals(ref_values)
-        pred_vals = dict_to_vals(pred_values)
-
-        # print(f'plotting no of compounds: {len(ref_vals)}')
-        # print(ref_vals)
-
-        rmse = util.get_rmse(ref_vals, pred_vals)
-        std = util.get_std(ref_vals, pred_vals)
-        # TODO make formatting nicer
-        performance = rmse / np.std(ref_vals) * 100
-        print_label = f'{label:<8} {rmse*1000:.3f}; {performance:.1f} %'
-        ax.scatter(ref_vals, pred_vals, label=print_label, s=3)
-
-    else:
-        n_groups = len(ref_values.keys())
-
-        colors = np.arange(10)
-        if label=='Training:':
-            cmap = mpl.cm.get_cmap('tab10')
-        elif label=='Test':
-            cmap = mpl.cm.get_cmap('Dark2')
-        else:
-            print(f'label: {label}')
-            cmap = mpl.cm.get_cmap('Dark2')
-
-
-        for ref_config_type, pred_config_type, idx in zip(ref_values.keys(), pred_values.keys(), range(n_groups)):
-            if ref_config_type != pred_config_type:
-                raise ValueError('Reference and predicted config_types do not match')
-            ref_vals = ref_values[ref_config_type]
-            pred_vals = pred_values[pred_config_type]
-
-            rmse = util.get_rmse(ref_vals, pred_vals)
-            std = util.get_std(ref_vals, pred_vals)
-            performance = rmse/np.std(ref_vals) * 100
-            print_label = f'{ref_config_type}: {rmse*1000:.3f}, {performance:.1f} %'
-            kws = {'marker': '.', 's':4, 'color': cmap(colors[idx % 10])}
-
-            ax.scatter(ref_vals, pred_vals, label=print_label,  **kws)
-
-
-
