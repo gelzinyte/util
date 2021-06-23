@@ -840,7 +840,7 @@ def target_values_from_predicted_diff(input_fn, output_fn, prop_prefix_1,
         if f'{prop_prefix_1}forces' in at.arrays.keys() and \
                 f'{prop_prefix_2}forces' in at.arrays.keys():
             at.arrays[f'{target_prop_prefix}forces'] = \
-                at.arrays[f'{prop_prefix_1}forces'] - \
+                at.arrays[f'{prop_prefix_1}forces'] + \
                 at.arrays[f'{prop_prefix_2}forces']
 
     write(output_fn, ats)
