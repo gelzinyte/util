@@ -798,7 +798,7 @@ def recalc_dftb_ef(input_fn, output_fn, prefix='dftb_'):
     write(output_fn, ats_out)
 
 @subcli_data.command('assign-diff')
-@click.argument('input_fn')
+@click.argument('input-fn')
 @click.option('--output-fn', '-o')
 @click.option('--prop-prefix-1', '-p1', help='property prefix for first set of values')
 @click.option('--prop-prefix-2', '-p2')
@@ -820,6 +820,31 @@ def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2):
                 at.arrays[f'{prop_prefix_2}forces']
 
     write(output_fn, ats)
+
+@subcli_data.command('target-from-diff')
+@click.argument('input-fn')
+@click.option('--output-fn', '-o')
+@click.option('--prop-prefix-1', '-p1', help='property prefix for first set of values')
+@click.option('--prop-prefix-2', '-p2')
+def target_values_from_predicted_diff(input_fn, output_fn, prop_prefix_1,
+                                      prop_prefix_2):
+
+    target_prop_prefix = prop_prefix_1 + 'plus_' + prop_prefix_2
+
+    ats = read(input_fn, ':')
+    for at in ats:
+        at.info[f'{target_prop_prefix}energy'] = \
+            at.info[f'{prop_prefix_1}energy'] + \
+            at.info[f'{prop_prefix_2}energy']
+
+        if f'{prop_prefix_1}forces' in at.arrays.keys() and \
+                f'{prop_prefix_2}forces' in at.arrays.keys():
+            at.arrays[f'{target_prop_prefix}forces'] = \
+                at.arrays[f'{prop_prefix_1}forces'] - \
+                at.arrays[f'{prop_prefix_2}forces']
+
+    write(output_fn, ats)
+
 
 @subcli_track.command('mem')
 @click.argument('my_job_id')
