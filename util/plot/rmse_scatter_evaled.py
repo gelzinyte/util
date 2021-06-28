@@ -195,7 +195,7 @@ def scatter_plot(ref_energy_name,
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
-    # plt.suptitle(prefix, y=0.92)
+    plt.suptitle(prefix)
     plt.tight_layout()
 
     if output_dir:

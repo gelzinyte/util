@@ -246,6 +246,9 @@ def process_config_info_on_atoms(ats, verbose=True):
 
     for at in ats:
 
+        if len(at) == 1:
+            continue
+
         cfg = at.info['config_type']
         words = cfg.split('_')
 
