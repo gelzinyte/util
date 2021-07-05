@@ -5,8 +5,13 @@ import warnings
 import os
 import numpy as np
 
+from tqdm import tqdm
+
 from ase import Atoms
 from ase.io import read, write
+
+from xtb.ase.calculator import XTB
+
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.calculators import orca
 from wfl.calculators import generic
@@ -108,9 +113,10 @@ def subcli_qm():
 
 @subcli_qm.command('scf-conv')
 @click.argument('orca-output')
+@click.option('--method', '-m', default='dft', help='method for iterations')
 @click.option('--plot-fname', '-o', default='orca_scf_convergence.png')
-def plot_scf_convergence_graph(orca_output, plot_fname):
-    qm.orca_scf_plot(orca_output, plot_fname)
+def plot_scf_convergence_graph(orca_output, method, plot_fname):
+    qm.orca_scf_plot(orca_output, method, plot_fname)
 
 @subcli_qm.command('read-orca')
 @click.argument('input-xyz')
@@ -120,6 +126,26 @@ def read_orca_stuff(input_xyz, output_xyz, orca_label):
 
     at = qm.read_orca_output(input_xyz, orca_label)
     write(output_xyz, at)
+
+@subcli_configs.command('info-to-no')
+@click.argument('fname_in')
+@click.option('--info-key', '-i', help='atosm.info key to nubmer')
+@click.option('--output', '-o', help='output filename')
+def info_to_numbers(fname_in, info_key, output):
+
+    ats = read(fname_in, ':')
+
+    entries = list(set([at.info[info_key] for at in ats]))
+    entries_dict = {}
+    for idx, entry in enumerate(entries):
+        entries_dict[entry] = idx
+
+    for at in ats:
+        at.info[info_key + '_no'] = entries_dict[at.info[info_key]]
+
+    print(entries_dict)
+
+    write(output, ats)
 
 @subcli_configs.command('remove-info')
 @click.argument('in-filename')
@@ -796,6 +822,23 @@ def recalc_dftb_ef(input_fn, output_fn, prefix='dftb_'):
         ats_out.append(at)
 
     write(output_fn, ats_out)
+
+
+@subcli_data.command('xtb2')
+@click.argument('input_fn')
+@click.option('--output-fn', '-o')
+@click.option('--prefix', '-p', default='xtb2')
+def calc_xtb2_ef(input_fn, output_fn, prefix):
+
+    xtb2 = XTB(method="GFN2-xTB")
+
+    ats = read(input_fn, ':')
+    for at in tqdm(ats):
+        at.calc = xtb2
+        at.info[f'{prefix}energy'] = at.get_potential_energy()
+        at.arrays[f'{prefix}forces'] = at.get_forces()
+    write(output_fn, ats)
+
 
 @subcli_data.command('assign-diff')
 @click.argument('input-fn')

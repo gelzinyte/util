@@ -1,0 +1,166 @@
+-------------------------------------------------------------
+----------------------- !PROPERTIES! ------------------------
+-------------------------------------------------------------
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 1
+   prop. index: 1
+        SCF Energy:     -114.8911785517
+------------------------ !PROPERTY! -------------------------
+   name:        VdW_Correction
+   comment:     The Van der Waals Correction
+   geom. index: 1
+   prop. index: 1
+        Van der Waals Correction:       -0.0024269960
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 2
+   prop. index: 1
+        SCF Energy:     -114.8925379798
+------------------------ !PROPERTY! -------------------------
+   name:        VdW_Correction
+   comment:     The Van der Waals Correction
+   geom. index: 2
+   prop. index: 1
+        Van der Waals Correction:       -0.0024256329
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 3
+   prop. index: 1
+        SCF Energy:     -114.8931948848
+------------------------ !PROPERTY! -------------------------
+   name:        VdW_Correction
+   comment:     The Van der Waals Correction
+   geom. index: 3
+   prop. index: 1
+        Van der Waals Correction:       -0.0024254930
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 4
+   prop. index: 1
+        SCF Energy:     -114.8932353295
+------------------------ !PROPERTY! -------------------------
+   name:        VdW_Correction
+   comment:     The Van der Waals Correction
+   geom. index: 4
+   prop. index: 1
+        Van der Waals Correction:       -0.0024258578
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 5
+   prop. index: 1
+        SCF Energy:     -114.8932427570
+------------------------ !PROPERTY! -------------------------
+   name:        VdW_Correction
+   comment:     The Van der Waals Correction
+   geom. index: 5
+   prop. index: 1
+        Van der Waals Correction:       -0.0024260376
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 6
+   prop. index: 1
+        SCF Energy:     -114.8932434116
+------------------------ !PROPERTY! -------------------------
+   name:        VdW_Correction
+   comment:     The Van der Waals Correction
+   geom. index: 6
+   prop. index: 1
+        Van der Waals Correction:       -0.0024260274
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 7
+   prop. index: 1
+        SCF Energy:     -114.8932435433
+------------------------ !PROPERTY! -------------------------
+   name:        VdW_Correction
+   comment:     The Van der Waals Correction
+   geom. index: 7
+   prop. index: 1
+        Van der Waals Correction:       -0.0024260002
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Electric_Properties
+   comment:     The SCF Calculated Electric Properties
+   geom. index: 7
+   prop. index: 1
+       Filename                          : orca4.scfp 
+       Do Dipole Moment Calculation      : 1 
+       Do Quadrupole Moment Calculation  : 0 
+       Do Polarizability Calculation     : 0 
+** Dipole moment part of electric properties **
+        Magnitude of dipole moment (Debye) :        1.9744715963
+        Electronic Contribution:
+                   0          1          2    
+      0       2.023288   0.873549  -0.180862
+        Nuclear Contribution:
+                   0          1          2    
+      0      -2.764255  -1.101870   0.228380
+        Total Dipole moment:
+                   0          1          2    
+      0      -0.740967  -0.228321   0.047518
+-------------------------------------------------------------
+----------------------- !GEOMETRIES! ------------------------
+-------------------------------------------------------------
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    5        Geometry Index:    1
+    Coordinates:
+            C     -0.375749000000   -0.000928000000   -0.004026000000
+            O      0.895479000000    0.522750000000   -0.115035000000
+            H     -0.528250000000   -0.429413000000    1.002801000000
+            H     -0.517725000000   -0.791980000000   -0.750919000000
+            H     -1.080048000000    0.839622000000   -0.171831000000
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    5        Geometry Index:    2
+    Coordinates:
+            C     -0.358682953461   -0.008673214441   -0.000832645121
+            O      0.898354411538    0.538133056460   -0.115930347839
+            H     -0.540076077017   -0.423982070798    1.016225224639
+            H     -0.533828413159   -0.795368459170   -0.767682796770
+            H     -1.072059967901    0.829941687948   -0.170789434909
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    5        Geometry Index:    3
+    Coordinates:
+            C     -0.335544387079   -0.020858100119    0.002305978092
+            O      0.895068486092    0.552115991842   -0.115930920575
+            H     -0.552292845844   -0.414912820146    1.023626881804
+            H     -0.551979042369   -0.790371802082   -0.778998847383
+            H     -1.061545210799    0.814077730505   -0.170013091938
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    5        Geometry Index:    4
+    Coordinates:
+            C     -0.331855200054   -0.021451706695    0.002292682048
+            O      0.893309255397    0.551347048427   -0.115700022624
+            H     -0.552876676155   -0.414072042064    1.022281931373
+            H     -0.552929417944   -0.788153671827   -0.777693324519
+            H     -1.061940961244    0.812381372159   -0.170191266279
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    5        Geometry Index:    5
+    Coordinates:
+            C     -0.330789276900   -0.020395775932    0.001927040379
+            O      0.892979824133    0.549871144829   -0.115578650176
+            H     -0.552695299489   -0.414241417104    1.020994446497
+            H     -0.552455021366   -0.787335387629   -0.776162824315
+            H     -1.063333226377    0.812152435835   -0.170190012384
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    5        Geometry Index:    6
+    Coordinates:
+            C     -0.330640921304   -0.019822638316    0.001763653000
+            O      0.893334963590    0.549535973242   -0.115562722543
+            H     -0.552757145698   -0.414311645633    1.020717166665
+            H     -0.552358728926   -0.787380637141   -0.775882861439
+            H     -1.063871167661    0.812029947847   -0.170045235682
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    5        Geometry Index:    7
+    Coordinates:
+            C     -0.330557284302   -0.019512271611    0.001671801234
+            O      0.893673613824    0.549441491123   -0.115558225735
+            H     -0.552867300864   -0.414291789444    1.020615954166
+            H     -0.552378043917   -0.787469168497   -0.775836661873
+            H     -1.064163984741    0.811882738428   -0.169902867792
