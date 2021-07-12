@@ -4,17 +4,21 @@ from ase.io import read
 import click
 import os
 
-def dimer(dimer_fnames, prefix):
+def dimer(dimer_fnames, prefix, energy_names):
 
     plt.figure()
     all_ends = []
     all_mins = []
 
-    for dimer_fname in dimer_fnames:
+    for energy_name, dimer_fname in zip(energy_names, dimer_fnames):
         atoms = read(dimer_fname, ':')
-        energies = np.array([at.info['energy'] for at in atoms if 'energy' in at.info.keys()])
+        energies = np.array([at.info[energy_name] for at in atoms if energy_name in at.info.keys()])
+
+        if len(energies)< 2:
+            continue
+
         if len(atoms)>2:
-            distances = [at.get_distance(0, 1) for at in atoms if 'energy' in at.info.keys()]
+            distances = [at.get_distance(0, 1) for at in atoms if energy_name in at.info.keys()]
             plt.plot(distances, energies, marker='x', label=f'{os.path.splitext(dimer_fname)[0]} = {energies[-1]:4f}')
             plt.scatter(distances[-1], energies[-1])
             all_ends.append(energies[-1])

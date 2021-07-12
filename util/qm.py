@@ -7,11 +7,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.ticker import MaxNLocator
+from ase.io.orca import read_geom_orcainp
 
 
-def read_orca_output(input_xyz, orca_label):
+def read_orca_output(orca_label):
 
-    at = read(input_xyz)
+    at = read_geom_orcainp(orca_label + '.inp')
     calc = orca.ExtendedORCA()
     calc.label=orca_label
     calc.read_energy()

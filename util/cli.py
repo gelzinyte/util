@@ -10,17 +10,12 @@ from tqdm import tqdm
 from ase import Atoms
 from ase.io import read, write
 
-from xtb.ase.calculator import XTB
 
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.calculators import orca
 from wfl.calculators import generic
 from ase.io.extxyz import key_val_str_to_dict
 
-try:
-    from quippy.potential import Potential
-except ModuleNotFoundError:
-    pass
 
 from util import compare_minima
 import util.bde.generate
@@ -119,12 +114,11 @@ def plot_scf_convergence_graph(orca_output, method, plot_fname):
     qm.orca_scf_plot(orca_output, method, plot_fname)
 
 @subcli_qm.command('read-orca')
-@click.argument('input-xyz')
 @click.option('--output-xyz', '-o', help='output filename')
 @click.option('--orca-label', '-l', help='prefix to orca files to read from')
-def read_orca_stuff(input_xyz, output_xyz, orca_label):
+def read_orca_stuff(output_xyz, orca_label):
 
-    at = qm.read_orca_output(input_xyz, orca_label)
+    at = qm.read_orca_output(orca_label)
     write(output_xyz, at)
 
 @subcli_configs.command('info-to-no')
@@ -235,6 +229,8 @@ def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
 def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_prefix,
                       dft_prop_prefix, gap_prop_prefix, wdir):
 
+    from quippy.potential import Potential
+
     logging.info('Generating gap bde things')
 
     calculator = (Potential, [], {'param_filename':gap_fname})
@@ -264,6 +260,8 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
 def evaluate_gap_on_dft_bde_files(config_file, gap_fname, output_fname, gap_prop_prefix):
 
     # logger.info('Evaluating GAP on DFT structures')
+
+    from quippy.potential import Potential
 
     calculator = (Potential, [], {'param_filename':gap_fname})
 
@@ -383,6 +381,8 @@ def derive_gap_bdes(smiles_csv, molecules_fname, num_repeats, gap_prefix, gap_fi
 
     assert smiles_csv is None or molecules_fname is None
 
+    from quippy.potential import Potential
+
     if smiles_csv:
         molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
     elif molecules_fname:
@@ -419,6 +419,7 @@ def reoptimise_with_dft(input_filename, output_filename, dft_prop_prefix):
 @click.option('--output', '-o')
 @click.option('--prop-prefix', '-p')
 def eval_h(gap_fname, output, prop_prefix):
+    from quippy.potential import Potential
     gap = Potential(param_filename=gap_fname)
     at = Atoms('H', positions=[(0, 0, 0)])
     at.calc = gap
@@ -677,6 +678,8 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
     inputs = ConfigSet_in(input_files=inputs)
 
     if calc_kwargs is not None:
+
+        from quippy.potential import Potential
         calc = (Potential, [], key_val_str_to_dict(calc_kwargs))
     else:
         calc = None
@@ -733,6 +736,8 @@ def run_md(gap_filename, mol_filename):
 def gap_optimise(gap_fname, output, traj_fname=None, start_dir=None, start_fname=None, chunksize=10):
 
     assert start_dir is None or start_fname is None
+
+    from quippy.potential import Potential
 
     dft_fnames, _, _ = bde.dirs_to_fnames(dft_dir)
 
@@ -810,11 +815,13 @@ def sample_configs(input_fn, output_fname, n_configs, sample_type, include_confi
 @click.option('--prefix', '-p', default='dftb_')
 def recalc_dftb_ef(input_fn, output_fn, prefix='dftb_'):
 
+    from quippy.potential import Potential
+
     dftb = Potential('TB DFTB', param_filename='/home/eg475/scripts/source_files/tightbind.parms.DFTB.mio-0-1.xml')
 
     ats_in = read(input_fn, ':')
     ats_out = []
-    for atoms in ats_in:
+    for atoms in tqdm(ats_in):
         at = atoms.copy()
         at.calc = dftb
         at.info[f'{prefix}energy'] = at.get_potential_energy()
@@ -827,8 +834,10 @@ def recalc_dftb_ef(input_fn, output_fn, prefix='dftb_'):
 @subcli_data.command('xtb2')
 @click.argument('input_fn')
 @click.option('--output-fn', '-o')
-@click.option('--prefix', '-p', default='xtb2')
+@click.option('--prefix', '-p', default='xtb2_')
 def calc_xtb2_ef(input_fn, output_fn, prefix):
+
+    from xtb.ase.calculator import XTB
 
     xtb2 = XTB(method="GFN2-xTB")
 
@@ -947,9 +956,17 @@ def make_plots(gap_fname=None, gap_dir=None, output_dir=None, prefix=None, glue_
 @click.option('--info-label',
               help='info entry to label by')
 @click.option('--isolated-at-fname')
+@click.option('--total-energy', '-te', 'energy_type',
+              flag_value='total_energy',
+              help='plot total energy, not binding energy per atom')
+@click.option('--binding-energy', '-be', 'energy_type', default=True,
+              flag_value='binding_energy', help='Binding energy per atom')
+@click.option('--mean-shifted-energy', '-sft', 'energy_shift',is_flag=True,
+              help='shift energies by the mean. ')
 def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name,
                atoms_filename,
-               output_dir, prefix, info_label, isolated_at_fname):
+               output_dir, prefix, info_label, isolated_at_fname,
+               energy_type, energy_shift):
     """Makes energy and force scatter plots and dimer curves"""
 
     if output_dir:
@@ -957,10 +974,13 @@ def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_nam
             os.makedirs(output_dir)
 
     all_atoms = read(atoms_filename, ':')
-    if isolated_at_fname is not None:
-        isolated_atoms = read(isolated_at_fname, ':')
+    if energy_type=='binding_energy':
+        if isolated_at_fname is not None:
+            isolated_atoms = read(isolated_at_fname, ':')
+        else:
+            isolated_atoms = [at for at in all_atoms if len(at) == 1]
     else:
-        isolated_atoms = [at for at in all_atoms if len(at) == 1]
+        isolated_atoms = None
 
     rmse_scatter_evaled.scatter_plot(ref_energy_name=ref_energy_name,
                                      pred_energy_name=pred_energy_name,
@@ -970,5 +990,25 @@ def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_nam
                                      output_dir=output_dir,
                                      prefix=prefix,
                                      color_info_name=info_label,
-                                     isolated_atoms=isolated_atoms)
+                                     isolated_atoms=isolated_atoms,
+                                     energy_type=energy_type,
+                                     energy_shift=energy_shift)
+
+@subcli_gap.command('evaluate')
+@click.argument('input-fn')
+@click.option('--gap-fname', '-g')
+@click.option('--prefix', '-p', default='gap_', show_default=True)
+@click.option('--output-fname', '-o')
+def evaluate_gap(input_fn, gap_fname, prefix, output_fname):
+
+    from quippy.potential import Potential
+
+    inputs = ConfigSet_in(input_files=input_fn)
+    outputs = ConfigSet_out(output_files=output_fname)
+
+    calculator = (Potential, [], {'param_filename':gap_fname})
+    properties = ['energy', 'forces']
+
+    generic.run(inputs, outputs, calculator, properties, prefix)
+
 

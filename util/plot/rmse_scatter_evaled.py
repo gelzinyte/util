@@ -36,11 +36,15 @@ def prepare_data(ref_values, pred_values, labels):
 
     return data
 
+def read_energy(at, isolated_atoms, ref_prefix):
+    return at.info[f'{ref_prefix}energy']
+
 def scatter_plot(ref_energy_name,
                 pred_energy_name,
                 ref_force_name,
                 pred_force_name, all_atoms,
-               output_dir, prefix, color_info_name, isolated_atoms):
+                output_dir, prefix, color_info_name, isolated_atoms,
+                energy_type, energy_shift):
 
     all_atoms = [at for at in all_atoms if len(at) != 1]
 
@@ -79,16 +83,57 @@ def scatter_plot(ref_energy_name,
 
    ################### energy plots
 
+    if energy_type == 'binding_energy':
+        energy_getter_function = util.get_binding_energy_per_at
+        y_energy_correlation_label = f'Predicted binding {pred_energy_name} / eV/at'
+        x_energy_label = f'Binding {ref_energy_name} / eV/at'
+        y_energy_error_label = f'absolute binding energy error / meV/at'
+        energy_correlation_title =  'Binding energy correlation'
+        energy_error_title = 'Binding energy error'
+
+    elif energy_type == 'total_energy':
+        energy_getter_function = read_energy
+        y_energy_correlation_label = f'Predicted total {pred_energy_name} ' \
+                                     f'/ eV'
+        x_energy_label = f'Total {ref_energy_name} / eV'
+        y_energy_error_label = f'absolute total energy error / meV'
+        energy_correlation_title = 'Total energy correlation'
+        energy_error_title = 'Total energy error'
+
+    elif energy_type == 'mean_shifted_energy':
+        energy_getter_function = read_energy
+        y_energy_correlation_label = f'Predicted mean shifted total' \
+                                     f' {pred_energy_name} / eV'
+        x_energy_label = f'Mean shifted total {ref_energy_name} / eV'
+        y_energy_error_label = f'absolute mean shifted total energy error / meV'
+        energy_correlation_title = 'mean shifted total energy correlation'
+        energy_error_title = 'mean shifted total energy error'
+    else:
+        raise ValueError(f'"energy_type" must be one of "binding_energy", '
+                         f'"total_energy" or "mean_shifted_energy", '
+                         f'not "{energy_type}". ')
+
     ref_prefix = ref_energy_name.replace('energy', '')
     pred_prefix = pred_energy_name.replace('energy', '')
     # TODO: change the util function
-    ref_energies = [util.get_binding_energy_per_at(at, isolated_atoms,
+    ref_energies = [energy_getter_function(at, isolated_atoms,
                                                    ref_prefix)
                     for at in all_atoms if len(at) != 1]
 
-    pred_energies = [util.get_binding_energy_per_at(at, isolated_atoms,
+    pred_energies = [energy_getter_function(at, isolated_atoms,
                                                    pred_prefix)
                     for at in all_atoms if len(at) != 1]
+
+    if energy_shift:
+        ref_energies = util.shift0(ref_energies, by=np.mean(ref_energies))
+        pred_energies = util.shift0(pred_energies, by=np.mean(pred_energies))
+
+        y_energy_correlation_label =  'Mean shifted ' + \
+                                      y_energy_correlation_label
+        x_energy_label = 'Mean shifted ' + x_energy_label
+        y_energy_error_label = 'Mean shifted ' + y_energy_error_label
+        energy_correlation_title = 'Mean shifted ' + energy_correlation_title
+        energy_error_title = 'Mean shifted ' + energy_error_title
 
 
     all_plot_data = prepare_data(ref_values=ref_energies,
@@ -112,13 +157,11 @@ def scatter_plot(ref_energy_name,
 
 
     ax_corr.legend(title=f' {color_info_name}: RMSE / meV/at')
-    ax_corr.set_ylabel(f'Predicted binding {pred_energy_name} / eV/at')
-    ax_err.set_ylabel(f'absolute binding energy error / meV/at')
+    ax_corr.set_ylabel(y_energy_correlation_label)
+    ax_err.set_ylabel(y_energy_error_label)
     ax_err.set_yscale('log')
-    ax_err.set_title('Binding energy error')
-    ax_corr.set_title('Binding energy correlation')
-
-
+    ax_err.set_title(energy_error_title)
+    ax_corr.set_title(energy_correlation_title)
 
     xmin, xmax = ax_e_corr.get_xlim()
     extend_axis = 0.1
@@ -132,7 +175,7 @@ def scatter_plot(ref_energy_name,
                           alpha=0.5, zorder=0)
 
     for ax in [ax_e_corr, ax_e_err]:
-        ax.set_xlabel(f'Binding {ref_energy_name} / eV/at')
+        ax.set_xlabel(x_energy_label)
         ax.set_xlim(xmin, xmax)
 
     ######################### force plots
