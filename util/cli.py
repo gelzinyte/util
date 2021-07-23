@@ -14,6 +14,7 @@ from ase.io import read, write
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.calculators import orca
 from wfl.calculators import generic
+from wfl.generate_configs import vib
 from ase.io.extxyz import key_val_str_to_dict
 
 
@@ -104,6 +105,31 @@ def subcli_jobs():
 @cli.group('qm')
 def subcli_qm():
     pass
+
+@subcli_qm.command('normal-modes-orca')
+@click.argument("inputs", nargs=-1)
+@click.option('--prop-prefix', '-p', default='dft_', show_default=True,
+              help='Prefix for "energy", "forces" and normal mode '
+                   'properties',)
+@click.option("--outputs", "-o", help="Output filename, see Configset for details", required=True)
+def generate_nm_reference(inputs, prop_prefix, outputs):
+    """Generates normal mode frequencies and displacements from a
+     finite difference approximation of the mass-weighted Hessian matrix """
+
+    configset_in = ConfigSet_in(input_files=inputs)
+    configset_out = ConfigSet_out(output_files=outputs)
+
+    calc_kwargs = {"orcasimpleinput" : 'UKS B3LYP def2-SV(P) def2/J D3BJ',
+                   "orcablocks" : '%scf SmearTemp 5000 maxiter 500 end'}
+
+
+    calc = (orca.ExtendedORCA, [], calc_kwargs)
+
+    vib.generate_normal_modes_parallel_hessian(inputs=configset_in,
+                                          outputs=configset_out,
+                                          calculator=calc,
+                                          prop_prefix=prop_prefix)
+
 
 
 @subcli_qm.command('scf-conv')
