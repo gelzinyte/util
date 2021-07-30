@@ -42,6 +42,7 @@ from util import md
 from util import qm
 import util
 from util.plot import dataset
+from util import cc_results
 
 
 @click.group('util')
@@ -106,6 +107,39 @@ def subcli_jobs():
 def subcli_qm():
     pass
 
+@subcli_qm.command('cu-cy')
+@click.option('--structures_dir', show_default=True,
+              help='where are the input xyz to be calculated on',
+              default='/data/eg475/carbyne/optimised_structures' )
+@click.option('--uks_orca_template_fname', show_default=True,
+              default='/data/eg475/carbyne/calculate/uks_cc_template.inp' )
+@click.option('--cc_orca_template_fname', show_default=True,
+              default='/data/eg475/carbyne/calculate/dlpno_ccsd_template.inp' )
+@click.option('--sub_template_fname', show_default=True,
+              default='/data/eg475/carbyne/calculate/sub_template.sh' )
+@click.option('--output_dir', show_default=True,
+              default='/data/eg475/carbyne/calculate/outputs' )
+@click.option('--task' )#, type=click.Choice(['calculate, density_plots']) )
+@click.option('--submit', is_flag=True)
+def calculate(structures_dir,
+        uks_orca_template_fname,
+         cc_orca_template_fname,
+         sub_template_fname,
+         output_dir,
+            task,
+         submit=False):
+
+    cc_results.main(structures_dir=structures_dir,
+                         uks_orca_template_fname=uks_orca_template_fname,
+                         cc_orca_template_fname=cc_orca_template_fname,
+                         sub_template_fname=sub_template_fname,
+                         output_dir=output_dir,
+                         task=task,
+                         submit=submit)
+
+
+
+
 @subcli_qm.command('normal-modes-orca')
 @click.argument("inputs", nargs=-1)
 @click.option('--prop-prefix', '-p', default='dft_', show_default=True,
@@ -125,10 +159,17 @@ def generate_nm_reference(inputs, prop_prefix, outputs):
 
     calc = (orca.ExtendedORCA, [], calc_kwargs)
 
+    generic_calc_kwargs = {'use_wdir':True,
+                           'scratch_path':'/scratch-ssd/eg475',
+                           'keep_files':'default',
+                           'base_rundir':'orca_normal_mode_calc_outputs',
+                           'dir_prefix':'orca_'}
+
     vib.generate_normal_modes_parallel_hessian(inputs=configset_in,
                                           outputs=configset_out,
                                           calculator=calc,
-                                          prop_prefix=prop_prefix)
+                                          prop_prefix=prop_prefix,
+                                generic_calc_kwargs=generic_calc_kwargs)
 
 
 
