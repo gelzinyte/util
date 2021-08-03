@@ -29,6 +29,7 @@ def main(structures_dir,
     print(task)
 
     multiplicities=[1, 3]
+    multiplicities_names = ['singlet', 'triplet']
     methods=['uks_cc-pvdz', 'dlpno-ccsd_cc-pvdz']
     template_fnames = [uks_orca_template_fname,
                        cc_orca_template_fname]
@@ -39,7 +40,7 @@ def main(structures_dir,
     home_dir = os.getcwd()
 
     xyz_filenames = [os.path.join(structures_dir, dir_name) for dir_name in
-                     os.listdir(structures_dir)]
+                     os.listdir(structures_dir) if 'xyz' in dir_name]
 
     for fname in xyz_filenames:
 
@@ -47,10 +48,10 @@ def main(structures_dir,
         handle_dirs(compound_stem, output_dir)
         compound_wdir = os.getcwd()
 
-        for mult in multiplicities:
+        for mult, mult_name in zip(multiplicities, multiplicities_names):
             for orca_template_fname, method in zip(template_fnames, methods):
 
-                calculation_stem = compound_stem + f'.{method}.{mult}-let'
+                calculation_stem = compound_stem + f'.{method}.{mult_name}'
                 handle_dirs(calculation_stem, compound_wdir)
 
                 if task == 'calculate':
