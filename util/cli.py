@@ -108,6 +108,26 @@ def subcli_jobs():
 def subcli_qm():
     pass
 
+@subcli_data.command('xtb-normal-modes')
+@click.argument('input-fname')
+@click.option('-o', '--output-fname')
+def xtb_normal_modes(input_fname, output_fname):
+
+    from xtb.ase.calculator import XTB
+
+    configset_in = ConfigSet_in(input_files=input_fname)
+    configset_out = ConfigSet_out(output_files=output_fname)
+
+    calc = (XTB, [], {'method':'GFN2-xTB'})
+
+    prop_prefix = 'xTB_'
+
+    vib.generate_normal_modes_parallel_hessian(inputs=configset_in,
+                                          outputs=configset_out,
+                                          calculator=calc,
+                                          prop_prefix=prop_prefix)
+
+
 @subcli_qm.command('cu-cy')
 @click.option('--structures_dir', show_default=True,
               help='where are the input xyz to be calculated on',
