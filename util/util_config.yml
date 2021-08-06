@@ -7,7 +7,7 @@ programs:
 dftb: /home/eg475/scripts/source_files/tightbind.parms.DFTB.mio-0-1.xml
 
 other_paths:
-  scratch: /scratch/eg475
+  scratch: /scratch-ssd/eg475
   tmp: /tmp/eg475
 
 gap_files:

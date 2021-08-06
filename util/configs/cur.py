@@ -8,7 +8,7 @@ def cur_per_environment(inputs, outputs, num,
                         stochastic=True, stochastic_seed=None,
                         keep_descriptor_arrays=True, center=True,
                         leverage_score_key=None,
-                        selected_environment_info_label=None):
+                        leverage_score_arrays_label=None):
     """Select atoms from a list or iterable using CUR on per-atom descriptors
 
     Parameters
@@ -27,13 +27,13 @@ def cur_per_environment(inputs, outputs, num,
         exponent to compute kernel (if other than 1)
     stochastic: bool, default True
         use stochastic selection
-    keep_descriptor_info: bool, default True
+    keep_descriptor_arrays: bool, default True
         do not delete descriptor from arrays
     center: bool, default True
         center data before doing SVD, as generally required for PCA
     leverage_score_key: str, default None
         if not None, info key to store leverage score in
-    selected_environment_info_label: str, None
+    leverage_score_arrays_label: str, None
         if not None, arrays key to mark CUR-selected environment
 
     Returns
@@ -64,20 +64,26 @@ def cur_per_environment(inputs, outputs, num,
         else:
             descs_mat = at_descs
 
-    selected, _ = by_descriptor.CUR(mat=descs_mat, num=num,
+    selected, leverage_scores = by_descriptor.CUR(mat=descs_mat, num=num,
                                  stochastic=stochastic,
                       stochastic_seed=stochastic_seed, exclude_list=exclude_ind_list)
 
-    clean_and_write_selected(inputs, outputs, selected,
-                             parent_at_idx, at_descs_arrays_key,
-            keep_descriptor_info, selected_environment_info_label)
+    clean_and_write_selected(inputs=inputs, 
+                             outputs=outputs, 
+                             selected=selected,
+                             parent_at_idx=parent_at_idx, 
+                             at_descs_arrays_key=at_descs_arrays_key,
+                            keep_descriptor_arrays=keep_descriptor_arrays, 
+            leverage_score_arrays_label=leverage_score_arrays_label, 
+                             )
 
     return outputs.to_ConfigSet_in()
 
 def clean_and_write_selected(inputs, outputs, selected,
                              parent_at_idx, at_descs_arrays_key,
                              keep_descriptor_arrays,
-                             selected_environment_info_label):
+                             leverage_score_arrays_label, 
+                             leverage_scores):
     """Writes configs with selected environments to output configset
 
     Parameters
@@ -92,22 +98,30 @@ def clean_and_write_selected(inputs, outputs, selected,
         list of parent atoms id's to trace back which environment's
         descriptor came from which structure.
     at_descs_arrays_key: str, default None
-        key in info dict to delete if keep_descriptor_info is False
+        key in info dict to delete if keep_descriptor_arrays is False
     keep_descriptor_arrays: bool, default True
         keep descriptor in info dict
     """
 
     if not keep_descriptor_arrays and at_descs_arrays_key is None:
-        raise RuntimeError('Got False \'keep_descriptor_info\' but not the info key \'at_descs_arrays_key\' to wipe')
+        raise RuntimeError('Got False \'keep_descriptor_arrays\' but not the info key \'at_descs_arrays_key\' to wipe')
 
     selected_s = set(selected)
     assert len(selected) == len(selected_s)
 
-    selected_parents = parent_at_idx[selected_s]
+    selected_parents = parent_at_idx[selected]
     selected_parents = np.asarray(list(set(selected_parents)))
 
-    logger.info(f'Selected {len(selected_s)} environments from '
+    logger.info(f'Selected {len(selected)} environments from '
                 f'{len(selected_parents)} structures.')
+
+    # make a list of leverage scores for each of individual environments
+    # and subdivide into list of lists to be assigned to atoms.
+    leverage_scores_arrays = leverage_scores_into_arrays(inputs,
+                                                         leverage_scores,
+                                                         selected,
+                                                         parent_at_idx)
+
 
     counter = 0
     # inputs is an iterable, can't directly reference specific # configs,
@@ -118,10 +132,42 @@ def clean_and_write_selected(inputs, outputs, selected,
                 del at.arrays[at_descs_arrays_key]
             outputs.write(at)
             counter += 1
-            if counter >= len(selected_s):
+            if counter >= len(selected):
                 # skip remaining iterator if we've used entire selected list
                 break
     outputs.end_write()
+
+def leverage_scores_arrays(inputs, leverage_scores, selected, parent_at_idx):
+    """Goes from leverage scores for the selected configs into list of
+    lists to be written into Atoms.arrays for each structure
+
+    Parameters
+    ----------
+    inputs: ConfigSet_in
+        all of the configs that went into cur
+    leverage_scores: list(float)
+        scores for selected environments
+    selected: list(int)
+        indices for all of the environments
+    parent_at_idx: list(int)
+        list of len(total_environments) with indices of inputs from to
+        which the environments correspond
+
+    Returns
+    -------
+        list(list(float)) - leverage scores to be assigned to output
+        at.arrays.
+     """
+
+    scores_to_assign = np.zeros(len(parent_at_idx))
+    for score, selected_idx in zip(leverage_scores, selected):
+        scores_to_assign[selected_idx] = score
+
+    stride_start = 0
+    output_scores = []
+    for at in inputs:
+        scores = 
+
 
 
 

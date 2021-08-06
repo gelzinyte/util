@@ -156,11 +156,14 @@ def generate_nm_reference(inputs, prop_prefix, outputs):
     calc_kwargs = {"orcasimpleinput" : 'UKS B3LYP def2-SV(P) def2/J D3BJ',
                    "orcablocks" : '%scf SmearTemp 5000 maxiter 500 end'}
 
+    cfg = Config.load()
+    scratch_path = cfg['other_paths']['scratch']
+
 
     calc = (orca.ExtendedORCA, [], calc_kwargs)
 
     generic_calc_kwargs = {'use_wdir':True,
-                           'scratch_path':'/scratch-ssd/eg475',
+                           'scratch_path':scratch_path,
                            'keep_files':'default',
                            'base_rundir':'orca_normal_mode_calc_outputs',
                            'dir_prefix':'orca_'}
