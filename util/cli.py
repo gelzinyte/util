@@ -147,7 +147,8 @@ def calculate(structures_dir,
               help='Prefix for "energy", "forces" and normal mode '
                    'properties',)
 @click.option("--outputs", "-o", help="Output filename, see Configset for details", required=True)
-def generate_nm_reference(inputs, prop_prefix, outputs):
+@click.option("--dir-prefix", default='orca_')
+def generate_nm_reference(inputs, prop_prefix, outputs, dir_prefix):
     """Generates normal mode frequencies and displacements from a
      finite difference approximation of the mass-weighted Hessian matrix """
 
@@ -167,7 +168,7 @@ def generate_nm_reference(inputs, prop_prefix, outputs):
                            'scratch_path':scratch_path,
                            'keep_files':'default',
                            'base_rundir':'orca_normal_mode_calc_outputs',
-                           'dir_prefix':'orca_'}
+                           'dir_prefix':dir_prefix}
 
     vib.generate_normal_modes_parallel_hessian(inputs=configset_in,
                                           outputs=configset_out,
