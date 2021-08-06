@@ -40,6 +40,7 @@ from util import iter_fit
 from util import iter_tools
 from util import md
 from util import qm
+from util.util_config import Config
 import util
 from util.plot import dataset
 from util import cc_results
