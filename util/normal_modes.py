@@ -36,14 +36,15 @@ def sample_downweighted_normal_modes(inputs, outputs, temp, sample_size, prop_pr
 
     Returns
     -------
-      """
+    """
 
     if isinstance(inputs, Atoms):
         inputs = [inputs]
 
     for atoms in inputs:
         at_vib = Vibrations(atoms, prop_prefix)
-        energies_into_modes = energies_for_weighting_normal_modes(at_vib.frequencies,
+
+        energies_into_modes = downweight_energies(at_vib.frequencies,
                                                                   temp)
         try:
             sample = at_vib.sample_normal_modes(energies_for_modes=energies_into_modes[6:],
@@ -59,6 +60,29 @@ def sample_downweighted_normal_modes(inputs, outputs, temp, sample_size, prop_pr
         outputs.write(sample)
 
     outputs.end_write()
+
+
+def downweight_energies(frequencies_eV, temp, threshold_invcm=200,
+                                      threshold_eV=None):
+
+    assert threshold_invcm is None or threshold_eV is None
+
+    if threshold_invcm is not None:
+        threshold_eV = threshold_invcm * units.invcm
+
+    weights = []
+    for freq in frequencies_eV:
+        if freq < threshold_eV and freq > 0:
+            weights.append(weight_function(freq, midway=threshold_eV / 2))
+        elif freq <= 0:
+            weights.append(0)
+        else:
+            weights.append(1)
+    weights = np.array(weights)
+
+    orig_energies = units.kB * temp
+
+    return weights * orig_energies
 
 
 def weight_function(xs, midway=100):
@@ -79,27 +103,8 @@ def p(x):
     return 3/2 * x - 1/2 * x ** 3
 
 def shift_y(ys):
+    """shift results from [-1, 1] to [0, 1]"""
     return (ys + 1 ) * 0.5
 
-def sigmoid_energies_for_normal_modes(frequencies, temp, threshold_invcm=200,
-                                      threshold_eV=None):
 
-    assert threshold_invcm is None or threshold_eV is None
-
-    if threshold_invcm is not None:
-        threshold_eV = threshold_invcm * units.invcm
-
-    weights = []
-    for freq in frequencies:
-        if freq < threshold_eV:
-            weights.append(weight_function(freq, midway=threshold_eV / 2))
-        elif freq < 0:
-            weights.append(0)
-        else:
-            weights.append(1)
-    weights = np.array(weights)
-
-    orig_energies = units.kB * temp
-
-    return weights * orig_energies
 

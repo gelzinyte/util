@@ -41,6 +41,7 @@ from util import iter_tools
 from util import md
 from util import qm
 from util.util_config import Config
+from util import normal_modes
 import util
 from util.plot import dataset
 from util import cc_results
@@ -387,7 +388,7 @@ def sub_from_pattern(pattern_fname, start, num, submit, dir_prefix):
                 os.makedirs(dir_name)
             os.chdir(dir_name)
 
-        text = pattern.replace('{idx}', str(idx))
+        text = pattern.replace('<idx>', str(idx))
         sub_name = f'sub_{idx}.sh'
 
         with open(sub_name, 'w') as f:
@@ -557,7 +558,8 @@ def sample_normal_modes(input_fname, output_fname, temperature, sample_size,
     if arrays_to_keep is not None:
         arrays_to_keep = arrays_to_keep.split()
 
-    configs.sample_downweighted_normal_modes(inputs=inputs, outputs=outputs,
+    normal_modes.sample_downweighted_normal_modes(inputs=inputs,
+                                                outputs=outputs,
                                              temp=temperature, sample_size=sample_size,
                                              prop_prefix=prop_prefix,
                                              info_to_keep=info_to_keep,
