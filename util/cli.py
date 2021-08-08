@@ -26,6 +26,7 @@ from util import radicals
 from util import error_table
 from util import plot
 from util.plot import dimer
+from util.plot import mols
 from util import iter_tools as it
 from util.plot import rmse_scatter_evaled
 from util.plot import iterations
@@ -45,7 +46,7 @@ from util import normal_modes
 import util
 from util.plot import dataset
 from util import cc_results
-
+from util.configs import max_similarity
 
 @click.group('util')
 @click.option('--verbose', '-v', is_flag=True)
@@ -108,6 +109,32 @@ def subcli_jobs():
 @cli.group('qm')
 def subcli_qm():
     pass
+
+@subcli_plot.command('mols')
+@click.argument('input-csv')
+@click.option('--name-col', default='name', help='csv column for mol names' )
+@click.option('--smiles-col', default='smiles', help='csv column for smiles')
+def plot_mols(input_csv, name_col, smiles_col):
+    mols.main(input_csv=input_csv,
+              name_col=name_col,
+              smiles_col=smiles_col)
+
+
+
+@subcli_configs.command('assign-max-similarity')
+@click.argument('set-to-eval')
+@click.option('--train-set', '-t', help='xyz to which to compare similarity')
+@click.option('--output-name', '-o')
+@click.option('--zeta', default=1, show_default=True, help='kernel exponent')
+@click.option('--remove-descriptor', is_flag=True)
+def assign_similarity(set_to_eval, train_set, output_name, zeta,
+                      remove_descriptor):
+    max_similarity.main(train_set=train_set,
+                        set_to_eval=set_to_eval,
+                        output_fname=output_name,
+                        zeta=zeta,
+                        remove_descriptor=remove_descriptor)
+
 
 @subcli_data.command('xtb-normal-modes')
 @click.argument('input-fname')

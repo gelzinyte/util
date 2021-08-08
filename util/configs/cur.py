@@ -6,11 +6,14 @@ from wfl.select_configs import by_descriptor
 
 logger = logging.getLogger(__name__)
 
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(message)s')
+
 def per_environment(inputs, outputs, num,
                         at_descs_key=None, kernel_exp=None,
                         stochastic=True,
                         keep_descriptor_arrays=True, center=True,
-                        leverage_score_key=None,
+                        leverage_score_key='leverage_score',
                         write_all_configs=False
                         ):
     """Select atoms from a list or iterable using CUR on per-atom descriptors
@@ -25,7 +28,7 @@ def per_environment(inputs, outputs, num,
         number to select
     stochastic_seed: bool, default None
         fix seed of random number generator
-    at_descs_key: str, mutually exclusive with at_descs
+    at_descs_key: str
         key to Atoms.arrays dict containing per-environment descriptor vector
     kernel_exp: float, default None
         exponent to compute kernel
@@ -35,7 +38,7 @@ def per_environment(inputs, outputs, num,
         do not delete descriptor from arrays
     center: bool, default True
         center data before doing SVD, as generally required for PCA
-    leverage_score_key: str, default None
+    leverage_score_key: str, default 'leverage_score'
         if not None, info key to store leverage score in
     write_all_configs: bool, default False
         whether to return all configs or those selected by cur only
@@ -50,10 +53,13 @@ def per_environment(inputs, outputs, num,
         logger.info('output is done, returning')
         return outputs.to_ConfigSet_in()
 
+    logger.info('preparing descriptors')
+
     at_descs, parent_at_idx = prepare_descriptors(inputs, at_descs_key)
 
     # do SVD on kernel if desired
     if kernel_exp is not None:
+        logger.info('computing kernel matrix')
         descs_mat = np.matmul(at_descs.T, at_descs) ** kernel_exp
         if center:
             # centering like that used for kernel-PCA
@@ -68,8 +74,13 @@ def per_environment(inputs, outputs, num,
         else:
             descs_mat = at_descs
 
+    logger.info('calling workflow CUR')
+
     selected, leverage_scores = by_descriptor.CUR(mat=descs_mat, num=num,
                                  stochastic=stochastic)
+
+
+    logger.info('processing cur results')
 
     clean_and_write_selected(inputs=inputs, 
                              outputs=outputs, 

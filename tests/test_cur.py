@@ -25,15 +25,18 @@ def test_atomic_cur():
     leverage_score_key='leverage_scores'
     n_sparse = 10
 
+    outputs=ConfigSet_out()
     cur.per_environment(inputs=inputs,
                         outputs=outputs,
                         num=n_sparse,
                         at_descs_key=at_descs_key,
                         kernel_exp=kernel_exp,
                         keep_descriptor_arrays=keep_descriptor_arrays,
-                        leverage_score_key=leverage_score_key
+                        leverage_score_key=leverage_score_key,
+                        write_all_configs=True
                         )
 
+    assert len(outputs.output_configs) == 7
 
 def test_leverage_scores_arrays():
 

@@ -1,45 +1,47 @@
-import ase.calculators.calculator
+
+from ase.calculators.calculator import Calculator, all_changes
+
+from wfl.utils.parallel import construct_calculator_picklesafe
+
 from quippy.potential import Potential
 
+from xtb.ase.calculator import XTB
 
-class DifGAP(ase.calculators.calculator):
 
+class xtb_plus_gap(Calculator):
     implemented_properties = ['energy', 'forces']
 
-    default_parameters = {
-        'dftb_filename': '/home/eg475/scripts/source_files/tightbind.parms'
-                       '.DFTB.mio-0-1.xml',
-        'gap_filename': None
-    }
+    def __init__(self,  gap_filename, **kwargs):
 
-    def __init__(self, atoms=None):
-        """Calculator for getting target values from baseline method (DFTB)
-        and a GAP model that predicts the difference between target and
-        baseline values.
-        """
+        super().__init__(**kwargs)
 
-        self.atom = None
-        self.results = {}
-        self.parameters = None
+        self.gap = Potential(param_filename=gap_filename)
+        self.xtb = XTB(method='GFN2-xTB')
 
-        if self.parameters is None:
-            # Use default parameters if they were not read from file:
-            self.parameters = self.get_default_parameters()
 
-        if atoms is not None:
-            atoms.calc = self
-            if self.atoms is not None:
-                # Atoms were read from file.  Update atoms:
-                if not (equal(atoms.numbers, self.atoms.numbers) and
-                        (atoms.pbc == self.atoms.pbc).all()):
-                    raise CalculatorError('Atoms not compatible with file')
-                atoms.positions = self.atoms.positions
-                atoms.cell = self.atoms.cell
 
-        self.set(**kwargs)
+    def calculate(self, atoms=None, properties='default',
+                  system_changes=all_changes):
 
-        if not hasattr(self, 'name'):
-            self.name = self.__class__.__name__.lower()
+        if properties == 'default':
+            properties = self.implemented_properties
+
+        Calculator.calculate(self, atoms=atoms, properties=properties,
+                             system_changes=system_changes)
+
+
+        atoms = self.atoms.copy()
+        atoms.calc = self.gap
+        gap_energy = atoms.get_potential_energy()
+        gap_forces = atoms.get_forces()
+
+        atoms = self.atoms.copy()
+        atoms.calc = self.xtb
+        xtb_energy = atoms.get_potential_energy()
+        xtb_forces = atoms.get_forces()
+
+        self.results['energy'] = gap_energy + xtb_energy
+        self.results['forces'] = gap_forces + xtb_forces
 
 
 
