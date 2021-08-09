@@ -16,8 +16,7 @@ from util import bde
 from util.util_config import Config
 from util import configs
 from wfl.generate_configs import vib
-# will be changed
-# from wfl.plotting import error_table
+
 
 logger = logging.getLogger(__name__)
 

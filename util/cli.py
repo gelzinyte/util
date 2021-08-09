@@ -37,8 +37,7 @@ from util import old_nms_to_new
 from util import configs
 from util import atom_types
 from util import mem_tracker
-from util import iter_fit
-from util import iter_tools
+import util.iterations.fit
 from util import md
 from util import qm
 from util.util_config import Config
@@ -817,28 +816,37 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 
 
 @subcli_gap.command('fit')
-@click.option('--no-cycles', type=click.INT, help='number of gap_fit - optimise cycles')
-@click.option('--train-fname', default='train.xyz', show_default=True, help='fname of first training set file')
-@click.option('--e-sigma', default=0.0005, type=click.FLOAT, show_default=True, help='energy default sigma')
-@click.option('--f-sigma', default=0.02, type=click.FLOAT, show_default=True, help='force default sigma')
-@click.option('--descriptor-fname', default='descriptors.yml', show_default=True)
+@click.option('--num-cycles', type=click.INT,
+              help='number of gap_fit - optimise cycles')
+@click.option('--train-fname', default='train.xyz', show_default=True,
+              help='fname of first training set file')
+@click.option('--gap-param-filename', help='yml with gap descriptor params')
 @click.option('--smiles-csv', help='smiles to optimise')
-@click.option('--num-smiles-opt', type=click.INT, help='number of optimisations per smiles' )
-@click.option('--opt-starts-fname', help='filename where to optimise structures from')
+@click.option('--num-smiles-opt', type=click.INT,
+              help='number of optimisations per smiles' )
 @click.option('--num-nm-displacements-per-temp', type=click.INT,
               help='number of normal modes displacements per structure per temperature')
 @click.option('--num-nm-temps', type=click.INT, help='how many nm temps to sample from')
-def fit(no_cycles, train_fname, e_sigma, descriptor_fname,
-        f_sigma,  smiles_csv, num_smiles_opt, opt_starts_fname,
-        num_nm_displacements_per_temp, num_nm_temps):
+@click.option('--energy-filter-threshold', type=click.FLOAT,
+              help='Error threshold (eV per *structure*) above which to '
+                   'take structures for next iteration')
+@click.option('--max-force-filter-threshold', type=click.FLOAT,
+              help='Error threshold (eV/Å) for maximum force component '
+                   'error for taking structures for next iteration')
+def fit(num_cycles, train_fname, gap_param_filename, smiles_csv,
+        num_smiles_opt, num_nm_displacements_per_temp, num_nm_temps,
+        energy_filter_threshold, max_force_filter_threshold):
 
-    iter_fit.fit(no_cycles=no_cycles,
-                      first_train_fname=train_fname,
-                      e_sigma=e_sigma, f_sigma=f_sigma, smiles_csv=smiles_csv,
-                 num_smiles_opt=num_smiles_opt, opt_starts_fname=opt_starts_fname,
+    util.iterations.fit.fit(no_cycles=num_cycles,
+                 first_train_fname=train_fname,
+                 gap_param_filename=gap_param_filename,
+                 smiles_csv=smiles_csv,
+                 num_smiles_opt=num_smiles_opt,
                  num_nm_displacements_per_temp=num_nm_displacements_per_temp,
-                 gap_descriptor_filename=descriptor_fname,
-                  num_nm_temps=num_nm_temps)
+                 num_nm_temps=num_nm_temps,
+                 energy_filter_threshold=energy_filter_threshold,
+                 max_force_filter_threshold=max_force_filter_threshold
+                 )
 
 @subcli_gap.command('md-stability')
 @click.option('--gap-filename', '-g')

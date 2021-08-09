@@ -60,6 +60,7 @@ def sample_downweighted_normal_modes(inputs, outputs, temp, sample_size, prop_pr
         outputs.write(sample)
 
     outputs.end_write()
+    return outputs.to_ConfigSet_in()
 
 
 def downweight_energies(frequencies_eV, temp, threshold_invcm=200,

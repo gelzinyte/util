@@ -79,11 +79,15 @@ def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
 
             if return_mol:
                 mol = atoms.copy()
+                mol.info['compound'] = mol.info['config_type']
                 config_type_append(mol, 'mol')
+                mol.info['mol_or_rad'] = 'mol'
                 atoms_out.append(mol)
 
             for rad, h_id in zip(radicals, sp3_hs):
+                rad.info['compound'] = rad.info['config_type']
                 config_type_append(rad, f'rad{h_id}')
+                rad.info['mol_or_rad'] = f'rad{h_id}'
                 atoms_out.append(rad)
 
         else:

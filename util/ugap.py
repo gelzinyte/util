@@ -24,22 +24,23 @@ from wfl.generate_configs import minim
 from util import plot
 
 
-def optimise(inputs, outputs, calculator, wdir):
-    logfile = os.path.join(wdir, 'optimisation.log')
+def optimise(inputs, outputs, opt_traj_outputs,  calculator):
+    # logfile = os.path.join(wdir, 'optimisation.log')
 
-    opt_kwargs = {'logfile': logfile, 'master': True, 'precon': None,
+    opt_kwargs = {'logfile': None, 'master': True, 'precon': None,
                   'use_armijo': False}
 
-    optimised_configset = minim.run(inputs, outputs, calculator,
+    optimised_configset = minim.run(inputs, opt_traj_outputs, calculator,
                                     keep_symmetry=False,
                                     update_config_type=False, fmax=1e-2,
                                     **opt_kwargs, chunksize=50)
 
     atoms_opt = [at for at in optimised_configset
-                 if
-                 at.info['minim_config_type'] == 'minim_last_converged']
+                 if at.info['minim_config_type'] == 'minim_last_converged']
 
-    return atoms_opt
+    outputs.write(atoms_opt)
+    outputs.end_write()
+    return outputs.to_ConfigSet_in()
 
 
 def make_descr_str(descr_dict):
