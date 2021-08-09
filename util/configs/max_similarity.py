@@ -63,7 +63,6 @@ def main(train_set, set_to_eval, output_fname, zeta=1,
     outputs=ConfigSet_out(output_files=output_fname)
     inputs = ConfigSet_in(input_files=set_to_eval)
     ats_train = read(train_set, ':')
-    # ats_compare = read(set_to_eval, ':')
 
     train_descs = get_descriptor_matrix(ats_train, descriptor_arrays_key)
 
@@ -110,6 +109,8 @@ def assign_max_similarity_op(atoms, train_descs, zeta,
         if remove_descriptor:
             del at.arrays[descriptor_arrays_key]
             del at.info[descriptor_arrays_key]
+
+        atoms_out.append(at)
 
     return atoms_out
 

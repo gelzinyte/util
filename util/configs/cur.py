@@ -241,9 +241,15 @@ def prepare_descriptors(inputs, at_descs_key):
     parent_idx = np.asarray(parent_idx)
     at_descs = np.asarray(at_descs).T
 
+    # normalise
+    at_descs = np.apply_along_axis(normalisation, axis=0, arr=at_descs)
+
     assert len(parent_idx) == at_descs.shape[1]
 
     return at_descs, parent_idx
+
+def normalisation(a, *args, **kwargs):
+    return a / np.sqrt(np.dot(a, a))
 
 
 

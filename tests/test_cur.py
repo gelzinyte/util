@@ -1,16 +1,41 @@
 import os
+from pytest import approx
 
 import numpy as np
 
 from ase.build import molecule
+from ase.io import read
 
 from wfl.configset import ConfigSet_in, ConfigSet_out
 
 from util.configs import cur
 
 
+
 def ref_path():
     return os.path.abspath(os.path.dirname(__file__))
+
+def test_preparing_descriptors():
+
+    input_files = os.path.join(ref_path(), 'files/mols_soap.xyz')
+    inputs = ConfigSet_in(input_files=input_files)
+    at_descs_key = 'SOAP-n4-l3-c2.4-g0.3'
+
+    descriptors, parent_idx = cur.prepare_descriptors(inputs, at_descs_key)
+
+    desc_self_products = np.apply_along_axis(product, axis=0, arr=descriptors)
+
+    n_at =  np.sum([len(at) for at in read(input_files, ':')])
+
+    assert descriptors.shape == (120, n_at)
+    assert len(desc_self_products) == n_at
+    assert np.all(approx(desc_self_products) == np.ones(n_at))
+
+
+def product(a, *args, **kwargs):
+    return np.dot(a, a)
+
+
 
 def test_atomic_cur():
     # just check it works

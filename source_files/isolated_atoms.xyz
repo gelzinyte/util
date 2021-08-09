@@ -1,9 +1,9 @@
 1
-Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3 dft_energy=-1028.4321581399468 config_type=isolated_atom  pbc="F F F"
-C        0.00000000       0.00000000       0.00000000
+Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3:xtb2_forces:R:3:forces:R:3:charge:R:1 dft_energy=-1028.4321581399468 config_type=isolated_atom dataset_type=isolated_atom xtb2_energy=-48.847445262804705 energy=-102.57117256025786 dipole="0.0 0.0 0.0" free_energy=-102.57117256025786 pbc="F F F"
+C        0.00000000       0.00000000       0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000       0.00000000
 1
-Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3 dft_energy=-13.547478676206193 config_type=isolated_atom  pbc="F F F"
-H        0.00000000       0.00000000       0.00000000
+Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3:xtb2_forces:R:3:forces:R:3:charge:R:1 dft_energy=-13.547478676206193 config_type=isolated_atom dataset_type=isolated_atom xtb2_energy=-10.707211383396714 energy=-102.57117256025786 dipole="0.0 0.0 0.0" free_energy=-102.57117256025786 pbc="F F F"
+H        0.00000000       0.00000000       0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000       0.00000000
 1
-Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3 dft_energy=-2040.0734198446598 config_type=isolated_atom  pbc="F F F"
-O        0.00000000       0.00000000       0.00000000
+Lattice="40.0 0.0 0.0 0.0 40.0 0.0 0.0 0.0 40.0" Properties=species:S:1:pos:R:3:xtb2_forces:R:3:forces:R:3:charge:R:1 dft_energy=-2040.0734198446598 config_type=isolated_atom dataset_type=isolated_atom xtb2_energy=-102.57117256025786 energy=-102.57117256025786 dipole="0.0 0.0 0.0" free_energy=-102.57117256025786 pbc="F F F"
+O        0.00000000       0.00000000       0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000      -0.00000000       0.00000000
