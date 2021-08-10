@@ -6,6 +6,7 @@ import os
 import numpy as np
 
 from tqdm import tqdm
+import pandas as pd
 
 from ase import Atoms
 from ase.io import read, write
@@ -108,6 +109,41 @@ def subcli_jobs():
 @cli.group('qm')
 def subcli_qm():
     pass
+
+
+@subcli_data.command('split')
+@click.argument('all-data')
+@click.option('--train-csv', help='csv with all of the training set '
+                                  'structures and names')
+@click.option('--train-xyz', default='train.xyz', show_default=True,
+                    help='xyz for training set')
+@click.option('--test-xyz', default='test.xyz', show_default=True)
+def split_train_test(all_data, train_csv, train_xyz, test_xyz):
+
+    df = pd.read_csv(train_csv, index_col="Unnamed: 0")
+
+    train_names = list(df['Name'])
+
+    ats_test = ConfigSet_out(output_files=test_xyz)
+    ats_train = ConfigSet_out(output_files=train_xyz)
+
+    all_data = read(all_data, ':')
+    for at in tqdm(all_data):
+        if at.info['compound'] in train_names:
+            if 'dataset' not in at.info.keys():
+                at.info['dataset'] = 'train'
+            ats_train.write(at)
+        else:
+            if 'dataset' not in at.info.keys():
+                at.info['dataset'] = 'test'
+            ats_test.write(at)
+
+    ats_test.end_write()
+    ats_train.end_write()
+
+
+
+
 
 @subcli_plot.command('mols')
 @click.argument('input-csv')

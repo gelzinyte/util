@@ -95,13 +95,9 @@ def fit(no_cycles,
     logger.info(f'orca_kwargs: {orca_kwargs}')
 
 
-    # prepare for iterations
-    # ------------------------------
-
     # prepare 0th dataset
     initial_train_fname = 'xyzs/train_for_gap_0.xyz'
     if not os.path.exists(initial_train_fname):
-        # logger.info('generating 0-th dset')
         dset = read(first_train_fname, ':')
         for at in dset:
             if 'iter_no' not in at.info.keys():
@@ -110,7 +106,6 @@ def fit(no_cycles,
 
 
     for cycle_idx in range(0, no_cycles+1):
-
 
         train_set_fname = f'xyzs/{cycle_idx-1}_train_for_gap' \
                           f'_{cycle_idx}.xyz'
@@ -160,41 +155,36 @@ def fit(no_cycles,
             wfl.fit.gap_simple.run_gap_fit(fitting_dict=gap_params,
                                            stdout_file=gap_out_fname,
                                            gap_fit_exec=gap_fit_path)
-        # else:
-        #     logger.info(f'Found {gap_fname}, not fitting')
 
         calculator = (Potential, [], {'param_filename':gap_fname})
 
         # 2. generate structures for optimisation
         if not os.path.exists(opt_starts_fname):
-            # logger.info(f'making structures to optimise at {opt_starts_fname}')
             outputs = ConfigSet_out(output_files=opt_starts_fname)
             inputs = it.make_structures(smiles_csv, iter_no=cycle_idx,
                                num_smi_repeat=num_smiles_opt,
                                outputs=outputs)
         else:
-            # logger.info(f'found structures to optimise: {opt_starts_fname}')
             inputs = ConfigSet_in(input_files=opt_starts_fname)
 
 
         # 3 optimise structures with current GAP and re-evaluate them
         # with GAP and DFT
         if not os.path.exists(opt_fname):
-            # logger.info(f'gap-optimising {opt_starts_fname} to {opt_fname}')
             outputs = ConfigSet_out(output_files=opt_fname)
             opt_traj_outputs = ConfigSet_out(output_files=opt_traj_fname)
             inputs = ugap.optimise(inputs=inputs, outputs=outputs,
                                    opt_traj_outputs=opt_traj_outputs,
                                    calculator=calculator)
 
-            # logger.info('reevaluating gap-optimised structures with GAP')
+            # evaluate GAP
             outputs = ConfigSet_out(output_files=opt_fname, force=True)
             inputs = generic.run(inputs=inputs, outputs=outputs,
                                  calculator=calculator,
                                  properties=['energy', 'forces'],
                                  output_prefix=gap_prop_prefix, chunksize=50)
 
-            # logger.info('reevaluating gap-optimised structures with DFT')
+            # evaluate DFT
             outputs = ConfigSet_out(output_files=opt_fname, force=True)
             inputs = orca.evaluate(inputs=inputs, outputs=outputs,
                                orca_kwargs=orca_kwargs,
@@ -203,13 +193,11 @@ def fit(no_cycles,
                                base_rundir=f'xyzs/wdir/'
                                            f'i{cycle_idx}_orca_outputs')
         else:
-            # logger.info(f'found {opt_fname}, not optimising {opt_starts_fname}')
             inputs = ConfigSet_in(input_files=opt_fname)
 
 
         # 4 filter by energy and force error
         if not os.path.exists(configs_with_large_errors):
-            # logger.info(f'Filtering structures by error')
             outputs = ConfigSet_out(output_files=configs_with_large_errors)
             inputs = it.filter_configs(inputs=inputs, outputs=outputs,
                                  bad_structures_fname=bad_geometries_file,
@@ -220,25 +208,20 @@ def fit(no_cycles,
                         f'of selected structures: '
                         f'{len(read(configs_with_large_errors, ":"))}')
         else:
-            # logger.info(f'found {configs_with_large_errors}, not filtering {opt_fname}')
             inputs = ConfigSet_in(input_files=configs_with_large_errors)
 
 
         # 5. derive normal modes
         if not os.path.exists(nm_ref_fname):
-            # logger.info(f'Generating {nm_ref_fname} '
-            #             f'from {configs_with_large_errors}')
             outputs = ConfigSet_out(output_files=nm_ref_fname)
-            inputs = vib.generate_normal_modes_parallel_atoms(inputs=inputs,
+            vib.generate_normal_modes_parallel_atoms(inputs=inputs,
                                                  outputs=outputs,
                                                  calculator=calculator,
                                                  prop_prefix=gap_prop_prefix)
-        # else:
-        #     logger.info(f'found {nm_ref_fname}, not generating')
 
         if cycle_idx == no_cycles:
             break
-            
+
         # 6. sample normal modes and get DFT energies and forces
         if not os.path.exists(nm_sample_fname_for_train):
             outputs_train = ConfigSet_out(
@@ -269,7 +252,7 @@ def fit(no_cycles,
             outputs_train.end_write()
             outputs_test.end_write()
 
-            # logger.info(f'evaluating DFT on {nm_sample_fname_for_train}')
+            # evaluate DFT
             outputs = ConfigSet_out(output_files=nm_sample_fname_for_train,
                                     force=True)
             orca.evaluate(inputs=outputs_train.to_ConfigSet_in(),
@@ -279,24 +262,15 @@ def fit(no_cycles,
                                keep_files='default',
                                base_rundir=f'xyzs/wdir/'
                                            f'i{cycle_idx}_orca_outputs')
-        # else:
-        #     logger.info(f'found {nm_sample_fname_for_train}, not generating')
-
 
 
         # 7. Combine data
         if not os.path.exists(next_training_set_fname):
-            # logger.info(f'Combining {train_set_fname} and '
-            #             f'{nm_sample_fname_for_train} to give '
-            #             f'{next_training_set_fname}')
-
             previous_dataset = read(train_set_fname, ':')
             additional_data = read(nm_sample_fname_for_train, ':')
             write(next_training_set_fname, previous_dataset + additional_data)
 
-        # else:
-        #     logger.info('You weren\'t supposed to get to this point')
 
-    # logger.info('Finished iterations')
+    logger.info('Finished iterations')
 
 
