@@ -1,7 +1,10 @@
 import os
 import pandas as pd
-from rdkit import Chem
-from rdkit.Chem import Draw
+try:
+    from rdkit import Chem
+    from rdkit.Chem import Draw
+except ModuleNotFoundError:
+    pass
 import numpy as np
 
 def draw_mols(mols, legend=None, molsPerRow=4):

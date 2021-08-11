@@ -110,6 +110,70 @@ def subcli_jobs():
 def subcli_qm():
     pass
 
+@cli.group("ace")
+def subcli_ace():
+    pass
+
+logger = logging.getLogger(__name__)
+
+
+@subcli_ace.command('eval')
+@click.argument('input_fname')
+@click.option('--output-fname', '-o', help='output filename')
+@click.option('--ace-fname', '-a', help='ace json')
+@click.option('--prop-prefix', '-p', default='ace_', show_default=True)
+def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
+
+
+    logger.info('importing pyjulip')
+    import pyjulip
+
+    inputs = ConfigSet_in(input_files=input_fname)
+    outputs = ConfigSet_out(output_files=output_fname)
+    # calc = (pyjulip.ACE, [ace_fname], {})
+    logger.info('setting up ace calculator')
+    calc = pyjulip.ACE(ace_fname)
+    logger.info('loaded up ace calculator')
+    for at in inputs:
+        calc.reset()
+        at.calc = calc
+        at.calc.atoms = at
+        at.info[f'{prop_prefix}energy'] = calc.get_potential_energy()
+        at.arrays[f'{prop_prefix}forces'] = calc.get_forces()
+        outputs.write(at)
+    outputs.end_write()
+
+@subcli_data.command('assign-data-type')
+@click.argument('all-data')
+@click.option('--train-csv', help='csv with all of the training set '
+                                  'structures and names')
+@click.option('--output', '-o', help='output to write everything to')
+@click.option('--info-key', '-i', default='dataset_type', show_default=True,
+              help='info key to assign train/test labels to')
+def split_train_test(all_data, train_csv, output, info_key):
+    """assigns train/test to at.info based on training set csv"""
+
+    df = pd.read_csv(train_csv, index_col="Unnamed: 0")
+
+    train_names = list(df['Name'])
+
+    outputs = ConfigSet_out(output_files=output, force=True)
+
+    all_data = read(all_data, ':')
+    for at in tqdm(all_data):
+        if info_key in at.info.keys():
+            raise RuntimeError(f'{info_key} already present')
+
+        if at.info['compound'] in train_names:
+            at.info[info_key] = 'train_compound'
+        else:
+            at.info[info_key] = 'test_compound'
+
+        outputs.write(at)
+    outputs.end_write()
+
+
+
 
 @subcli_data.command('split')
 @click.argument('all-data')
@@ -1159,21 +1223,21 @@ def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_nam
                                      energy_type=energy_type,
                                      energy_shift=energy_shift)
 
-@subcli_gap.command('evaluate')
-@click.argument('input-fn')
-@click.option('--gap-fname', '-g')
-@click.option('--prefix', '-p', default='gap_', show_default=True)
-@click.option('--output-fname', '-o')
-def evaluate_gap(input_fn, gap_fname, prefix, output_fname):
-
-    from quippy.potential import Potential
-
-    inputs = ConfigSet_in(input_files=input_fn)
-    outputs = ConfigSet_out(output_files=output_fname)
-
-    calculator = (Potential, [], {'param_filename':gap_fname})
-    properties = ['energy', 'forces']
-
-    generic.run(inputs, outputs, calculator, properties, prefix)
+# @subcli_gap.command('evaluate')
+# @click.argument('input-fn')
+# @click.option('--gap-fname', '-g')
+# @click.option('--prefix', '-p', default='gap_', show_default=True)
+# @click.option('--output-fname', '-o')
+# def evaluate_gap(input_fn, gap_fname, prefix, output_fname):
+#
+#     from quippy.potential import Potential
+#
+#     inputs = ConfigSet_in(input_files=input_fn)
+#     outputs = ConfigSet_out(output_files=output_fname)
+#
+#     calculator = (Potential, [], {'param_filename':gap_fname})
+#     properties = ['energy', 'forces']
+#
+#     generic.run(inputs, outputs, calculator, properties, prefix)
 
 
