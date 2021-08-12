@@ -93,31 +93,39 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     if not os.path.exists(wdir):
         os.mkdir(wdir)
 
-    dft_bde_with_gap_fname = pj(wdir, output_fname_prefix + 'gap.xyz')
-    gap_reopt_fname = pj(wdir, output_fname_prefix + 'gap_reopt_trajectories.xyz')
+    dft_bde_with_gap_fname = pj(wdir, output_fname_prefix + 'with_gap.xyz')
+    gap_reopt_fname = pj(wdir, output_fname_prefix + 'gap_reopt_only.xyz')
     gap_reopt_with_gap_fname = output_fname_prefix + 'gap_bde_without_dft.xyz'
     gap_reopt_with_dft_fname = output_fname_prefix + 'gap_bde.xyz'
 
 
-    logger.info('Evaluating GAP on DFT structures')
+    at = read(dft_bde_filename)
     output_prefix = f'{dft_prop_prefix}opt_{gap_prop_prefix}'
-    inputs = ConfigSet_in(input_files=dft_bde_filename)
-    outputs_gap_energies = ConfigSet_out(output_files=dft_bde_with_gap_fname)
-    generic.run(inputs=inputs, outputs=outputs_gap_energies, calculator=calculator,
-                properties=['energy', 'forces'], output_prefix=output_prefix)
+    energy_key = f'{output_prefix}energy'
+    if energy_key not in at.info.keys():
+        logger.info('Evaluating GAP on DFT structures')
+        inputs = ConfigSet_in(input_files=dft_bde_filename)
+        outputs_gap_energies = ConfigSet_out(output_files=dft_bde_with_gap_fname)
+        inputs = generic.run(inputs=inputs, outputs=outputs_gap_energies,
+                     calculator=calculator,
+                    properties=['energy', 'forces'], output_prefix=output_prefix)
+    else:
+        logger.info(f'found {energy_key} in at.info.keys(), not evaluating '
+                    f'GAP on sturctures')
+        inputs = ConfigSet_in(input_files=dft_bde_filename)
+
 
 
     logger.info('GAP-optimising DFT structures')
-    outputs_gap_reopt = ConfigSet_out(output_files=gap_reopt_fname)
-    gap_reoptimised = ugap.optimise(inputs=outputs_gap_energies.to_ConfigSet_in(),
-                                    outputs=outputs_gap_reopt,
-                                   calculator=calculator,
-                                   wdir=wdir)
+    outputs = ConfigSet_out(output_files=gap_reopt_fname)
+    inputs = ugap.optimise(inputs=inputs,
+                           outputs=outputs,
+                           calculator=calculator)
 
 
     logger.info('Evaluating GAP-optimised structures with GAP')
     output_prefix = f'{gap_prop_prefix}opt_{gap_prop_prefix}'
-    inputs_to_gap_opt_regap = ConfigSet_in(input_configs=gap_reoptimised)
+    inputs_to_gap_opt_regap = ConfigSet_in(input_configs=inputs)
     outputs_gap_opt_w_gap = ConfigSet_out(output_files=gap_reopt_with_gap_fname)
     generic.run(inputs=inputs_to_gap_opt_regap,
                 outputs=outputs_gap_opt_w_gap,

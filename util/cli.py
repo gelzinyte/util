@@ -489,7 +489,7 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
 
     from quippy.potential import Potential
 
-    logging.info('Generating gap bde things')
+    logging.info('Generating gap bdes from dft bde files')
 
     if calculator_name == 'gap':
         calculator = (Potential, [], {'param_filename':gap_fname})
@@ -570,6 +570,19 @@ def sub_from_pattern(pattern_fname, start, num, submit, dir_prefix):
         if dir_prefix:
             os.chdir(orig_dir)
 
+@subcli_configs.command('select-with-info')
+@click.option('--input-filename', '-i',
+                       help='input filename with all info entries')
+@click.option('--output-filename', '-o')
+@click.option('--info-key', '-k', help='info key to select configs by')
+def select_with_info(input_filename, output_filename, info_key):
+
+    ats_out = []
+    ats = read(input_filename, ':')
+    for at in ats:
+        if info_key in at.info.keys():
+            ats_out.append(at)
+    write(output_filename, ats_out)
 
 
 

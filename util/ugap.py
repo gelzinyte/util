@@ -1,4 +1,5 @@
 import subprocess
+import logging
 import util
 import os
 import re
@@ -13,6 +14,7 @@ from ase.io.extxyz import key_val_str_to_dict
 from ase.io.extxyz import key_val_dict_to_str
 from ase.build import molecule
 from ase.io import read, write
+from ase import Atoms
 
 try:
     from quippy.potential import Potential
@@ -20,27 +22,61 @@ except ModuleNotFoundError:
     pass
 
 from wfl.generate_configs import minim
+from wfl.pipeline import iterable_loop
 
 from util import plot
 
 
-def optimise(inputs, outputs, opt_traj_outputs,  calculator):
-    # logfile = os.path.join(wdir, 'optimisation.log')
+logger = logging.getLogger(__name__)
+
+
+# def optimise(inputs, outputs, opt_traj_outputs,  calculator):
+#     # logfile = os.path.join(wdir, 'optimisation.log')
+#
+#     opt_kwargs = {'logfile': None, 'master': True, 'precon': None,
+#                   'use_armijo': False}
+#
+#     optimised_configset = minim.run(inputs, opt_traj_outputs, calculator,
+#                                     keep_symmetry=False,
+#                                     update_config_type=False, fmax=1e-2,
+#                                     **opt_kwargs, chunksize=50)
+#
+#     atoms_opt = [at for at in optimised_configset
+#                  if at.info['minim_config_type'] == 'minim_last_converged']
+#
+#     outputs.write(atoms_opt)
+#     outputs.end_write()
+#     return outputs.to_ConfigSet_in()
+
+def optimise(inputs, outputs, calculator):
+    return iterable_loop(iterable=inputs, configset_out=outputs,
+                         calculator=calculator, op=optimise_op)
+
+
+def optimise_op(atoms, calculator):
 
     opt_kwargs = {'logfile': None, 'master': True, 'precon': None,
                   'use_armijo': False}
 
-    optimised_configset = minim.run(inputs, opt_traj_outputs, calculator,
-                                    keep_symmetry=False,
-                                    update_config_type=False, fmax=1e-2,
-                                    **opt_kwargs, chunksize=50)
+    all_trajs = minim.run_op(atoms=atoms, calculator=calculator,
+                             keep_symmetry=False, update_config_type=False,
+                             fmax=1e-2, **opt_kwargs)
 
-    atoms_opt = [at for at in optimised_configset
-                 if at.info['minim_config_type'] == 'minim_last_converged']
+    print(f'len(all_trajs): {len(all_trajs)}')
 
-    outputs.write(atoms_opt)
-    outputs.end_write()
-    return outputs.to_ConfigSet_in()
+    ats_out = []
+    for traj in all_trajs:
+        last_at = traj[-1]
+        assert isinstance(last_at, Atoms)
+        if last_at.info["minim_config_type"] == 'minim_last_converged':
+            ats_out.append(last_at)
+        else:
+            logger.info(f'optimisation hasn\'t converged. atoms.info:'
+                        f' {atoms.info}')
+
+    return ats_out
+
+
 
 
 def make_descr_str(descr_dict):
