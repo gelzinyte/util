@@ -385,7 +385,14 @@ def remove_info_entries(in_filename, output_file, info_key):
 def print_tables(ctx, gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
                  precision):
 
-    isolated_h = read(isolated_h_fname)
+    isolated_h = read(isolated_h_fname, ':')
+    for at in isolated_h:
+        if list(at.symbols)[0] == 'H':
+            isolated_h = at
+            break
+    else:
+        raise RuntimeError(f"Could not find isolated H in {isolated_h_fname}")
+
     all_atoms = read(gap_bde_file, ':')
 
     _ = util.bde.table.multiple_tables_from_atoms(all_atoms=all_atoms,

@@ -256,7 +256,7 @@ def scatter_plot(ref_energy_name,
     if not prefix:
         prefix = os.path.basename(param_fname)
         prefix = os.path.splitext(prefix)[0]
-    picture_fname = f'{prefix}_scatter.png'
+    picture_fname = f'{prefix}_by_{color_info_name}_scatter.png'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
