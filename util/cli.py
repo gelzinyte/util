@@ -16,6 +16,7 @@ from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.calculators import orca
 from wfl.calculators import generic
 from wfl.generate_configs import vib
+from wfl.utils import gap_xml_tools
 from ase.io.extxyz import key_val_str_to_dict
 
 
@@ -32,6 +33,7 @@ from util import iter_tools as it
 from util.plot import rmse_scatter_evaled
 from util.plot import iterations
 from util import data
+from util import calculators
 from util import select_configs
 from util.plot import rmsd_table
 from util import old_nms_to_new
@@ -393,6 +395,39 @@ def print_tables(ctx, gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
                                              printing=True,
                                              precision=precision)
 
+@subcli_bde.command('assign')
+@click.option('--all-evaled-atoms-fname',
+              help='All atoms with appropriate energies')
+@click.option('--isolated-h-fname',
+              help='H with appropriate energy. Can have other isolated atoms')
+@click.option('--prop-prefix', help='prop prefix to get energies with')
+@click.option('--dft-prefix', help='for getting dft_opt_mol_positions_has')
+@click.option('--output-fname',
+              help='output filename for radicals with bond dissociation '
+                   'energies')
+def assign_bdes(all_evaled_atoms_fname, isolated_h_fname, prop_prefix,
+                dft_prefix, output_fname):
+
+    all_atoms = read(all_evaled_atoms_fname, ':')
+
+    isolated_atoms = read(isolated_h_fname, ':')
+    for at in isolated_atoms:
+        if len(at) == 1:
+            if list(at.symbols)[0] ==  'H':
+                isolated_h_energy = at.info[f'{prop_prefix}energy']
+                break
+    else:
+        raise RuntimeError('Haven\'t found isolated_h_energy')
+
+    all_bde_ats = util.bde.table.assign_atoms_bde_info(all_atoms=all_atoms,
+                                         h_energy=isolated_h_energy,
+                                         prop_prefix=prop_prefix,
+                                         dft_prefix=dft_prefix)
+
+    write(output_fname, all_bde_ats)
+
+
+
 @subcli_bde.command('scatter')
 @click.argument('gap-bde-file')
 @click.option('--isolated-h-fname', '-h', required=True,
@@ -445,14 +480,22 @@ def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
 @click.option('--gap-prop-prefix', help='label for all gap properties')
 @click.option('--wdir', default='gap_bde_wdir', show_default=True,
               help='working directory for all interrim files')
+@click.option('--calculator_name',
+              type=click.Choice(["gap", "gap_plus_xtb2"]),
+                    default='gap')
 def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_prefix,
-                      dft_prop_prefix, gap_prop_prefix, wdir):
+                      dft_prop_prefix, gap_prop_prefix, wdir,
+                      calculator_name):
 
     from quippy.potential import Potential
 
     logging.info('Generating gap bde things')
 
-    calculator = (Potential, [], {'param_filename':gap_fname})
+    if calculator_name == 'gap':
+        calculator = (Potential, [], {'param_filename':gap_fname})
+    elif calculator_name == 'gap_plus_xtb2':
+        calculator = (calculators.xtb_plus_gap, [],
+                      {'gap_filename':gap_fname})
 
     if iso_h_fname is not None and not os.path.isfile(iso_h_fname):
         # generate isolated atom stuff
@@ -485,7 +528,8 @@ def evaluate_gap_on_dft_bde_files(config_file, gap_fname, output_fname, gap_prop
     calculator = (Potential, [], {'param_filename':gap_fname})
 
     inputs = ConfigSet_in(input_files=config_file)
-    outputs_gap_energies = ConfigSet_out(output_files=output_fname)
+    outputs_gap_energies = ConfigSet_out(output_files=output_fname,
+                                         force=True, all_or_none=True)
     generic.run(inputs=inputs, outputs=outputs_gap_energies, calculator=calculator,
                 properties=['energy', 'forces'], output_prefix=gap_prop_prefix)
 
@@ -587,35 +631,35 @@ def hash_structures(input_fname, output_fname, prefix):
 
 
 
-@subcli_bde.command('gap-generate')
-@click.option('--smiles-csv', '-s', help='csv file with smiles and structures names')
-@click.option('--molecules-fname', '-m', help='filename with non-optimised molecule structures')
-@click.option('--num-repeats', '-n', type=click.INT, help='number of conformers to generate for each smiles')
-@click.option('--gap-prefix', '-p', help='how to name all gap entries')
-@click.option('--gap-filename', '-g')
-@click.option('--non-opt-filename', help='where to save non-optimised molecules')
-@click.option('--output-filename', '-o')
-def derive_gap_bdes(smiles_csv, molecules_fname, num_repeats, gap_prefix, gap_filename, non_opt_filename,
-                    output_filename):
-
-    assert smiles_csv is None or molecules_fname is None
-
-    from quippy.potential import Potential
-
-    if smiles_csv:
-        molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
-    elif molecules_fname:
-        molecules = read(molecules_fname, ':')
-
-    if non_opt_filename is not None:
-        write(non_opt_filename, molecules)
-
-    outputs = ConfigSet_out(output_files=output_filename)
-    calculator = (Potential, [], {'param_filename':gap_filename})
-
-    bde.gap_prepare_bde_structures_parallel(molecules, outputs=outputs,
-                                             calculator=calculator,
-                                             gap_prop_prefix=gap_prefix)
+# @subcli_bde.command('gap-generate')
+# @click.option('--smiles-csv', '-s', help='csv file with smiles and structures names')
+# @click.option('--molecules-fname', '-m', help='filename with non-optimised molecule structures')
+# @click.option('--num-repeats', '-n', type=click.INT, help='number of conformers to generate for each smiles')
+# @click.option('--gap-prefix', '-p', help='how to name all gap entries')
+# @click.option('--gap-filename', '-g')
+# @click.option('--non-opt-filename', help='where to save non-optimised molecules')
+# @click.option('--output-filename', '-o')
+# def derive_gap_bdes(smiles_csv, molecules_fname, num_repeats, gap_prefix, gap_filename, non_opt_filename,
+#                     output_filename):
+#
+#     assert smiles_csv is None or molecules_fname is None
+#
+#     from quippy.potential import Potential
+#
+#     if smiles_csv:
+#         molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
+#     elif molecules_fname:
+#         molecules = read(molecules_fname, ':')
+#
+#     if non_opt_filename is not None:
+#         write(non_opt_filename, molecules)
+#
+#     outputs = ConfigSet_out(output_files=output_filename)
+#     calculator = (Potential, [], {'param_filename':gap_filename})
+#
+#     bde.gap_prepare_bde_structures_parallel(molecules, outputs=outputs,
+#                                              calculator=calculator,
+#                                              gap_prop_prefix=gap_prefix)
 
 
 @subcli_bde.command('dft-reoptimise')
@@ -955,37 +999,37 @@ def run_md(gap_filename, mol_filename):
     md.run_md(gap_filename, mol_filename)
 
 
-@subcli_gap.command('optimize')
-@click.option('--start-dir' )
-@click.option('--start-fname')
-@click.option('--output', '-o')
-@click.option('--traj-fname')
-@click.option('--gap-fname', '-g')
-@click.option('--chunksize', type=click.INT, default=10)
-def gap_optimise(gap_fname, output, traj_fname=None, start_dir=None, start_fname=None, chunksize=10):
-
-    assert start_dir is None or start_fname is None
-
-    from quippy.potential import Potential
-
-    dft_fnames, _, _ = bde.dirs_to_fnames(dft_dir)
-
-    # optimise
-    opt_trajectory = ConfigSet_out(output_files=traj_fname)
-    inputs = ConfigSet_in(input_files=dft_fnames)
-
-    calculator = (Potential, [], {'param_fliename':gap_fname})
-
-    run_opt(inputs=inputs,
-            outputs=opt_trajectory, chunksize=chunksize,
-            calculator=calculator, return_traj=True, logfile=logfile)
-
-    opt_trajectory = read(traj_fname, ':')
-
-    opt_ats = [at for at in opt_trajectory if 'minim_config_type' in
-               at.info.keys() and 'converged' in at.info['minim_config_type']]
-
-    write(output, opt_ats)
+# @subcli_gap.command('optimize')
+# @click.option('--start-dir' )
+# @click.option('--start-fname')
+# @click.option('--output', '-o')
+# @click.option('--traj-fname')
+# @click.option('--gap-fname', '-g')
+# @click.option('--chunksize', type=click.INT, default=10)
+# def gap_optimise(gap_fname, output, traj_fname=None, start_dir=None, start_fname=None, chunksize=10):
+#
+#     assert start_dir is None or start_fname is None
+#
+#     from quippy.potential import Potential
+#
+#     dft_fnames, _, _ = bde.dirs_to_fnames(dft_dir)
+#
+#     # optimise
+#     opt_trajectory = ConfigSet_out(output_files=traj_fname)
+#     inputs = ConfigSet_in(input_files=dft_fnames)
+#
+#     calculator = (Potential, [], {'param_fliename':gap_fname})
+#
+#     run_opt(inputs=inputs,
+#             outputs=opt_trajectory, chunksize=chunksize,
+#             calculator=calculator, return_traj=True, logfile=logfile)
+#
+#     opt_trajectory = read(traj_fname, ':')
+#
+#     opt_ats = [at for at in opt_trajectory if 'minim_config_type' in
+#                at.info.keys() and 'converged' in at.info['minim_config_type']]
+#
+#     write(output, opt_ats)
 
 
 @subcli_data.command('convert-nm')
@@ -1083,20 +1127,23 @@ def calc_xtb2_ef(input_fn, output_fn, prefix):
 @click.option('--output-fn', '-o')
 @click.option('--prop-prefix-1', '-p1', help='property prefix for first set of values')
 @click.option('--prop-prefix-2', '-p2')
-def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2):
+@click.option('--out-prop-prefix', '-po', help='prop prefix for output')
+def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2,
+                       out_prop_prefix):
 
-    diff_prop_prefix = prop_prefix_1 + 'minus_' + prop_prefix_2
+    if out_prop_prefix is None:
+        out_prop_prefix = prop_prefix_1 + 'minus_' + prop_prefix_2
 
     ats = read(input_fn, ':')
     for at in ats:
-        at.info[f'{diff_prop_prefix}energy'] = \
+        at.info[f'{out_prop_prefix}energy'] = \
             at.info[f'{prop_prefix_1}energy'] - \
             at.info[f'{prop_prefix_2}energy']
 
         if f'{prop_prefix_1}forces' in at.arrays.keys() and \
             f'{prop_prefix_2}forces' in at.arrays.keys():
 
-            at.arrays[f'{diff_prop_prefix}forces'] = \
+            at.arrays[f'{out_prop_prefix}forces'] = \
                 at.arrays[f'{prop_prefix_1}forces'] - \
                 at.arrays[f'{prop_prefix_2}forces']
 
@@ -1107,20 +1154,22 @@ def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2):
 @click.option('--output-fn', '-o')
 @click.option('--prop-prefix-1', '-p1', help='property prefix for first set of values')
 @click.option('--prop-prefix-2', '-p2')
+@click.option('--out-prop-prefix', '-po', help='prop prefix for output')
 def target_values_from_predicted_diff(input_fn, output_fn, prop_prefix_1,
-                                      prop_prefix_2):
+                                      prop_prefix_2, out_prop_prefix):
 
-    target_prop_prefix = prop_prefix_1 + 'plus_' + prop_prefix_2
+    if out_prop_prefix is None:
+        out_prop_prefix = prop_prefix_1 + 'plus_' + prop_prefix_2
 
     ats = read(input_fn, ':')
     for at in ats:
-        at.info[f'{target_prop_prefix}energy'] = \
+        at.info[f'{out_prop_prefix}energy'] = \
             at.info[f'{prop_prefix_1}energy'] + \
             at.info[f'{prop_prefix_2}energy']
 
         if f'{prop_prefix_1}forces' in at.arrays.keys() and \
                 f'{prop_prefix_2}forces' in at.arrays.keys():
-            at.arrays[f'{target_prop_prefix}forces'] = \
+            at.arrays[f'{out_prop_prefix}forces'] = \
                 at.arrays[f'{prop_prefix_1}forces'] + \
                 at.arrays[f'{prop_prefix_2}forces']
 
@@ -1204,10 +1253,12 @@ def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_nam
 
     all_atoms = read(atoms_filename, ':')
     if energy_type=='binding_energy':
+
         if isolated_at_fname is not None:
             isolated_atoms = read(isolated_at_fname, ':')
         else:
             isolated_atoms = [at for at in all_atoms if len(at) == 1]
+
     else:
         isolated_atoms = None
 

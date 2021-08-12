@@ -149,15 +149,6 @@ def setup_orca_kwargs():
     default_kw = Config.from_yaml(
         os.path.join(cfg['util_root'], 'default_kwargs.yml'))
 
-    # smearing = default_kw['orca']['smearing']
-    # orcasimpleinput = default_kw['orca']['orcasimpleinput']
-    # orcablocks = f'%scf Convergence Tight\nSmearTemp {smearing}\nmaxiter ' \
-    #              f'500\nend'
-    #
-    # orca_kwargs = {'orcasimpleinput': orcasimpleinput,
-    #                'orcablocks': orcablocks}
-    # print(orca_kwargs)
-
     return default_kw['orca']
 
 
