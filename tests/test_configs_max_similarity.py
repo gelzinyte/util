@@ -46,7 +46,8 @@ def test_get_descriptor_mx():
 
     descs = max_similarity.get_descriptor_matrix(ats, at_descs_key)
 
-    assert descs.shape == (desc_length, len(ats))
+    n_envs = np.sum([len(at) for at in ats])
+    assert descs.shape == (desc_length, n_envs)
 
 
 

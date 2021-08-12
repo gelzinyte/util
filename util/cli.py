@@ -925,12 +925,6 @@ def cleanup_configs(num_tasks, out_prefix, in_prefix):
                                 batch_out_fname_prefix=out_prefix)
 
 
-@subcli_data.command('reevaluate-dir')
-@click.argument('dirs')
-@click.option('--smearing', type=click.INT, default=5000)
-def reevaluate_dir(dirs, smearing=5000):
-    iter_tools.reeval_dft(dirs, smearing)
-
 @subcli_gap.command('opt-and-nm')
 @click.option('--dft-dir', '-d')
 @click.option('--gap-fnames', '-g')
@@ -1133,6 +1127,19 @@ def calc_xtb2_ef(input_fn, output_fn, prefix):
         at.info[f'{prefix}energy'] = at.get_potential_energy()
         at.arrays[f'{prefix}forces'] = at.get_forces()
     write(output_fn, ats)
+
+@subcli_data.command('gap-plus-xtb2')
+@click.argument('input-fname')
+@click.option('--output-fname', '-o')
+@click.option('--prefix', '-p', default='gap_plus_xtb2_')
+@click.option('--gap-fname', '-g')
+def evaluate_diff_calc(input_fname, output_fname, prefix, gap_fname):
+
+    calculator = (calculators.xtb_plus_gap, [], {'gap_filename': gap_fname})
+    inputs = ConfigSet_in(input_files=input_fname)
+    outputs = ConfigSet_out(output_files=output_fname)
+    generic.run(inputs=inputs, outputs=outputs, calculator=calculator,
+                properties=['energy', 'forces'], output_prefix=prefix)
 
 
 @subcli_data.command('assign-diff')

@@ -62,7 +62,6 @@ def optimise_op(atoms, calculator):
                              keep_symmetry=False, update_config_type=False,
                              fmax=1e-2, **opt_kwargs)
 
-    print(f'len(all_trajs): {len(all_trajs)}')
 
     ats_out = []
     for traj in all_trajs:
