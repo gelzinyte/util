@@ -48,29 +48,6 @@ def scatter_plot(ref_energy_name,
 
     all_atoms = [at for at in all_atoms if len(at) != 1]
 
-    marker_kwargs = {'marker':'x', 'alpha':0.5, 's':10}
-
-    cmap = plt.get_cmap('tab10')
-    colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
-
-    num_columns = 2
-    if ref_force_name is None:
-        num_columns = 1
-
-    fig = plt.figure(figsize=(7*num_columns, 14))
-    gs = gridspec.GridSpec(2, num_columns)
-    axes = [plt.subplot(g) for g in gs]
-
-    if ref_force_name is None:
-        ax_e_err = axes[1]
-        ax_e_corr = axes[0]
-        ax_f_err = None
-        ax_f_corr = None
-    else:
-        ax_e_err = axes[2]
-        ax_e_corr = axes[0]
-        ax_f_err = axes[3]
-        ax_f_corr = axes[1]
 
 
     if color_info_name is not None:
@@ -139,6 +116,51 @@ def scatter_plot(ref_energy_name,
     all_plot_data = prepare_data(ref_values=ref_energies,
                              pred_values=pred_energies, labels=info_entries)
 
+
+    n_colors = len(all_plot_data)
+    if n_colors < 11:
+        cmap = plt.get_cmap('tab10')
+        colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
+    else:
+        cmap = plt.get_cmap('jet')
+        colors = [cmap(idx) for idx in np.linspace(0, 1, n_colors)]
+
+    marker_kwargs = {'marker': 'x', 'alpha': 0.5, 's': 10}
+
+    num_columns = 2
+    if ref_force_name is None:
+        num_columns = 1
+
+    if n_colors > 30:
+
+        f_legend_kwargs = {'bbox_to_anchor':(1.04, 1),
+                            'loc':'upper left' }
+
+        e_legend_kwargs = {'bbox_to_anchor':(0, 1),
+                           'loc':'upper right'}
+        figsize=((10 * num_columns, 20))
+    else:
+        f_legend_kwargs = {}
+        e_legend_kwargs = {}
+        figsize=(7 * num_columns, 14)
+
+
+    fig = plt.figure(figsize=figsize)
+    gs = gridspec.GridSpec(2, num_columns)
+    axes = [plt.subplot(g) for g in gs]
+
+
+    if ref_force_name is None:
+        ax_e_err = axes[1]
+        ax_e_corr = axes[0]
+        ax_f_err = None
+        ax_f_corr = None
+    else:
+        ax_e_err = axes[2]
+        ax_e_corr = axes[0]
+        ax_f_err = axes[3]
+        ax_f_corr = axes[1]
+
     ax_err = ax_e_err
     ax_corr = ax_e_corr
 
@@ -156,7 +178,7 @@ def scatter_plot(ref_energy_name,
         ax_err.axhline(rmse, color=color, lw=0.8)
 
 
-    ax_corr.legend(title=f' {color_info_name}: RMSE / meV/at')
+    ax_corr.legend(title=f' {color_info_name}: RMSE / meV/at', **e_legend_kwargs)
     ax_corr.set_ylabel(y_energy_correlation_label)
     ax_err.set_ylabel(y_energy_error_label)
     ax_err.set_yscale('log')
@@ -209,9 +231,9 @@ def scatter_plot(ref_energy_name,
             **marker_kwargs)
             ax_err.axhline(rmse, color=color, lw=0.8)
 
-        ax_corr.legend(title=f'F component RMSE / meV/Å')
+        ax_corr.legend(title=f'F component RMSE / meV/Å', **f_legend_kwargs)
         ax_corr.set_ylabel(f'Predicted {pred_force_name} / eV/Å')
-        ax_err.set_ylabel(f'absolute force component error / eV/Å')
+        ax_err.set_ylabel(f'absolute force component error / meV/Å')
         ax_err.set_yscale('log')
         ax_err.set_title('Force component error')
         ax_corr.set_title('Force component correlation')

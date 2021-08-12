@@ -1133,11 +1133,12 @@ def calc_xtb2_ef(input_fn, output_fn, prefix):
 @click.option('--output-fname', '-o')
 @click.option('--prefix', '-p', default='gap_plus_xtb2_')
 @click.option('--gap-fname', '-g')
-def evaluate_diff_calc(input_fname, output_fname, prefix, gap_fname):
+@click.option('--force', is_flag=True)
+def evaluate_diff_calc(input_fname, output_fname, prefix, gap_fname, force):
 
     calculator = (calculators.xtb_plus_gap, [], {'gap_filename': gap_fname})
     inputs = ConfigSet_in(input_files=input_fname)
-    outputs = ConfigSet_out(output_files=output_fname)
+    outputs = ConfigSet_out(output_files=output_fname, force=force)
     generic.run(inputs=inputs, outputs=outputs, calculator=calculator,
                 properties=['energy', 'forces'], output_prefix=prefix)
 
@@ -1248,7 +1249,8 @@ def make_plots(gap_fname=None, gap_dir=None, output_dir=None, prefix=None, glue_
 @click.option('--pred-energy-name', '-pe', type=str)
 @click.option('--ref-force-name', '-rf', type=str)
 @click.option('--pred-force-name', '-pf', type=str)
-@click.option('--output-dir', default='pictures', show_default=True, type=click.Path(),
+@click.option('--output-dir', default='.', show_default=True, 
+              type=click.Path(),
               help='directory for figures. Create if not-existent')
 @click.option('--prefix', '-p', help='prefix to label plots')
 @click.option('--info-label',

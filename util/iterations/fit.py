@@ -115,7 +115,7 @@ def fit(no_cycles,
         opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
         opt_fname = f'xyzs/{cycle_idx}.3_gap_opt_mols_rads.xyz'
 
-        opt_traj_fname = f'xyzs/wdir/{cycle_idx}_opt.xyz'
+        # opt_traj_fname = f'xyzs/wdir/{cycle_idx}_opt.xyz'
 
         configs_with_large_errors = f'xyzs/' \
                             f'{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
@@ -160,11 +160,13 @@ def fit(no_cycles,
 
         # 2. generate structures for optimisation
         if not os.path.exists(opt_starts_fname):
+            logger.info('generating structures to optimise')
             outputs = ConfigSet_out(output_files=opt_starts_fname)
             inputs = it.make_structures(smiles_csv, iter_no=cycle_idx,
                                num_smi_repeat=num_smiles_opt,
                                outputs=outputs)
         else:
+            logger.info(f'found {opt_starts_fname}, not generating')
             inputs = ConfigSet_in(input_files=opt_starts_fname)
 
 
@@ -172,9 +174,9 @@ def fit(no_cycles,
         # with GAP and DFT
         if not os.path.exists(opt_fname):
             outputs = ConfigSet_out(output_files=opt_fname)
-            opt_traj_outputs = ConfigSet_out(output_files=opt_traj_fname)
+            # opt_traj_outputs = ConfigSet_out(output_files=opt_traj_fname)
             inputs = ugap.optimise(inputs=inputs, outputs=outputs,
-                                   opt_traj_outputs=opt_traj_outputs,
+                                   # opt_traj_outputs=opt_traj_outputs,
                                    calculator=calculator)
 
             # evaluate GAP
