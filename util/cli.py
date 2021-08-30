@@ -119,7 +119,7 @@ def subcli_ace():
 logger = logging.getLogger(__name__)
 
 
-@subcli_ace.command('eval')
+@subcli_ace.command('evaluate')
 @click.argument('input_fname')
 @click.option('--output-fname', '-o', help='output filename')
 @click.option('--ace-fname', '-a', help='ace json')
@@ -133,6 +133,11 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
     inputs = ConfigSet_in(input_files=input_fname)
     outputs = ConfigSet_out(output_files=output_fname)
     # calc = (pyjulip.ACE, [ace_fname], {})
+
+    # generic.run(inputs=inputs, outputs=outputs, calculator=calc,
+    #             properties=['energy', 'forces'], output_prefix=prop_prefix)
+
+
     logger.info('setting up ace calculator')
     calc = pyjulip.ACE(ace_fname)
     logger.info('loaded up ace calculator')
@@ -476,7 +481,8 @@ def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
 @subcli_bde.command('generate')
 @click.pass_context
 @click.argument('dft-bde-file')
-@click.option('--gap-fname', '-g', help='gap xml filename')
+@click.option('--gap-fname', '-g', help='outdated: gap xml filename')
+@click.option('--ip-fname', help='gap/ace fname')
 @click.option('--iso-h-fname',
               help='if not None, evaluate isolated H energy with GAP'
                    'and save to given file.')
@@ -484,15 +490,17 @@ def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
               help='prefix for main and all working files with all gap and dft properties')
 @click.option('--dft-prop-prefix', default='dft_', show_default=True,
               help='label for all dft properties')
-@click.option('--gap-prop-prefix', help='label for all gap properties')
-@click.option('--wdir', default='gap_bde_wdir', show_default=True,
+@click.option('--gap-prop-prefix', help='outdated: label for all gap '
+                                        'properties')
+@click.option('--ip-prop-prefix', help='gap/ace property prefix')
+@click.option('--wdir', default='bde_wdir', show_default=True,
               help='working directory for all interrim files')
 @click.option('--calculator_name',
-              type=click.Choice(["gap", "gap_plus_xtb2"]),
+              type=click.Choice(["gap", "gap_plus_xtb2", 'ace']),
                     default='gap')
 def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_prefix,
                       dft_prop_prefix, gap_prop_prefix, wdir,
-                      calculator_name):
+                      calculator_name, ip_fname, ip_prop_prefix):
 
     from quippy.potential import Potential
 
@@ -503,6 +511,12 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
     elif calculator_name == 'gap_plus_xtb2':
         calculator = (calculators.xtb_plus_gap, [],
                       {'gap_filename':gap_fname})
+    elif calculator_name == 'ace':
+        logger.info('importing pyjulip')
+        import pyjulip
+        calculator = (pyjulip.ACE, [ace_fname], {})
+
+
 
     if iso_h_fname is not None and not os.path.isfile(iso_h_fname):
         # generate isolated atom stuff
@@ -525,8 +539,12 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
 @click.argument('config-file')
 @click.option('--gap-fname', '-g', help='gap xml filename')
 @click.option('--output-fname', '-o')
-@click.option('--gap-prop-prefix', help='prefix for gap properties in xyz')
-def evaluate_gap_on_dft_bde_files(config_file, gap_fname, output_fname, gap_prop_prefix):
+@click.option('--gap-prop-prefix', '-p',
+              help='prefix for gap properties in xyz')
+@click.option('--force', is_flag=True, help='for configset_out')
+@click.option('--all_or_none', is_flag=True, help='for configset_out')
+def evaluate_gap_on_dft_bde_files(config_file, gap_fname, output_fname,
+                                  gap_prop_prefix, force, all_or_none):
 
     # logger.info('Evaluating GAP on DFT structures')
 
@@ -536,7 +554,8 @@ def evaluate_gap_on_dft_bde_files(config_file, gap_fname, output_fname, gap_prop
 
     inputs = ConfigSet_in(input_files=config_file)
     outputs_gap_energies = ConfigSet_out(output_files=output_fname,
-                                         force=True, all_or_none=True)
+                                         force=force,
+                                         all_or_none=all_or_none)
     generic.run(inputs=inputs, outputs=outputs_gap_energies, calculator=calculator,
                 properties=['energy', 'forces'], output_prefix=gap_prop_prefix)
 
