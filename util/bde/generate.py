@@ -86,14 +86,16 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     calculator - (calculator, calc_args, calc_kwargs) construct for wfl
 
     """
-    random_at = random.choice(read(dft_bde_filename, ':'))
+    random_at = random.choice(read(dft_bde_filename, ':50'))
     assert f'{dft_prop_prefix}opt_mol_positions_hash' in random_at.info.keys()
     assert f'{dft_prop_prefix}opt_positions' in random_at.arrays.keys()
 
     if not os.path.exists(wdir):
         os.mkdir(wdir)
 
-    dft_bde_with_gap_fname = pj(wdir, output_fname_prefix + 'with_gap.xyz')
+    dft_fname_prefix = os.path.splitext(os.path.basename(dft_bde_filename))[0]
+
+    dft_bde_with_gap_fname = pj(wdir, dft_fname_prefix + 'with_gap.xyz')
     gap_reopt_fname = pj(wdir, output_fname_prefix + 'gap_reopt_only.xyz')
     gap_reopt_with_gap_fname = output_fname_prefix + 'gap_bde_without_dft.xyz'
     gap_reopt_with_dft_fname = output_fname_prefix + 'gap_bde.xyz'
@@ -103,7 +105,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     output_prefix = f'{dft_prop_prefix}opt_{gap_prop_prefix}'
     energy_key = f'{output_prefix}energy'
     if energy_key not in at.info.keys():
-        logger.info('Evaluating GAP on DFT structures')
+        logger.info(f'Evaluating GAP on DFT structures to '
+                    f'{dft_bde_with_gap_fname}')
         inputs = ConfigSet_in(input_files=dft_bde_filename)
         outputs_gap_energies = ConfigSet_out(output_files=dft_bde_with_gap_fname)
         inputs = generic.run(inputs=inputs, outputs=outputs_gap_energies,
