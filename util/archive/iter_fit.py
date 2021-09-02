@@ -205,6 +205,8 @@ def fit(no_cycles,
                                    num_smi_repeat=num_smiles_opt,
                                    output_fname=opt_starts_fname)
 
+            raise RuntimeError("just stopping it here")
+
             # optimise
             if not os.path.exists(opt_fname):
                 logger.info(f'gap-optimising {opt_starts_fname} to {opt_fname}')

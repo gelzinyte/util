@@ -161,7 +161,8 @@ def fit(no_cycles,
         # 2. generate structures for optimisation
         if not os.path.exists(opt_starts_fname):
             logger.info('generating structures to optimise')
-            outputs = ConfigSet_out(output_files=opt_starts_fname)
+            outputs = ConfigSet_out(output_files=opt_starts_fname,
+                                    verbose=False)
             inputs = it.make_structures(smiles_csv, iter_no=cycle_idx,
                                num_smi_repeat=num_smiles_opt,
                                outputs=outputs)
@@ -173,6 +174,7 @@ def fit(no_cycles,
         # 3 optimise structures with current GAP and re-evaluate them
         # with GAP and DFT
         if not os.path.exists(opt_fname):
+            logger.info("optimising structures")
             outputs = ConfigSet_out(output_files=opt_fname)
             # opt_traj_outputs = ConfigSet_out(output_files=opt_traj_fname)
             inputs = ugap.optimise(inputs=inputs, outputs=outputs,
@@ -180,6 +182,7 @@ def fit(no_cycles,
                                    calculator=calculator)
 
             # evaluate GAP
+            logger.info("evaluating gap on optimised structures")
             outputs = ConfigSet_out(output_files=opt_fname, force=True)
             inputs = generic.run(inputs=inputs, outputs=outputs,
                                  calculator=calculator,
@@ -187,6 +190,7 @@ def fit(no_cycles,
                                  output_prefix=gap_prop_prefix, chunksize=50)
 
             # evaluate DFT
+            logger.info('evaluatig dft on optimised structures')
             outputs = ConfigSet_out(output_files=opt_fname, force=True)
             inputs = orca.evaluate(inputs=inputs, outputs=outputs,
                                orca_kwargs=orca_kwargs,
@@ -195,6 +199,8 @@ def fit(no_cycles,
                                base_rundir=f'xyzs/wdir/'
                                            f'i{cycle_idx}_orca_outputs')
         else:
+            logger.info(f"found optimised structures with GAP and DFT, "
+                        f"reading {opt_fname}")
             inputs = ConfigSet_in(input_files=opt_fname)
 
 

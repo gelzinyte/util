@@ -44,7 +44,8 @@ def scatter_plot(ref_energy_name,
                 ref_force_name,
                 pred_force_name, all_atoms,
                 output_dir, prefix, color_info_name, isolated_atoms,
-                energy_type, energy_shift):
+                energy_type, energy_shift,
+                 no_legend=False):
 
     all_atoms = [at for at in all_atoms if len(at) != 1]
 
@@ -177,8 +178,9 @@ def scatter_plot(ref_energy_name,
                        color=color, zorder=2)
         ax_err.axhline(rmse, color=color, lw=0.8)
 
-
-    ax_corr.legend(title=f' {color_info_name}: RMSE / meV/at', **e_legend_kwargs)
+    if not no_legend:
+        ax_corr.legend(title=f' {color_info_name}: RMSE / meV/at', **e_legend_kwargs)
+        
     ax_corr.set_ylabel(y_energy_correlation_label)
     ax_err.set_ylabel(y_energy_error_label)
     ax_err.set_yscale('log')
@@ -231,7 +233,9 @@ def scatter_plot(ref_energy_name,
             **marker_kwargs)
             ax_err.axhline(rmse, color=color, lw=0.8)
 
-        ax_corr.legend(title=f'F component RMSE / meV/Å', **f_legend_kwargs)
+        if not no_legend:
+            ax_corr.legend(title=f'F component RMSE / meV/Å', **f_legend_kwargs)
+
         ax_corr.set_ylabel(f'Predicted {pred_force_name} / eV/Å')
         ax_err.set_ylabel(f'absolute force component error / meV/Å')
         ax_err.set_yscale('log')

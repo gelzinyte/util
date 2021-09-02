@@ -1,4 +1,5 @@
 import os
+import logging
 
 import pandas as pd
 import numpy as np
@@ -9,6 +10,7 @@ from wfl.configset import ConfigSet_in, ConfigSet_out
 from util import smiles, radicals
 from util import configs
 
+logger = logging.getLogger(__name__)
 
 
 def make_dirs(dir_names):
@@ -20,6 +22,8 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, outputs):
 
     atoms_out = []
 
+    logger.info(f"writing to {outputs.output_files}")
+
     # generate molecules
     df = pd.read_csv(smiles_csv)
     for smi, name in zip(df['SMILES'], df['Name']):
@@ -27,19 +31,21 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, outputs):
             mol = smiles.smi_to_atoms(smi)
             mol.info['config_type'] = name
 
-            outputs = ConfigSet_out()
-            radicals.abstract_sp3_hydrogen_atoms(mol, outputs=outputs)
-            num_mols_and_rads = len(outputs.output_configs)
+            interim_outputs = ConfigSet_out()
+            radicals.abstract_sp3_hydrogen_atoms(mol, outputs=interim_outputs)
+            num_mols_and_rads = len(interim_outputs.output_configs)
 
             for idx in range(num_mols_and_rads):
                 # make a new conformer for each molecule/radical I take
                 mol = smiles.smi_to_atoms(smi)
                 mol.info['config_type'] = name
 
-                outputs = ConfigSet_out()
-                radicals.abstract_sp3_hydrogen_atoms(mol, outputs=outputs)
+                interim_outputs = ConfigSet_out()
+                radicals.abstract_sp3_hydrogen_atoms(mol, outputs=interim_outputs)
 
-                atoms_out.append(outputs.output_configs[idx])
+                atoms_out.append(interim_outputs.output_configs[idx])
+
+    logger.info(f'length of output atoms: {len(atoms_out)}')
 
     for at in atoms_out:
         at.cell = [50, 50, 50]

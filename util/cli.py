@@ -20,35 +20,35 @@ from wfl.utils import gap_xml_tools
 from ase.io.extxyz import key_val_str_to_dict
 
 
-from util import compare_minima
-import util.bde.generate
-import util.bde.table
-import util.bde.plot
-from util import radicals
-from util import error_table
-from util import plot
-from util.plot import dimer
-from util.plot import mols
-from util import iter_tools as it
-from util.plot import rmse_scatter_evaled
-from util.plot import iterations
-from util import data
-from util import calculators
-from util import select_configs
-from util.plot import rmsd_table
-from util import old_nms_to_new
-from util import configs
-from util import atom_types
-from util import mem_tracker
-import util.iterations.fit
-from util import md
-from util import qm
-from util.util_config import Config
-from util import normal_modes
-import util
-from util.plot import dataset
-from util import cc_results
-from util.configs import max_similarity
+# from util import compare_minima
+# import util.bde.generate
+# import util.bde.table
+# import util.bde.plot
+# from util import radicals
+# from util import error_table
+# from util import plot
+# from util.plot import dimer
+# from util.plot import mols
+# from util import iter_tools as it
+# from util.plot import rmse_scatter_evaled
+# from util.plot import iterations
+# from util import data
+# from util import calculators
+# from util import select_configs
+# from util.plot import rmsd_table
+# from util import old_nms_to_new
+# from util import configs
+# from util import atom_types
+# from util import mem_tracker
+# import util.iterations.fit
+# from util import md
+# from util import qm
+# from util.util_config import Config
+# from util import normal_modes
+# import util
+# from util.plot import dataset
+# from util import cc_results
+# from util.configs import max_similarity
 
 @click.group('util')
 @click.option('--verbose', '-v', is_flag=True)
@@ -420,6 +420,8 @@ def print_tables(ctx, gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
 def assign_bdes(all_evaled_atoms_fname, isolated_h_fname, prop_prefix,
                 dft_prefix, output_fname):
 
+    import util.bde.table
+
     all_atoms = read(all_evaled_atoms_fname, ':')
 
     isolated_atoms = read(isolated_h_fname, ':')
@@ -503,6 +505,8 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
                       calculator_name, ip_fname, ip_prop_prefix):
 
     from quippy.potential import Potential
+    import util.bde.generate
+    from util import calculators
 
     logging.info('Generating gap bdes from dft bde files')
 
@@ -721,7 +725,9 @@ def reoptimise_with_dft(input_filename, output_filename, dft_prop_prefix):
 @click.option('--output', '-o')
 @click.option('--prop-prefix', '-p')
 def eval_h(gap_fname, output, prop_prefix):
+
     from quippy.potential import Potential
+
     gap = Potential(param_filename=gap_fname)
     at = Atoms('H', positions=[(0, 0, 0)])
     at.calc = gap
@@ -733,20 +739,25 @@ def eval_h(gap_fname, output, prop_prefix):
 @click.option('--fname2', '-f2')
 @click.option('--key', '-k', default='compound')
 def print_rmsd_table(fname1, fname2, key):
+    from util.plot import rmsd_table
     rmsd_table.rmsd_table(fname1, fname2, group_key=key)
 
 
-@subcli_plot.command('dft-dimer')
-@click.argument('dimer-fnames', nargs=-1)
-@click.option('--prefix', '-p', default=dimer)
-def plot_dft_dimers(dimer_fnames, prefix):
-    """plots all results from all given evaluated xyzs"""
-    dimer.dimer(dimer_fnames, prefix)
+# @subcli_plot.command('dft-dimer')
+# @click.argument('dimer-fnames', nargs=-1)
+# @click.option('--prefix', '-p', default=dimer)
+# def plot_dft_dimers(dimer_fnames, prefix):
+#     """plots all results from all given evaluated xyzs"""
+#
+#     from util.plot import dimer
+#
+#     dimer.dimer(dimer_fnames, prefix)
 
 @subcli_configs.command('cleanup-info-entries')
 @click.argument('input-fname')
 @click.option('--output-fname', '-o')
 def cleanup_info_entries(input_fname, output_fname):
+    from util import configs
     configs.process_config_info(input_fname, output_fname)
 
 @subcli_configs.command('sample-normal-modes')
@@ -801,49 +812,49 @@ def make_test_sets(output_prefix, num_temps, num_displacements_per_temp, num_cyc
         write(os.path.join(output_dir, f'{output_prefix}_{iter_no}.xyz'), current_test_set)
 
 
-
-@subcli_plot.command('iterations')
-@click.option('--test-fname-pattern', default='xyzs/gap_{idx}_on_test_{idx}.xyz', show_default=True)
-@click.option('--train-fname-pattern', default='xyzs/gap_{idx}_on_train_{idx}.xyz',
-              show_default=True, help='pattern with "{idx}" in the title to be replaced')
-@click.option('--ref-prefix', default='dft_', show_default=True)
-@click.option('--pred-prefix-pattern', default='gap_{idx}_', show_default=True,
-              help='pattern with {idx} to be replaced')
-@click.option('--plot-prefix')
-@click.option('--num-cycles', type=click.INT, help='number of iterations', required=True)
-@click.option('--gap-bde-dir-pattern', default='bdes_from_dft_min/gap_{idx}_bdes_from_dft',
-              show_default=True)
-@click.option('--dft-bde-dir', default='/home/eg475/dsets/small_cho/bde_files/train/dft/')
-@click.option('--measure', default='bde_correlation',
-              type=click.Choice(['bde', 'rmsd', 'soap_dist', 'gap_e_error', \
-                                'gap_f_rmse', 'gap_f_max', 'bde_correlation']),
-             help='which property to look at')
-@click.option('--no-lc', is_flag=True, help='turns off learning curves')
-@click.option('--no-means', is_flag=True, help='plot all lines, not just means')
-@click.option('--no-bde', is_flag=True, help='turns off bde related plots')
-def plot_cycles(test_fname_pattern, train_fname_pattern, ref_prefix, pred_prefix_pattern, plot_prefix,
-                num_cycles, gap_bde_dir_pattern, dft_bde_dir, measure, no_lc, no_means, no_bde):
-
-    num_cycles += 1
-
-    train_fnames = [train_fname_pattern.replace('{idx}', str(idx)) for idx in range(num_cycles)]
-    test_fnames = [test_fname_pattern.replace('{idx}', str(idx)) for idx in
-                    range(num_cycles)]
-    pred_prefixes = [pred_prefix_pattern.replace('{idx}', str(idx)) for idx in range(num_cycles)]
-
-    if not no_lc:
-        iterations.learning_curves(train_fnames=train_fnames, test_fnames=test_fnames,
-                                   ref_prefix=ref_prefix, pred_prefix_list=pred_prefixes,
-                               plot_prefix=plot_prefix)
-
-    means = True
-    if no_means:
-        means=False
-
-    if not no_bde:
-        iterations.bde_related_plots(num_cycles=num_cycles, gap_dir_pattern=gap_bde_dir_pattern,
-                                    dft_dir=dft_bde_dir, metric=measure, plot_prefix=plot_prefix,
-                                 means=means)
+#
+# @subcli_plot.command('iterations')
+# @click.option('--test-fname-pattern', default='xyzs/gap_{idx}_on_test_{idx}.xyz', show_default=True)
+# @click.option('--train-fname-pattern', default='xyzs/gap_{idx}_on_train_{idx}.xyz',
+#               show_default=True, help='pattern with "{idx}" in the title to be replaced')
+# @click.option('--ref-prefix', default='dft_', show_default=True)
+# @click.option('--pred-prefix-pattern', default='gap_{idx}_', show_default=True,
+#               help='pattern with {idx} to be replaced')
+# @click.option('--plot-prefix')
+# @click.option('--num-cycles', type=click.INT, help='number of iterations', required=True)
+# @click.option('--gap-bde-dir-pattern', default='bdes_from_dft_min/gap_{idx}_bdes_from_dft',
+#               show_default=True)
+# @click.option('--dft-bde-dir', default='/home/eg475/dsets/small_cho/bde_files/train/dft/')
+# @click.option('--measure', default='bde_correlation',
+#               type=click.Choice(['bde', 'rmsd', 'soap_dist', 'gap_e_error', \
+#                                 'gap_f_rmse', 'gap_f_max', 'bde_correlation']),
+#              help='which property to look at')
+# @click.option('--no-lc', is_flag=True, help='turns off learning curves')
+# @click.option('--no-means', is_flag=True, help='plot all lines, not just means')
+# @click.option('--no-bde', is_flag=True, help='turns off bde related plots')
+# def plot_cycles(test_fname_pattern, train_fname_pattern, ref_prefix, pred_prefix_pattern, plot_prefix,
+#                 num_cycles, gap_bde_dir_pattern, dft_bde_dir, measure, no_lc, no_means, no_bde):
+#
+#     num_cycles += 1
+#
+#     train_fnames = [train_fname_pattern.replace('{idx}', str(idx)) for idx in range(num_cycles)]
+#     test_fnames = [test_fname_pattern.replace('{idx}', str(idx)) for idx in
+#                     range(num_cycles)]
+#     pred_prefixes = [pred_prefix_pattern.replace('{idx}', str(idx)) for idx in range(num_cycles)]
+#
+#     if not no_lc:
+#         iterations.learning_curves(train_fnames=train_fnames, test_fnames=test_fnames,
+#                                    ref_prefix=ref_prefix, pred_prefix_list=pred_prefixes,
+#                                plot_prefix=plot_prefix)
+#
+#     means = True
+#     if no_means:
+#         means=False
+#
+#     if not no_bde:
+#         iterations.bde_related_plots(num_cycles=num_cycles, gap_dir_pattern=gap_bde_dir_pattern,
+#                                     dft_dir=dft_bde_dir, metric=measure, plot_prefix=plot_prefix,
+#                                  means=means)
 
 
 @subcli_plot.command('data-summary')
@@ -853,6 +864,8 @@ def plot_cycles(test_fname_pattern, train_fname_pattern, ref_prefix, pred_prefix
 @click.option('--cutoff', '-c', default=6.0, type=click.FLOAT,
               help='cutoff for counting distances')
 def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff):
+
+    from util.plot import dataset
 
     atoms = read(in_fname, ':')
 
@@ -924,6 +937,9 @@ def atom_type(input_fname, output_fname, isolated_at):
 @click.option('--prefix', '-p', default='in_', help='prefix for individual files')
 @click.option('--dir-prefix', help='prefix for directory to put file into')
 def distribute_configs(in_fname, num_tasks, prefix, dir_prefix):
+
+    from util import configs
+
     configs.batch_configs(in_fname=in_fname, num_tasks=num_tasks,
                               batch_in_fname_prefix=prefix, dir_prefix=dir_prefix)
 
@@ -972,6 +988,8 @@ def gap_reopt_dft_and_derive_normal_modes(dft_dir, gap_fnames, output_dir):
 def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_fname, chunksize):
     """Prints force and energy error by config_type"""
 
+    from util import error_table
+
     inputs = ConfigSet_in(input_files=inputs)
 
     if calc_kwargs is not None:
@@ -1013,6 +1031,8 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 def fit(num_cycles, train_fname, gap_param_filename, smiles_csv,
         num_smiles_opt, num_nm_displacements_per_temp, num_nm_temps,
         energy_filter_threshold, max_force_filter_threshold):
+
+    import util.iterations.fit
 
     util.iterations.fit.fit(no_cycles=num_cycles,
                  first_train_fname=train_fname,
@@ -1249,6 +1269,8 @@ def make_plots(gap_fname=None, gap_dir=None, output_dir=None, prefix=None, glue_
                plot_2b_contribution=True, ref_curve=True, isolated_atoms_fname=None, ref_name='dft', dimer_scatter=None):
     """Makes energy and force scatter plots and dimer curves"""
 
+    from util import plot
+
     if output_dir:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -1289,11 +1311,14 @@ def make_plots(gap_fname=None, gap_dir=None, output_dir=None, prefix=None, glue_
               flag_value='binding_energy', help='Binding energy per atom')
 @click.option('--mean-shifted-energy', '-sft', 'energy_shift',is_flag=True,
               help='shift energies by the mean. ')
+@click.option('--no-legend', is_flag=True, help='doesn\'t plot the legend')
 def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name,
                atoms_filename,
                output_dir, prefix, info_label, isolated_at_fname,
-               energy_type, energy_shift):
+               energy_type, energy_shift, no_legend):
     """Makes energy and force scatter plots and dimer curves"""
+
+    from util.plot import rmse_scatter_evaled
 
     if output_dir:
         if not os.path.exists(output_dir):
@@ -1320,7 +1345,8 @@ def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_nam
                                      color_info_name=info_label,
                                      isolated_atoms=isolated_atoms,
                                      energy_type=energy_type,
-                                     energy_shift=energy_shift)
+                                     energy_shift=energy_shift,
+                                     no_legend=no_legend)
 
 # @subcli_gap.command('evaluate')
 # @click.argument('input-fn')
