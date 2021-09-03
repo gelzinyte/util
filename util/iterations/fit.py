@@ -195,7 +195,7 @@ def fit(no_cycles,
             inputs = orca.evaluate(inputs=inputs, outputs=outputs,
                                orca_kwargs=orca_kwargs,
                                output_prefix=output_prefix,
-                               keep_files='default',
+                               keep_files=False,
                                base_rundir=f'xyzs/wdir/'
                                            f'i{cycle_idx}_orca_outputs')
         else:
@@ -267,7 +267,7 @@ def fit(no_cycles,
                                outputs=outputs,
                                orca_kwargs=orca_kwargs,
                                output_prefix=output_prefix,
-                               keep_files='default',
+                               keep_files=False,
                                base_rundir=f'xyzs/wdir/'
                                            f'i{cycle_idx}_orca_outputs')
 
