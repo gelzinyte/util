@@ -69,10 +69,12 @@ def main(structures_dir,
 
 def plot_densities(calculation_stem, method):
 
-    plot_scf = f'printf "5\n7\n1\n2\ny\n10\n1\n3\ny\n10\n11" | orca_plot ' \
+    plot_scf = f'printf "5\n7\n4\n200\n1\n2\ny\n10\n1\n3\ny\n10\n11" | ' \
+               f'orca_plot ' \
                f'{calculation_stem}.gbw -i'
 
-    plot_mdci = f'printf "5\n7\n1\n7\ny\n10\n1\n8\ny\n10\n11" | orca_plot ' \
+    plot_mdci = f'printf "5\n7\n4\n200\n1\n7\ny\n10\n1\n8\ny\n10\n11" | ' \
+                f'orca_plot ' \
                f'{calculation_stem}.gbw -i'
 
 
