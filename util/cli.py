@@ -1182,6 +1182,8 @@ def calc_xtb2_ef(input_fn, output_fn, prefix):
 @click.option('--force', is_flag=True)
 def evaluate_diff_calc(input_fname, output_fname, prefix, gap_fname, force):
 
+    from util import calculators
+
     calculator = (calculators.xtb_plus_gap, [], {'gap_filename': gap_fname})
     inputs = ConfigSet_in(input_files=input_fname)
     outputs = ConfigSet_out(output_files=output_fname, force=force)
@@ -1249,6 +1251,7 @@ def target_values_from_predicted_diff(input_fn, output_fn, prop_prefix_1,
 @click.option('--max_time', type=click.INT, default=1e5, help='How long to keep checking for, s')
 @click.option('--out_fname_prefix', default='mem_usage', help='output\'s prefix')
 def track_mem(my_job_id, period=10, max_time=100000, out_fname_prefix='mem_usage'):
+    from util import mem_tracker
     out_fname = f'{out_fname_prefix}_{my_job_id}.txt'
     mem_tracker.track_mem(my_job_id=my_job_id, period=period, max_time=max_time,
                      out_fname=out_fname   )

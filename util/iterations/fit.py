@@ -114,8 +114,7 @@ def fit(no_cycles,
 
         opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
         opt_fname = f'xyzs/{cycle_idx}.3_gap_opt_mols_rads.xyz'
-
-        # opt_traj_fname = f'xyzs/wdir/{cycle_idx}_opt.xyz'
+        opt_fname_w_dft = f'xyzs/{cycle_idx}.3_gap_opt_mols_rads.dft.xyz'
 
         configs_with_large_errors = f'xyzs/' \
                             f'{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
@@ -173,9 +172,10 @@ def fit(no_cycles,
 
         # 3 optimise structures with current GAP and re-evaluate them
         # with GAP and DFT
-        if not os.path.exists(opt_fname):
+        if not os.path.exists(opt_fname_w_dft):
             logger.info("optimising structures")
-            outputs = ConfigSet_out(output_files=opt_fname)
+            outputs = ConfigSet_out(output_files=opt_fname, force=True,
+                                    all_or_none=True)
             # opt_traj_outputs = ConfigSet_out(output_files=opt_traj_fname)
             inputs = ugap.optimise(inputs=inputs, outputs=outputs,
                                    # opt_traj_outputs=opt_traj_outputs,
@@ -183,7 +183,7 @@ def fit(no_cycles,
 
             # evaluate GAP
             logger.info("evaluating gap on optimised structures")
-            outputs = ConfigSet_out(output_files=opt_fname, force=True)
+            outputs = ConfigSet_out(output_files=gap_opt_fname, force=True)
             inputs = generic.run(inputs=inputs, outputs=outputs,
                                  calculator=calculator,
                                  properties=['energy', 'forces'],
@@ -191,7 +191,7 @@ def fit(no_cycles,
 
             # evaluate DFT
             logger.info('evaluatig dft on optimised structures')
-            outputs = ConfigSet_out(output_files=opt_fname, force=True)
+            outputs = ConfigSet_out(output_files=opt_fname_w_dft)
             inputs = orca.evaluate(inputs=inputs, outputs=outputs,
                                orca_kwargs=orca_kwargs,
                                output_prefix=output_prefix,
@@ -200,8 +200,8 @@ def fit(no_cycles,
                                            f'i{cycle_idx}_orca_outputs')
         else:
             logger.info(f"found optimised structures with GAP and DFT, "
-                        f"reading {opt_fname}")
-            inputs = ConfigSet_in(input_files=opt_fname)
+                        f"reading {opt_fname_w_dft}")
+            inputs = ConfigSet_in(input_files=opt_fname_w_dft)
 
 
         # 4 filter by energy and force error

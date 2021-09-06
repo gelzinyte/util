@@ -44,7 +44,7 @@ def scatter_plot(ref_energy_name,
                 ref_force_name,
                 pred_force_name, all_atoms,
                 output_dir, prefix, color_info_name, isolated_atoms,
-                energy_type, energy_shift,
+                energy_type, energy_shift=False,
                  no_legend=False):
 
     all_atoms = [at for at in all_atoms if len(at) != 1]
@@ -93,7 +93,7 @@ def scatter_plot(ref_energy_name,
 
     ref_prefix = ref_energy_name.replace('energy', '')
     pred_prefix = pred_energy_name.replace('energy', '')
-    # TODO: change the util function
+
     ref_energies = [energy_getter_function(at, isolated_atoms,
                                                    ref_prefix)
                     for at in all_atoms if len(at) != 1]

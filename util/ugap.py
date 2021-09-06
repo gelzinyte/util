@@ -68,6 +68,7 @@ def optimise_op(atoms, calculator):
         last_at = traj[-1]
         assert isinstance(last_at, Atoms)
         if last_at.info["minim_config_type"] == 'minim_last_converged':
+            logger.info(f'optimisaition converged after {last_at.info["minim_n_steps"]}')
             ats_out.append(last_at)
         else:
             logger.info(f'optimisation hasn\'t converged. atoms.info:'
