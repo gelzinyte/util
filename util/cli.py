@@ -263,16 +263,16 @@ def xtb_normal_modes(input_fname, output_fname):
 
 
 @subcli_qm.command('cu-cy')
-@click.option('--structures_dir', show_default=True,
+@click.option('--structures-dir', show_default=True,
               help='where are the input xyz to be calculated on',
               default='/data/eg475/carbyne/optimised_structures' )
-@click.option('--uks_orca_template_fname', show_default=True,
+@click.option('--uks-orca-template-fname', show_default=True,
               default='/data/eg475/carbyne/calculate/uks_cc_template.inp' )
-@click.option('--cc_orca_template_fname', show_default=True,
+@click.option('--cc-orca-template-fname', show_default=True,
               default='/data/eg475/carbyne/calculate/dlpno_ccsd_template.inp' )
-@click.option('--sub_template_fname', show_default=True,
+@click.option('--sub-template-fname', show_default=True,
               default='/data/eg475/carbyne/calculate/sub_template.sh' )
-@click.option('--output_dir', show_default=True,
+@click.option('--output-dir', show_default=True,
               default='/data/eg475/carbyne/calculate/outputs' )
 @click.option('--task' )#, type=click.Choice(['calculate, density_plots']) )
 @click.option('--submit', is_flag=True)
@@ -283,6 +283,8 @@ def calculate(structures_dir,
          output_dir,
             task,
          submit=False):
+
+    from util import cc_results
 
     cc_results.main(structures_dir=structures_dir,
                          uks_orca_template_fname=uks_orca_template_fname,

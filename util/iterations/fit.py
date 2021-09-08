@@ -114,7 +114,7 @@ def fit(no_cycles,
 
         opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
         opt_fname = f'xyzs/{cycle_idx}.3_gap_opt_mols_rads.xyz'
-        opt_fname_w_dft = f'xyzs/{cycle_idx}.3_gap_opt_mols_rads.dft.xyz'
+        opt_fname_w_dft = f'xyzs/{cycle_idx}.3.1_gap_opt_mols_rads.dft.xyz'
 
         configs_with_large_errors = f'xyzs/' \
                             f'{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
@@ -183,7 +183,7 @@ def fit(no_cycles,
 
             # evaluate GAP
             logger.info("evaluating gap on optimised structures")
-            outputs = ConfigSet_out(output_files=gap_opt_fname, force=True)
+            outputs = ConfigSet_out(output_files=opt_fname, force=True)
             inputs = generic.run(inputs=inputs, outputs=outputs,
                                  calculator=calculator,
                                  properties=['energy', 'forces'],
