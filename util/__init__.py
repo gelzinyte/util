@@ -30,6 +30,10 @@ except:
 from contextlib import contextmanager,redirect_stderr,redirect_stdout
 from os import devnull
 
+def ace_constructor(ace_fname):
+    import pyjulip
+    return pyjulip.ACE(ace_fname)
+
 @contextmanager
 def suppress_stdout_stderr():
     """A context manager that redirects stdout and stderr to devnull"""

@@ -515,9 +515,7 @@ def generate_ip_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_pref
         calculator = (calculators.xtb_plus_gap, [],
                       {'gap_filename':ip_fname})
     elif calculator_name == 'ace':
-        logger.info('importing pyjulip')
-        import pyjulip
-        calculator = (pyjulip.ACE, [ace_fname], {})
+        calculator = (util.ace_constructor, [ace_fname], {})
 
 
 

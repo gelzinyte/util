@@ -15,7 +15,7 @@ from wfl.calculators import orca
 from wfl.generate_configs import minim
 
 from util.util_config import Config
-from util import ugap
+from util import opt
 
 logger = logging.getLogger(__name__)
 
@@ -119,9 +119,9 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
 
 
-    logger.info('GAP-optimising DFT structures')
+    logger.info('IP-optimising DFT structures')
     outputs = ConfigSet_out(output_files=ip_reopt_fname)
-    inputs = ugap.optimise(inputs=inputs,
+    inputs = opt.optimise(inputs=inputs,
                            outputs=outputs,
                            calculator=calculator)
 
