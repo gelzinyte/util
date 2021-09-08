@@ -46,7 +46,8 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, output_fname,
 
 
 def everything(calculator, dft_bde_filename, output_fname_prefix,
-               dft_prop_prefix, ip_prop_prefix, wdir='ip_bde_wdir'):
+               dft_prop_prefix, ip_prop_prefix, wdir='ip_bde_wdir',
+               chunksize=10):
     """
 
     # 1. evaluate dft structures with ip
@@ -123,7 +124,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     outputs = ConfigSet_out(output_files=ip_reopt_fname)
     inputs = opt.optimise(inputs=inputs,
                            outputs=outputs,
-                           calculator=calculator)
+                           calculator=calculator,
+                          chunksize=chunksize)
 
 
     logger.info('Evaluating GAP-optimised structures with GAP')
@@ -133,7 +135,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     generic.run(inputs=inputs_to_ip_opt_reip,
                 outputs=outputs_ip_opt_w_ip,
                 calculator=calculator, properties=['energy', 'forces'],
-                output_prefix=output_prefix)
+                output_prefix=output_prefix,
+                chunksize=chunksize)
 
     logger.info('Labeling GAP-optimised positions')
     atoms = read(ip_reopt_with_ip_fname, ':')

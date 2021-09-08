@@ -499,9 +499,11 @@ def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
 @click.option('--calculator-name',
               type=click.Choice(["gap", "gap_plus_xtb2", 'ace']),
                     default='gap')
+@click.option('--chunksize', type=click.INT, default=10,
+              help='chunksize for IP optimisation and re-evaluation.')
 def generate_ip_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_prefix,
                       dft_prop_prefix, ip_prop_prefix, wdir,
-                      calculator_name):
+                      calculator_name, chunksize):
 
     from quippy.potential import Potential
     import util.bde.generate
@@ -533,7 +535,8 @@ def generate_ip_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_pref
                                  output_fname_prefix=output_fname_prefix,
                                  dft_prop_prefix=dft_prop_prefix,
                                  ip_prop_prefix=ip_prop_prefix,
-                                 wdir=wdir)
+                                 wdir=wdir,
+                                 chunksize=chunksize)
 
 
 @subcli_gap.command('evaluate')
