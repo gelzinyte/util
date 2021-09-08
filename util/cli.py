@@ -485,38 +485,35 @@ def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
 @subcli_bde.command('generate')
 @click.pass_context
 @click.argument('dft-bde-file')
-@click.option('--gap-fname', '-g', help='outdated: gap xml filename')
 @click.option('--ip-fname', help='gap/ace fname')
 @click.option('--iso-h-fname',
               help='if not None, evaluate isolated H energy with GAP'
                    'and save to given file.')
 @click.option('--output-fname-prefix', '-o',
-              help='prefix for main and all working files with all gap and dft properties')
+              help='prefix for main and all working files with all ip and dft properties')
 @click.option('--dft-prop-prefix', default='dft_', show_default=True,
               help='label for all dft properties')
-@click.option('--gap-prop-prefix', help='outdated: label for all gap '
-                                        'properties')
 @click.option('--ip-prop-prefix', help='gap/ace property prefix')
 @click.option('--wdir', default='bde_wdir', show_default=True,
               help='working directory for all interrim files')
-@click.option('--calculator_name',
+@click.option('--calculator-name',
               type=click.Choice(["gap", "gap_plus_xtb2", 'ace']),
                     default='gap')
-def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_prefix,
-                      dft_prop_prefix, gap_prop_prefix, wdir,
-                      calculator_name, ip_fname, ip_prop_prefix):
+def generate_ip_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_prefix,
+                      dft_prop_prefix, ip_prop_prefix, wdir,
+                      calculator_name):
 
     from quippy.potential import Potential
     import util.bde.generate
     from util import calculators
 
-    logging.info('Generating gap bdes from dft bde files')
+    logging.info(f'Generating {calculator_name} bdes from dft bde files')
 
     if calculator_name == 'gap':
-        calculator = (Potential, [], {'param_filename':gap_fname})
+        calculator = (Potential, [], {'param_filename':ip_fname})
     elif calculator_name == 'gap_plus_xtb2':
         calculator = (calculators.xtb_plus_gap, [],
-                      {'gap_filename':gap_fname})
+                      {'gap_filename':ip_fname})
     elif calculator_name == 'ace':
         logger.info('importing pyjulip')
         import pyjulip
@@ -526,9 +523,9 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
 
     if iso_h_fname is not None and not os.path.isfile(iso_h_fname):
         # generate isolated atom stuff
-        util.bde.generate.gap_isolated_h(calculator=calculator,
+        util.bde.generate.ip_isolated_h(calculator=calculator,
                                          dft_prop_prefix=dft_prop_prefix,
-                                         gap_prop_prefix=gap_prop_prefix,
+                                         ip_prop_prefix=ip_prop_prefix,
                                          output_fname=iso_h_fname,
                                          wdir=wdir)
     #
@@ -537,7 +534,7 @@ def generate_gap_bdes(ctx, dft_bde_file, gap_fname, iso_h_fname, output_fname_pr
                                  dft_bde_filename=dft_bde_file,
                                  output_fname_prefix=output_fname_prefix,
                                  dft_prop_prefix=dft_prop_prefix,
-                                 gap_prop_prefix=gap_prop_prefix,
+                                 ip_prop_prefix=ip_prop_prefix,
                                  wdir=wdir)
 
 

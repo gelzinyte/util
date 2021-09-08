@@ -20,8 +20,8 @@ from util import ugap
 logger = logging.getLogger(__name__)
 
 
-def gap_isolated_h(calculator, dft_prop_prefix, gap_prop_prefix, output_fname,
-                   wdir='gap_bde_wdir'):
+def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, output_fname,
+                   wdir='ip_bde_wdir'):
 
     dft_h = Atoms('H', positions=[(0, 0, 0)])
     dft_h.info['config_type'] = 'H'
@@ -41,18 +41,18 @@ def gap_isolated_h(calculator, dft_prop_prefix, gap_prop_prefix, output_fname,
     generic.run(inputs=dft_outputs.output_configs,
                 outputs=outputs,
                 calculator=calculator, properties=['energy'],
-                output_prefix=gap_prop_prefix)
+                output_prefix=ip_prop_prefix)
 
 
 
 def everything(calculator, dft_bde_filename, output_fname_prefix,
-               dft_prop_prefix, gap_prop_prefix, wdir='gap_bde_wdir'):
+               dft_prop_prefix, ip_prop_prefix, wdir='ip_bde_wdir'):
     """
 
-    # 1. evaluate dft structures with gap
+    # 1. evaluate dft structures with ip
     #     - should have (dft) hashses
     #     - should have dft_opt_positions
-    # 2. gap-optimise and evaluate with gap
+    # 2. ip-optimise and evaluate with ip
           - save optimised positions
     # 3. evaluate with dft
     # 4. add isolated hydrogen atom (optionally?)
@@ -65,20 +65,20 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     {dft_prefix}opt_{dft_prefix}forces
     {dft_prefix}opt_{dft_prefix}energy
 
-    {dft_prefix}opt_{gap_prefix}forces
-    {dft_prefix}opt_{gap_prefix}energy
+    {dft_prefix}opt_{ip_prefix}forces
+    {dft_prefix}opt_{ip_prefix}energy
 
 
-    {gap_prefix}opt_positions
+    {ip_prefix}opt_positions
 
-    {gap_prefix}opt_{gap_prefix}forces
-    {gap_prefix}opt_{gap_prefix}energy
+    {ip_prefix}opt_{ip_prefix}forces
+    {ip_prefix}opt_{ip_prefix}energy
 
-    {gap_prefix}opt_{dft_prefix}forces
-    {gap_prefix}opt_{dft_prefix}energy
+    {ip_prefix}opt_{dft_prefix}forces
+    {ip_prefix}opt_{dft_prefix}energy
 
     and for isolated_h simply:
-    {gap_prefix}energy
+    {ip_prefix}energy
     {dft_prefix}energy
 
     Parameters
@@ -95,21 +95,21 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
     dft_fname_prefix = os.path.splitext(os.path.basename(dft_bde_filename))[0]
 
-    dft_bde_with_gap_fname = pj(wdir, dft_fname_prefix + 'with_gap.xyz')
-    gap_reopt_fname = pj(wdir, output_fname_prefix + 'gap_reopt_only.xyz')
-    gap_reopt_with_gap_fname = output_fname_prefix + 'gap_bde_without_dft.xyz'
-    gap_reopt_with_dft_fname = output_fname_prefix + 'gap_bde.xyz'
+    dft_bde_with_ip_fname = pj(wdir, dft_fname_prefix + 'with_ip.xyz')
+    ip_reopt_fname = pj(wdir, output_fname_prefix + 'ip_reopt_only.xyz')
+    ip_reopt_with_ip_fname = output_fname_prefix + 'ip_bde_without_dft.xyz'
+    ip_reopt_with_dft_fname = output_fname_prefix + 'ip_bde.xyz'
 
 
     at = read(dft_bde_filename)
-    output_prefix = f'{dft_prop_prefix}opt_{gap_prop_prefix}'
+    output_prefix = f'{dft_prop_prefix}opt_{ip_prop_prefix}'
     energy_key = f'{output_prefix}energy'
     if energy_key not in at.info.keys():
         logger.info(f'Evaluating GAP on DFT structures to '
-                    f'{dft_bde_with_gap_fname}')
+                    f'{dft_bde_with_ip_fname}')
         inputs = ConfigSet_in(input_files=dft_bde_filename)
-        outputs_gap_energies = ConfigSet_out(output_files=dft_bde_with_gap_fname)
-        inputs = generic.run(inputs=inputs, outputs=outputs_gap_energies,
+        outputs_ip_energies = ConfigSet_out(output_files=dft_bde_with_ip_fname)
+        inputs = generic.run(inputs=inputs, outputs=outputs_ip_energies,
                      calculator=calculator,
                     properties=['energy', 'forces'], output_prefix=output_prefix)
     else:
@@ -120,31 +120,31 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
 
     logger.info('GAP-optimising DFT structures')
-    outputs = ConfigSet_out(output_files=gap_reopt_fname)
+    outputs = ConfigSet_out(output_files=ip_reopt_fname)
     inputs = ugap.optimise(inputs=inputs,
                            outputs=outputs,
                            calculator=calculator)
 
 
     logger.info('Evaluating GAP-optimised structures with GAP')
-    output_prefix = f'{gap_prop_prefix}opt_{gap_prop_prefix}'
-    inputs_to_gap_opt_regap = ConfigSet_in(input_configs=inputs)
-    outputs_gap_opt_w_gap = ConfigSet_out(output_files=gap_reopt_with_gap_fname)
-    generic.run(inputs=inputs_to_gap_opt_regap,
-                outputs=outputs_gap_opt_w_gap,
+    output_prefix = f'{ip_prop_prefix}opt_{ip_prop_prefix}'
+    inputs_to_ip_opt_reip = ConfigSet_in(input_configs=inputs)
+    outputs_ip_opt_w_ip = ConfigSet_out(output_files=ip_reopt_with_ip_fname)
+    generic.run(inputs=inputs_to_ip_opt_reip,
+                outputs=outputs_ip_opt_w_ip,
                 calculator=calculator, properties=['energy', 'forces'],
                 output_prefix=output_prefix)
 
     logger.info('Labeling GAP-optimised positions')
-    atoms = read(gap_reopt_with_gap_fname, ':')
+    atoms = read(ip_reopt_with_ip_fname, ':')
     for at in atoms:
-        at.arrays[f'{gap_prop_prefix}opt_positions'] = at.positions.copy()
-    write(gap_reopt_with_gap_fname, atoms)
+        at.arrays[f'{ip_prop_prefix}opt_positions'] = at.positions.copy()
+    write(ip_reopt_with_ip_fname, atoms)
 
-    logger.info('Re-evaluating gap-optimised structures with DFT')
-    output_prefix=f'{gap_prop_prefix}opt_{dft_prop_prefix}'
+    logger.info('Re-evaluating ip-optimised structures with DFT')
+    output_prefix=f'{ip_prop_prefix}opt_{dft_prop_prefix}'
     inputs_to_dft_reeval = ConfigSet_in(input_configs=atoms)
-    final_outputs = ConfigSet_out(output_files=gap_reopt_with_dft_fname)
+    final_outputs = ConfigSet_out(output_files=ip_reopt_with_dft_fname)
     orca_kwargs = setup_orca_kwargs()
     orca.evaluate(inputs=inputs_to_dft_reeval,
                   outputs=final_outputs,
