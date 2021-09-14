@@ -128,7 +128,7 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
                           chunksize=chunksize)
 
 
-    logger.info('Evaluating GAP-optimised structures with GAP')
+    logger.info('Evaluating IP-optimised structures with IP')
     output_prefix = f'{ip_prop_prefix}opt_{ip_prop_prefix}'
     inputs_to_ip_opt_reip = ConfigSet_in(input_configs=inputs)
     outputs_ip_opt_w_ip = ConfigSet_out(output_files=ip_reopt_with_ip_fname)
@@ -138,7 +138,7 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
                 output_prefix=output_prefix,
                 chunksize=chunksize)
 
-    logger.info('Labeling GAP-optimised positions')
+    logger.info('Labeling IP-optimised positions')
     atoms = read(ip_reopt_with_ip_fname, ':')
     for at in atoms:
         at.arrays[f'{ip_prop_prefix}opt_positions'] = at.positions.copy()
@@ -153,7 +153,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
                   outputs=final_outputs,
                   base_rundir=pj(wdir, 'orca_outputs'),
                   orca_kwargs=orca_kwargs,
-                  output_prefix=output_prefix)
+                  output_prefix=output_prefix,
+                  keep_files=False)
 
 
 
