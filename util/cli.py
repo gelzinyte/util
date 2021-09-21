@@ -349,6 +349,42 @@ def read_orca_stuff(output_xyz, orca_label):
     at = qm.read_orca_output(orca_label)
     write(output_xyz, at)
 
+@subcli_qm.command('pop-get')
+@click.option('--orca-out', help='orca output to read populations from')
+@click.option('--xyz-in', help='xyz to read geometry from ')
+@click.option('--orca-in', help='orca input to read geometry from, '
+                                'alternative to xyz-in')
+@click.option('--xyz-out', help='where to write populations to')
+@click.option('--pop', help='which population to color by')
+@click.option('--cmap', help='matplotlib cmap to color by')
+def get_populations(orca_out, xyz_in, orca_in, xyz_out, pop, cmap):
+    '''  NA   - Mulliken gross atomic population
+   ZA   - Total nuclear charge
+   QA   - Mulliken gross atomic charge
+   VA   - Mayer's total valence
+   BVA  - Mayer's bonded valence
+   FA   - Mayer's free valence
+ '''
+    from util import qm
+    qm.print_populations(orca_out=orca_out,
+                         xyz_in=xyz_in,
+                         orca_in=orca_in,
+                         xyz_out=xyz_out,
+                         pop=pop,
+                         cmap=cmap)
+
+@subcli_qm.command('pop-colour')
+@click.option('--in-fname', '-i', help='xyz with populations.')
+@click.option('--out-fname', '-o', help='xyz to write to')
+@click.option('--pop', '-p', help='population to color by')
+@click.option('--cmap', '-c', help='matplotlib colormap')
+def color_by_populations(in_fname, out_fname, pop, cmap):
+    from util import qm
+    ats_in = read(in_fname)
+    ats_out = qm.color_by_pop(ats, pop, cmap)
+    write(out_fname, ats_out)
+
+
 @subcli_configs.command('info-to-no')
 @click.argument('fname_in')
 @click.option('--info-key', '-i', help='atosm.info key to nubmer')
@@ -497,7 +533,7 @@ def scatter_plot(gap_bde_file, isolated_h_fname, gap_prefix, dft_prefix,
 @click.option('--wdir', default='bde_wdir', show_default=True,
               help='working directory for all interrim files')
 @click.option('--calculator-name',
-              type=click.Choice(["gap", "gap_plus_xtb2", 'ace']),
+              type=click.Choice(["gap", "gap_plus_xtb2", 'ace', 'xtb2']),
                     default='gap')
 @click.option('--chunksize', type=click.INT, default=10,
               help='chunksize for IP optimisation and re-evaluation.')
@@ -518,6 +554,9 @@ def generate_ip_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_pref
                       {'gap_filename':ip_fname})
     elif calculator_name == 'ace':
         calculator = (util.ace_constructor, [ip_fname], {})
+    elif calculator_name == 'xtb2':
+        from xtb.ase.calculator import XTB
+        calculator = (XTB, [], {"method":"GFN2-xTB"})
 
 
 
@@ -863,11 +902,19 @@ def make_test_sets(output_prefix, num_temps, num_displacements_per_temp, num_cyc
 @click.option('--isolated_at_fname', '-i')
 @click.option('--cutoff', '-c', default=6.0, type=click.FLOAT,
               help='cutoff for counting distances')
-def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff):
+@click.option('--info', default='config_type', help='label to color by')
+@click.option('--prop-prefix', default='dft_', type=click.STRING)
+def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff,
+                 info, prop_prefix):
 
     from util.plot import dataset
 
     atoms = read(in_fname, ':')
+
+    if prop_prefix is None:
+        prop_prefix=""
+
+    fname_stem = os.path.splitext(os.path.basename(in_fname))[0]
 
     if cutoff == 0:
         cutoff = None
@@ -877,12 +924,15 @@ def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff):
         isolated_ats = read(isolated_at_fname, ':')
 
     if fig_prefix:
-        title_energy = f'{fig_prefix}_energy_by_idx'
-        title_forces = f'{fig_prefix}_forces_by_idx'
+        title_energy = f'{fig_prefix}_{fname_stem}_by_{info}_energies'
+        title_forces = f'{fig_prefix}_{fname_stem}_by_{info}_forces'
         title_geometry = f'{fig_prefix}_distances_distribution'
 
-    dataset.energy_by_idx(atoms, title=title_energy, isolated_atoms=isolated_ats)
-    dataset.forces_by_idx(atoms, title=title_forces)
+    dataset.energy_by_idx(atoms, title=title_energy,
+                          isolated_atoms=isolated_ats,
+                          info_label=info, prop_prefix=prop_prefix)
+    dataset.forces_by_idx(atoms, title=title_forces, info_label=info,
+                          prop_prefix=prop_prefix)
     # dataset.distances_distributions(atoms, title=title_geometry, cutoff=cutoff)
 
 

@@ -11,8 +11,9 @@ from collections import Counter
 
 
 
-def energy_by_idx(atoms, prop_prefix='dft_', title=None, group_compounds=True,
-                  isolated_atoms=None):
+def energy_by_idx(atoms, prop_prefix='dft_', title=None,
+                  group_compounds=False,
+                  isolated_atoms=None, info_label='config_type'):
     """TODO: do binding energy per atom"""
 
     if title is None:
@@ -29,7 +30,7 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None, group_compounds=True,
 
     data = {}
     for idx, at in enumerate(atoms):
-        cfg = at.info['config_type']
+        cfg = at.info[info_label]
         if cfg not in data.keys():
             data[cfg] = []
         at.info['dset_idx'] = idx
@@ -63,14 +64,15 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None, group_compounds=True,
     plt.tight_layout()
     plt.savefig(fig_name + '.png', dpi=300)
 
-def forces_by_idx(atoms, prop_prefix='dft_', title=None, group_compounds=True):
+def forces_by_idx(atoms, prop_prefix='dft_', title=None,
+                  group_compounds=False, info_label='config_type'):
 
     if title is None:
         title = 'force components vs index'
 
     data = {}
     for idx, at in enumerate(atoms):
-        cfg = at.info['config_type']
+        cfg = at.info[info_label]
         if cfg == 'isolated_atom':
             continue
         if cfg not in data.keys():
