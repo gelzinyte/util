@@ -169,11 +169,11 @@ def print_populations(orca_out, xyz_in, orca_in, xyz_out, pop, cmap):
 
     write(xyz_out, ats)
 
-def color_by_pop(ats, pop, cmap):
+def color_by_pop(ats, pop, cmap, min=-0.5, max=0.5):
     values = ats.arrays[pop]
 
     # norm = mpl.colors.Normalize(vmin=min(values), vmax=max(values), clip=True)
-    norm = mpl.colors.Normalize(vmin=-0.5, vmax=0.5, clip=True)
+    norm = mpl.colors.Normalize(vmin=min, vmax=max, clip=True)
     mapper = cm.ScalarMappable(norm=norm, cmap=cm.get_cmap(cmap))
 
     colors = np.array([mapper.to_rgba(v)[0:3] for v in values])
