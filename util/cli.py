@@ -380,7 +380,7 @@ def get_populations(orca_out, xyz_in, orca_in, xyz_out, pop, cmap):
 @click.option('--cmap', '-c', help='matplotlib colormap')
 @click.option('--min', type=click.FLOAT, default=-0.5)
 @click.option('--max', type=click.FLOAT, default=0.4)
-def color_by_populations(in_fname, out_fname, pop, cmap):
+def color_by_populations(in_fname, out_fname, pop, cmap, min, max):
     from util import qm
     ats_in = read(in_fname)
     ats_out = qm.color_by_pop(ats, pop, cmap, min, max)
