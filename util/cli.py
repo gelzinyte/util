@@ -344,9 +344,10 @@ def plot_scf_convergence_graph(orca_output, method, plot_fname):
 @subcli_qm.command('read-orca')
 @click.option('--output-xyz', '-o', help='output filename')
 @click.option('--orca-label', '-l', help='prefix to orca files to read from')
-def read_orca_stuff(output_xyz, orca_label):
-
-    at = qm.read_orca_output(orca_label)
+@click.option('--input-xyz', '-i', help='xyz')
+def read_orca_stuff(output_xyz, orca_label, input_xyz):
+    from util import qm
+    at = qm.read_orca_output(orca_label, input_xyz)
     write(output_xyz, at)
 
 @subcli_qm.command('pop-get')

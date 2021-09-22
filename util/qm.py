@@ -11,9 +11,12 @@ from ase.io.orca import read_geom_orcainp
 from matplotlib import cm
 
 
-def read_orca_output(orca_label):
+def read_orca_output(orca_label, input_xyz):
 
-    at = read_geom_orcainp(orca_label + '.inp')
+    if input_xyz:
+        at = read(input_xyz)
+    else:
+        at = read_geom_orcainp(orca_label + '.inp')
     calc = orca.ExtendedORCA()
     calc.label=orca_label
     calc.read_energy()
