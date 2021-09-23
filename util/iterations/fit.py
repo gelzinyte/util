@@ -16,7 +16,7 @@ from wfl.configset import ConfigSet_in, ConfigSet_out
 import wfl.fit.gap_simple
 from wfl.generate_configs import vib
 
-from util import ugap
+from util import opt
 from util import normal_modes as nm
 from util.util_config import Config
 from util.iterations import tools as it
@@ -177,7 +177,7 @@ def fit(no_cycles,
             outputs = ConfigSet_out(output_files=opt_fname, force=True,
                                     all_or_none=True)
             # opt_traj_outputs = ConfigSet_out(output_files=opt_traj_fname)
-            inputs = ugap.optimise(inputs=inputs, outputs=outputs,
+            inputs = opt.optimise(inputs=inputs, outputs=outputs,
                                    # opt_traj_outputs=opt_traj_outputs,
                                    calculator=calculator)
 
