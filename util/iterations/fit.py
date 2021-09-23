@@ -113,8 +113,10 @@ def fit(no_cycles,
             train_set_fname = initial_train_fname
 
         opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
-        opt_fname = f'xyzs/{cycle_idx}.3_gap_opt_mols_rads.xyz'
-        opt_fname_w_dft = f'xyzs/{cycle_idx}.3.1_gap_opt_mols_rads.dft.xyz'
+        opt_fname = f'xyzs/{cycle_idx}.3.0_gap_opt_mols_rads.xyz'
+        opt_fname_with_gap = f'xyzs/{cycle_idx}.3.1_gap_opt_mols_rads.gap.xyz'
+        opt_fname_w_dft = f'xyzs/' \
+                          f'{cycle_idx}.3.2_gap_opt_mols_rads.gap.dft.xyz'
 
         configs_with_large_errors = f'xyzs/' \
                             f'{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
@@ -158,118 +160,111 @@ def fit(no_cycles,
         calculator = (Potential, [], {'param_filename':gap_fname})
 
         # 2. generate structures for optimisation
-        if not os.path.exists(opt_starts_fname):
-            logger.info('generating structures to optimise')
-            outputs = ConfigSet_out(output_files=opt_starts_fname,
-                                    verbose=False)
-            inputs = it.make_structures(smiles_csv, iter_no=cycle_idx,
-                               num_smi_repeat=num_smiles_opt,
-                               outputs=outputs)
-        else:
-            logger.info(f'found {opt_starts_fname}, not generating')
-            inputs = ConfigSet_in(input_files=opt_starts_fname)
+        logger.info('generating structures to optimise')
+        outputs = ConfigSet_out(output_files=opt_starts_fname,
+                                force=True, all_or_none=True,
+                                verbose=False)
+        inputs = it.make_structures(smiles_csv, iter_no=cycle_idx,
+                           num_smi_repeat=num_smiles_opt,
+                           outputs=outputs)
 
 
         # 3 optimise structures with current GAP and re-evaluate them
         # with GAP and DFT
-        if not os.path.exists(opt_fname_w_dft):
-            logger.info("optimising structures")
-            outputs = ConfigSet_out(output_files=opt_fname, force=True,
-                                    all_or_none=True)
-            # opt_traj_outputs = ConfigSet_out(output_files=opt_traj_fname)
-            inputs = opt.optimise(inputs=inputs, outputs=outputs,
-                                   # opt_traj_outputs=opt_traj_outputs,
-                                   calculator=calculator)
+        logger.info("optimising structures with GAP")
+        outputs = ConfigSet_out(output_files=opt_fname, force=True,
+                                all_or_none=True)
+        inputs = opt.optimise(inputs=inputs, outputs=outputs,
+                               calculator=calculator)
 
-            # evaluate GAP
-            logger.info("evaluating gap on optimised structures")
-            outputs = ConfigSet_out(output_files=opt_fname, force=True)
-            inputs = generic.run(inputs=inputs, outputs=outputs,
-                                 calculator=calculator,
-                                 properties=['energy', 'forces'],
-                                 output_prefix=gap_prop_prefix, chunksize=50)
 
-            # evaluate DFT
-            logger.info('evaluatig dft on optimised structures')
-            outputs = ConfigSet_out(output_files=opt_fname_w_dft)
-            inputs = orca.evaluate(inputs=inputs, outputs=outputs,
-                               orca_kwargs=orca_kwargs,
-                               output_prefix=output_prefix,
-                               keep_files=False,
-                               base_rundir=f'xyzs/wdir/'
-                                           f'i{cycle_idx}_orca_outputs')
-        else:
-            logger.info(f"found optimised structures with GAP and DFT, "
-                        f"reading {opt_fname_w_dft}")
-            inputs = ConfigSet_in(input_files=opt_fname_w_dft)
+        # filter out insane geometries
+
+
+        # evaluate GAP
+        logger.info("evaluating gap on optimised structures")
+        outputs = ConfigSet_out(output_files=opt_fname_with_gap,
+                                force=True, all_or_none=True)
+        inputs = generic.run(inputs=inputs, outputs=outputs,
+                             calculator=calculator,
+                             properties=['energy', 'forces'],
+                             output_prefix=gap_prop_prefix, chunksize=50)
+
+        # evaluate DFT
+        logger.info('evaluatig dft on optimised structures')
+        outputs = ConfigSet_out(output_files=opt_fname_w_dft, force=True,
+                                all_or_none=True)
+        inputs = orca.evaluate(inputs=inputs, outputs=outputs,
+                           orca_kwargs=orca_kwargs,
+                           output_prefix=output_prefix,
+                           keep_files=False,
+                           base_rundir=f'xyzs/wdir/'
+                                       f'i{cycle_idx}_orca_outputs')
 
 
         # 4 filter by energy and force error
-        if not os.path.exists(configs_with_large_errors):
-            outputs = ConfigSet_out(output_files=configs_with_large_errors)
-            inputs = it.filter_configs(inputs=inputs, outputs=outputs,
-                                 bad_structures_fname=bad_geometries_file,
-                                 gap_prefix=gap_prop_prefix,
-                                 e_threshold=energy_filter_threshold,
-                                 f_threshold=max_force_filter_threshold)
-            logger.info(f'# opt structures: {len(read(opt_fname, ":"))}; # '
-                        f'of selected structures: '
-                        f'{len(read(configs_with_large_errors, ":"))}')
-        else:
-            inputs = ConfigSet_in(input_files=configs_with_large_errors)
+        outputs = ConfigSet_out(output_files=configs_with_large_errors,
+                                force=True, all_or_none=True)
+        inputs = it.filter_configs(inputs=inputs, outputs=outputs,
+                             bad_structures_fname=bad_geometries_file,
+                             gap_prefix=gap_prop_prefix,
+                             e_threshold=energy_filter_threshold,
+                             f_threshold=max_force_filter_threshold)
+        logger.info(f'# opt structures: {len(read(opt_fname, ":"))}; # '
+                    f'of selected structures: '
+                    f'{len(read(configs_with_large_errors, ":"))}')
 
 
         # 5. derive normal modes
         if not os.path.exists(nm_ref_fname):
-            outputs = ConfigSet_out(output_files=nm_ref_fname)
+            outputs = ConfigSet_out(output_files=nm_ref_fname,
+                                    force=True, all_or_none=True)
             vib.generate_normal_modes_parallel_atoms(inputs=inputs,
                                                  outputs=outputs,
                                                  calculator=calculator,
                                                  prop_prefix=gap_prop_prefix)
 
-        if cycle_idx == no_cycles:
-            break
 
         # 6. sample normal modes and get DFT energies and forces
-        if not os.path.exists(nm_sample_fname_for_train):
-            outputs_train = ConfigSet_out(
-                output_files=nm_sample_fname_for_train)
-            outputs_test = ConfigSet_out(
-                output_files=nm_sample_fname_for_test)
-            info_to_keep = ['config_type', 'iter_no', 'minim_n_steps',
-                            'compound_type', 'mol_or_rad', 'smiles']
-            nm_temperatures = np.random.randint(1, 800, num_nm_temps)
-            logger.info(f'sampling {nm_ref_fname} at temperatures '
-                        f'{nm_temperatures} K')
-            for temp in nm_temperatures:
-                inputs = ConfigSet_in(input_files=nm_ref_fname)
-                outputs = ConfigSet_out()
-                nm.sample_downweighted_normal_modes(inputs=inputs,
-                                outputs=outputs, temp=temp,
-                                sample_size=num_nm_displacements_per_temp*2,
-                                prop_prefix=gap_prop_prefix,
-                                info_to_keep=info_to_keep)
+        outputs_train = ConfigSet_out(output_files=nm_sample_fname_for_train,
+                                      force=True, all_or_none=True)
+        outputs_test = ConfigSet_out(output_files=nm_sample_fname_for_test,
+                                     force=True, all_or_none=True)
 
-                for at in outputs.output_configs:
-                    at.cell = [50, 50, 50]
-                    at.info['iter_no'] = cycle_idx
-                    at.info['normal_modes_temp'] = f'{temp:.2f}'
-                outputs_train.write(outputs.output_configs[0::2])
-                outputs_test.write(outputs.output_configs[1::2])
+        info_to_keep = ['config_type', 'iter_no', 'minim_n_steps',
+                        'compound_type', 'mol_or_rad', 'smiles']
+        nm_temperatures = np.random.randint(1, 800, num_nm_temps)
+        logger.info(f'sampling {nm_ref_fname} at temperatures '
+                    f'{nm_temperatures} K')
+        for temp in nm_temperatures:
+            inputs = ConfigSet_in(input_files=nm_ref_fname)
+            outputs = ConfigSet_out()
+            nm.sample_downweighted_normal_modes(inputs=inputs,
+                            outputs=outputs, temp=temp,
+                            sample_size=num_nm_displacements_per_temp*2,
+                            prop_prefix=gap_prop_prefix,
+                            info_to_keep=info_to_keep)
 
-            outputs_train.end_write()
-            outputs_test.end_write()
+            for at in outputs.output_configs:
+                at.cell = [50, 50, 50]
+                at.info['iter_no'] = cycle_idx
+                at.info['normal_modes_temp'] = f'{temp:.2f}'
+            outputs_train.write(outputs.output_configs[0::2])
+            outputs_test.write(outputs.output_configs[1::2])
 
-            # evaluate DFT
-            outputs = ConfigSet_out(output_files=nm_sample_fname_for_train,
-                                    force=True)
-            orca.evaluate(inputs=outputs_train.to_ConfigSet_in(),
-                               outputs=outputs,
-                               orca_kwargs=orca_kwargs,
-                               output_prefix=output_prefix,
-                               keep_files=False,
-                               base_rundir=f'xyzs/wdir/'
-                                           f'i{cycle_idx}_orca_outputs')
+        outputs_train.end_write()
+        outputs_test.end_write()
+
+        # evaluate DFT
+        outputs = ConfigSet_out(output_files=nm_sample_fname_for_train,
+                                force=True, all_or_none=True)
+        orca.evaluate(inputs=outputs_train.to_ConfigSet_in(),
+                           outputs=outputs,
+                           orca_kwargs=orca_kwargs,
+                           output_prefix=output_prefix,
+                           keep_files=False,
+                           base_rundir=f'xyzs/wdir/'
+                                       f'i{cycle_idx}_orca_outputs')
 
 
         # 7. Combine data
