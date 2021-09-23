@@ -1369,10 +1369,11 @@ def make_plots(gap_fname=None, gap_dir=None, output_dir=None, prefix=None, glue_
 @click.option('--mean-shifted-energy', '-sft', 'energy_shift',is_flag=True,
               help='shift energies by the mean. ')
 @click.option('--no-legend', is_flag=True, help='doesn\'t plot the legend')
+@click.option('--error-type', default='rmse')
 def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name,
                atoms_filename,
                output_dir, prefix, info_label, isolated_at_fname,
-               energy_type, energy_shift, no_legend):
+               energy_type, energy_shift, no_legend, error_type):
     """Makes energy and force scatter plots and dimer curves"""
 
     from util.plot import rmse_scatter_evaled
@@ -1403,7 +1404,8 @@ def make_plots(ref_energy_name, pred_energy_name, ref_force_name, pred_force_nam
                                      isolated_atoms=isolated_atoms,
                                      energy_type=energy_type,
                                      energy_shift=energy_shift,
-                                     no_legend=no_legend)
+                                     no_legend=no_legend,
+                                     error_type=error_type)
 
 # @subcli_gap.command('evaluate')
 # @click.argument('input-fn')

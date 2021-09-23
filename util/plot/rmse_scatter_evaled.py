@@ -45,9 +45,20 @@ def scatter_plot(ref_energy_name,
                 pred_force_name, all_atoms,
                 output_dir, prefix, color_info_name, isolated_atoms,
                 energy_type, energy_shift=False,
-                 no_legend=False):
+                 no_legend=False,
+                 error_type='rmse'):
+
 
     all_atoms = [at for at in all_atoms if len(at) != 1]
+
+
+    assert error_type in ['rmse', 'mae']
+    if error_type == 'rmse':
+        error_function = util.get_rmse
+        error_label = 'RMSE'
+    elif error_type == 'mae':
+        error_function = util.get_mae
+        error_label = "MAE"
 
 
 
@@ -170,16 +181,17 @@ def scatter_plot(ref_energy_name,
         ref = data['reference']
         pred = data['predicted']
 
-        rmse = util.get_rmse(ref, pred) * 1e3
+        error = error_function(ref, pred) * 1e3
 
-        ax_corr.scatter(ref, pred, label=f'{label}: {rmse:.3f}', color=color,
+        ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}', color=color,
                        zorder=2, **marker_kwargs)
         ax_err.scatter(ref, np.abs(ref - pred) * 1e3, **marker_kwargs,
                        color=color, zorder=2)
-        ax_err.axhline(rmse, color=color, lw=0.8)
+        ax_err.axhline(error, color=color, lw=0.8)
 
     if not no_legend:
-        ax_corr.legend(title=f' {color_info_name}: RMSE / meV/at', **e_legend_kwargs)
+        ax_corr.legend(title=f' {color_info_name}: {error_label} / meV/at',
+                       **e_legend_kwargs)
         
     ax_corr.set_ylabel(y_energy_correlation_label)
     ax_err.set_ylabel(y_energy_error_label)
@@ -224,17 +236,18 @@ def scatter_plot(ref_energy_name,
             ref = data['reference']
             pred = data['predicted']
 
-            rmse = util.get_rmse(ref, pred)*1e3
+            error = error_function(ref, pred)*1e3
 
-            ax_corr.scatter(ref, pred, label=f'{label}: {rmse:.3f}',
+            ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}',
                             color=color,
                             **marker_kwargs)
             ax_err.scatter(ref, np.abs(ref - pred)*1e3, color=color,
             **marker_kwargs)
-            ax_err.axhline(rmse, color=color, lw=0.8)
+            ax_err.axhline(error, color=color, lw=0.8)
 
         if not no_legend:
-            ax_corr.legend(title=f'F component RMSE / meV/Å', **f_legend_kwargs)
+            ax_corr.legend(title=f'F component {error_label} / meV/Å',
+                           **f_legend_kwargs)
 
         ax_corr.set_ylabel(f'Predicted {pred_force_name} / eV/Å')
         ax_err.set_ylabel(f'absolute force component error / meV/Å')
