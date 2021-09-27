@@ -7,7 +7,7 @@ from wfl.utils.misc import atoms_to_list
 from wfl.generate_configs.utils import config_type_append
 
 
-def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
+def abstract_sp3_hydrogen_atoms(inputs, label_config_type=True,
                                 return_mol=True):
     """ Removes molecules' sp3 hydrogen atoms one at a time to give a number
     of corresponding unsaturated (radical) structures.
@@ -31,7 +31,7 @@ def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
     -------
 
     """
-
+    all_output_atoms = []
     for atoms in atoms_to_list(inputs):
 
         natural_cutoffs = neighborlist.natural_cutoffs(atoms)
@@ -95,7 +95,5 @@ def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
                 atoms_out = [atoms.copy()] + radicals
             else:
                 atoms_out = radicals
-
-        outputs.write(atoms_out)
-
-    outputs.end_write()
+        all_output_atoms += atoms_out
+    return all_output_atoms

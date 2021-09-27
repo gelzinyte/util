@@ -12,6 +12,15 @@ from util import configs
 
 logger = logging.getLogger(__name__)
 
+def prepare_remoteinfo(gap_fname):
+    output_filename = os.environ["WFL_AUTOPARA_REMOTEINFO"]
+    template = os.environ["WFL_AUTOPARA_REMOTEINFO_TEMPLATE"]
+    with open(template, 'r') as f:
+        file = f.read()
+    file = file.replace("<gap_filename>", gap_fname)
+    with open(output_filename, 'w') as f:
+        f.write(file)
+
 
 def make_dirs(dir_names):
     for dir_name in dir_names:
@@ -31,21 +40,20 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, outputs):
             mol = smiles.smi_to_atoms(smi)
             mol.info['config_type'] = name
 
-            interim_outputs = ConfigSet_out()
-            radicals.abstract_sp3_hydrogen_atoms(mol, outputs=interim_outputs)
-            num_mols_and_rads = len(interim_outputs.output_configs)
+            interim_ats = radicals.abstract_sp3_hydrogen_atoms(mol)
+            num_mols_and_rads = len(interim_ats)
 
             for idx in range(num_mols_and_rads):
                 # make a new conformer for each molecule/radical I take
                 mol = smiles.smi_to_atoms(smi)
                 mol.info['config_type'] = name
 
-                interim_outputs = ConfigSet_out()
-                radicals.abstract_sp3_hydrogen_atoms(mol, outputs=interim_outputs)
+                tmp_outputs = radicals.abstract_sp3_hydrogen_atoms(mol)
 
-                atoms_out.append(interim_outputs.output_configs[idx])
+                atoms_out.append(tmp_outputs[idx])
 
     logger.info(f'length of output atoms: {len(atoms_out)}')
+
 
     for at in atoms_out:
         at.cell = [50, 50, 50]
@@ -55,16 +63,21 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, outputs):
     outputs.end_write()
     return outputs.to_ConfigSet_in()
 
-def filter_configs(inputs, outputs, bad_structures_fname,
+def filter_configs_by_geometry(inputs, bad_structures_fname, outputs):
+    atoms = configs.filter_insane_geometries(inputs, mult=1,
+                             bad_structures_fname=bad_structures_fname)
+    outputs.write(atoms)
+    outputs.end_write()
+    return outputs.to_ConfigSet_in()
+
+
+def filter_configs(inputs, outputs,
                    gap_prefix,
                    e_threshold,
                    f_threshold,
                    dft_prefix='dft_'):
 
-    atoms = configs.filter_insane_geometries(inputs, mult=1,
-                                bad_structures_fname=bad_structures_fname)
-
-    for at in atoms:
+    for at in inputs:
         e_error = at.info[f'{gap_prefix}energy'] - \
                   at.info[f'{dft_prefix}energy']
         if np.abs(e_error) > e_threshold:

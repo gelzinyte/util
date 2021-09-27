@@ -3,7 +3,7 @@ import logging
 from ase import Atoms
 
 from wfl.generate_configs import minim
-from wfl.pipeline import iterable_loop
+from wfl.pipeline.base import iterable_loop
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ def optimise(inputs, outputs, calculator, chunksize=10):
 def optimise_op(atoms, calculator):
 
     opt_kwargs = {'logfile': None, 'master': True, 'precon': None,
-                  'use_armijo': False}
+                  'use_armijo': False, 'steps':500}
 
     all_trajs = minim.run_op(atoms=atoms, calculator=calculator,
                              keep_symmetry=False, update_config_type=False,
@@ -33,7 +33,7 @@ def optimise_op(atoms, calculator):
             ats_out.append(last_at)
         else:
             logger.info(f'optimisation hasn\'t converged. atoms.info:'
-                        f' {atoms.info}')
+                        f' {last_at.info}')
 
     return ats_out
 

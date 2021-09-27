@@ -1,8 +1,10 @@
 import os
+import shutil
 from copy import deepcopy
 import yaml
 import logging
 import numpy as np
+from pathlib import Path
 
 from ase.io import read, write
 
@@ -21,7 +23,6 @@ from util import normal_modes as nm
 from util.util_config import Config
 from util.iterations import tools as it
 from util import configs
-
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def fit(no_cycles,
     logger.info(f'Using:\n\tgap_fit {gap_fit_path}\n\tscratch_dir '
                 f'{scratch_dir}\n\tglue {glue_fname}')
 
-    it.make_dirs(['gaps', 'xyzs', 'xyzs/wdir'])
+    it.make_dirs(['gaps', 'xyzs'])
 
     # will need to add `atoms_filename` and `gap_file` when fitting
     with open(gap_param_filename) as yaml_file:
@@ -114,14 +115,17 @@ def fit(no_cycles,
 
         opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
         opt_fname = f'xyzs/{cycle_idx}.3.0_gap_opt_mols_rads.xyz'
-        opt_fname_with_gap = f'xyzs/{cycle_idx}.3.1_gap_opt_mols_rads.gap.xyz'
+        opt_filtered_fname =  f'xyzs/' \
+                          f'{cycle_idx}.3.1.0_gap_opt_mols_rads_filtered.xyz'
+        opt_fname_with_gap = f'xyzs/' \
+                  f'{cycle_idx}.3.2_gap_opt_mols_rads.filtered.gap.xyz'
         opt_fname_w_dft = f'xyzs/' \
-                          f'{cycle_idx}.3.2_gap_opt_mols_rads.gap.dft.xyz'
+                f'{cycle_idx}.3.3_gap_opt_mols_rads.filtered.gap.dft.xyz'
 
         configs_with_large_errors = f'xyzs/' \
                             f'{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
-        bad_geometries_file = f'xyzs/' \
-                              f'{cycle_idx}.4.2_filtered_out_geometries.xyz'
+        bad_structures_fname = f'xyzs/' \
+                              f'{cycle_idx}.3.1.1_filtered_out_geometries.xyz'
 
         nm_ref_fname = f'xyzs/{cycle_idx}.5_normal_modes_reference.xyz'
 
@@ -132,8 +136,11 @@ def fit(no_cycles,
 
 
         gap_fname = f'gaps/gap_{cycle_idx}.xml'
-        gap_out_fname = f'gaps/out_{cycle_idx}.xml'
+        gap_out_fname = f'gaps/gap_{cycle_idx}.out'
         gap_prop_prefix = f'gap{cycle_idx}_'
+
+        if 'WFL_AUTOPARA_REMOTEINFO_TEMPLATE' in os.environ:
+            it.prepare_remoteinfo(gap_fname)
 
 
         # Check for the final training set from this iteration and skip if
@@ -152,12 +159,16 @@ def fit(no_cycles,
             logger.info(f'fitting gap {gap_fname} on {train_set_fname}')
             gap_params = deepcopy(gap_fit_base_params)
             gap_params['gap_file'] = gap_fname
-            gap_params['atoms_filename'] = train_set_fname
-            wfl.fit.gap_simple.run_gap_fit(fitting_dict=gap_params,
+            wfl.fit.gap_simple.run_gap_fit(fitting_configs=train_set_fname,
+                                             fitting_dict=gap_params,
                                            stdout_file=gap_out_fname,
                                            gap_fit_exec=gap_fit_path)
 
-        calculator = (Potential, [], {'param_filename':gap_fname})
+        print(f'Full gap name: {Path(gap_fname).resolve()}')
+        calculator = (Potential, [],
+                      {'param_filename':str(Path(gap_fname).resolve())})
+
+        # calculator = (Potential, [], {'param_filename':gap_fname})
 
         # 2. generate structures for optimisation
         logger.info('generating structures to optimise')
@@ -179,6 +190,11 @@ def fit(no_cycles,
 
 
         # filter out insane geometries
+        outputs = ConfigSet_out(output_files=opt_filtered_fname,
+                                force=True, all_or_none=True)
+        inputs = it.filter_configs_by_geometry(inputs=inputs,
+                          bad_structures_fname=bad_structures_fname,
+                                outputs=outputs)
 
 
         # evaluate GAP
@@ -206,7 +222,6 @@ def fit(no_cycles,
         outputs = ConfigSet_out(output_files=configs_with_large_errors,
                                 force=True, all_or_none=True)
         inputs = it.filter_configs(inputs=inputs, outputs=outputs,
-                             bad_structures_fname=bad_geometries_file,
                              gap_prefix=gap_prop_prefix,
                              e_threshold=energy_filter_threshold,
                              f_threshold=max_force_filter_threshold)
@@ -216,13 +231,12 @@ def fit(no_cycles,
 
 
         # 5. derive normal modes
-        if not os.path.exists(nm_ref_fname):
-            outputs = ConfigSet_out(output_files=nm_ref_fname,
-                                    force=True, all_or_none=True)
-            vib.generate_normal_modes_parallel_atoms(inputs=inputs,
-                                                 outputs=outputs,
-                                                 calculator=calculator,
-                                                 prop_prefix=gap_prop_prefix)
+        outputs = ConfigSet_out(output_files=nm_ref_fname,
+                                force=True, all_or_none=True)
+        vib.generate_normal_modes_parallel_atoms(inputs=inputs,
+                                             outputs=outputs,
+                                             calculator=calculator,
+                                             prop_prefix=gap_prop_prefix)
 
 
         # 6. sample normal modes and get DFT energies and forces
@@ -245,12 +259,13 @@ def fit(no_cycles,
                             prop_prefix=gap_prop_prefix,
                             info_to_keep=info_to_keep)
 
-            for at in outputs.output_configs:
+            for idx, at in enumerate(outputs.to_ConfigSet_in()):
                 at.cell = [50, 50, 50]
-                at.info['iter_no'] = cycle_idx
                 at.info['normal_modes_temp'] = f'{temp:.2f}'
-            outputs_train.write(outputs.output_configs[0::2])
-            outputs_test.write(outputs.output_configs[1::2])
+                if idx % 2 == 0:
+                    outputs_train.write(at)
+                else:
+                    outputs_test.write(at)
 
         outputs_train.end_write()
         outputs_test.end_write()
