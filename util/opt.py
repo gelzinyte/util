@@ -18,7 +18,7 @@ def optimise(inputs, outputs, calculator, chunksize=10):
 def optimise_op(atoms, calculator):
 
     opt_kwargs = {'logfile': None, 'master': True, 'precon': None,
-                  'use_armijo': False, 'steps':500}
+                  'use_armijo': False, 'steps':500, 'traj_step_interval':0}
 
     all_trajs = minim.run_op(atoms=atoms, calculator=calculator,
                              keep_symmetry=False, update_config_type=False,
