@@ -7,6 +7,7 @@ import numpy as np
 from wfl.calculators import generic
 from wfl.configset import ConfigSet_in, ConfigSet_out
 
+import util
 from util import smiles, radicals
 from util import configs
 
@@ -26,6 +27,32 @@ def make_dirs(dir_names):
     for dir_name in dir_names:
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
+
+def prepare_0th_dataset(ci, co, ref_type,
+                        dft_prop_prefix='dft_',
+                        xtb2_prop_prefix=None):
+
+
+    if ref_type == 'dft-xtb2':
+
+        from xtb.ase.calculator import XTB
+        xtb2_calc = XTB(method="GFN2-xTB")
+
+    for at in ci:
+
+        if 'iter_no' not in at.info.keys():
+            at.info['iter_no'] = '0'
+        if at.cell is None:
+            at.cell = [50, 50, 50]
+
+        if ref_type == 'dft-xtb2':
+            at.calc = xtb2_calc
+            at.info[f'{xtb2_prop_prefix}energy'] = at.get_potential_energy()
+            at.arrays[f'{xtb2_prop_prefix}forces'] = at.get_forces()
+            at = util.assign_differences(at, dft_prop_prefix, xtb2_prop_prefix)
+        co.write(at)
+    co.end_write()
+    return co.to_ConfigSet_in()
 
 def make_structures(smiles_csv, iter_no, num_smi_repeat, outputs):
 

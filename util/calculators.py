@@ -8,7 +8,7 @@ from quippy.potential import Potential
 from xtb.ase.calculator import XTB
 
 
-class xtb_plus_gap(Calculator):
+class xtb2_plus_gap(Calculator):
     implemented_properties = ['energy', 'forces']
 
     def __init__(self,  gap_filename, **kwargs):
