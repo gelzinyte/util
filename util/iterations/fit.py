@@ -171,13 +171,16 @@ def fit(no_cycles,
         # calculator = (Potential, [], {'param_filename':gap_fname})
 
         # 2. generate structures for optimisation
-        logger.info('generating structures to optimise')
-        outputs = ConfigSet_out(output_files=opt_starts_fname,
-                                force=True, all_or_none=True,
-                                verbose=False)
-        inputs = it.make_structures(smiles_csv, iter_no=cycle_idx,
-                           num_smi_repeat=num_smiles_opt,
-                           outputs=outputs)
+        if not os.path.isfile(opt_starts_fname):
+            logger.info('generating structures to optimise')
+            outputs = ConfigSet_out(output_files=opt_starts_fname,
+                                    force=True, all_or_none=True,
+                                    verbose=False)
+            inputs = it.make_structures(smiles_csv, iter_no=cycle_idx,
+                               num_smi_repeat=num_smiles_opt,
+                               outputs=outputs)
+        else:
+            inputs = ConfigSet_in(input_files=opt_starts_fname)
 
 
         # 3 optimise structures with current GAP and re-evaluate them
