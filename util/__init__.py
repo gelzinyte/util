@@ -41,6 +41,23 @@ def suppress_stdout_stderr():
         with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
             yield (err, out)
 
+def assign_differences(at, prop_prefix_1, prop_prefix_2):
+
+    out_prop_prefix = prop_prefix_1 + 'minus_' + prop_prefix_2
+
+    at.info[f'{out_prop_prefix}energy'] = \
+        at.info[f'{prop_prefix_1}energy'] - \
+        at.info[f'{prop_prefix_2}energy']
+
+    if f'{prop_prefix_1}forces' in at.arrays.keys() and \
+            f'{prop_prefix_2}forces' in at.arrays.keys():
+        at.arrays[f'{out_prop_prefix}forces'] = \
+            at.arrays[f'{prop_prefix_1}forces'] - \
+            at.arrays[f'{prop_prefix_2}forces']
+
+    return at
+
+
 def sort_atoms_by_label(atoms, label):
     """returns dictionary of {value:list(atoms)} based on atoms.info[label] values"""
     dict_out = {}
