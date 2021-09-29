@@ -1082,22 +1082,27 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--max-force-filter-threshold', type=click.FLOAT,
               help='Error threshold (eV/Å) for maximum force component '
                    'error for taking structures for next iteration')
+@click.option('--ref-type', type=click.Choice(['dft', 'dft-xtb2']),
+              default='dft',
+              help='reference type: either fit directly to DFT '
+                   'energies/forces or to DFT-XTB2. ')
 def fit(num_cycles, train_fname, gap_param_filename, smiles_csv,
         num_smiles_opt, num_nm_displacements_per_temp, num_nm_temps,
-        energy_filter_threshold, max_force_filter_threshold):
+        energy_filter_threshold, max_force_filter_threshold,
+        ref_type):
 
     import util.iterations.fit
 
     util.iterations.fit.fit(no_cycles=num_cycles,
-                 first_train_fname=train_fname,
+                 given_train_fname=train_fname,
                  gap_param_filename=gap_param_filename,
                  smiles_csv=smiles_csv,
                  num_smiles_opt=num_smiles_opt,
                  num_nm_displacements_per_temp=num_nm_displacements_per_temp,
                  num_nm_temps=num_nm_temps,
                  energy_filter_threshold=energy_filter_threshold,
-                 max_force_filter_threshold=max_force_filter_threshold
-                 )
+                 max_force_filter_threshold=max_force_filter_threshold,
+                 ref_type=ref_type)
 
 @subcli_gap.command('md-stability')
 @click.option('--gap-filename', '-g')
@@ -1238,7 +1243,7 @@ def evaluate_diff_calc(input_fname, output_fname, prefix, gap_fname, force):
 
     from util import calculators
 
-    calculator = (calculators.xtb_plus_gap, [], {'gap_filename': gap_fname})
+    calculator = (calculators.xtb2_plus_gap, [], {'gap_filename': gap_fname})
     inputs = ConfigSet_in(input_files=input_fname)
     outputs = ConfigSet_out(output_files=output_fname, force=force)
     generic.run(inputs=inputs, outputs=outputs, calculator=calculator,
@@ -1250,25 +1255,11 @@ def evaluate_diff_calc(input_fname, output_fname, prefix, gap_fname, force):
 @click.option('--output-fn', '-o')
 @click.option('--prop-prefix-1', '-p1', help='property prefix for first set of values')
 @click.option('--prop-prefix-2', '-p2')
-@click.option('--out-prop-prefix', '-po', help='prop prefix for output')
-def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2,
-                       out_prop_prefix):
-
-    if out_prop_prefix is None:
-        out_prop_prefix = prop_prefix_1 + 'minus_' + prop_prefix_2
+def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2):
 
     ats = read(input_fn, ':')
     for at in ats:
-        at.info[f'{out_prop_prefix}energy'] = \
-            at.info[f'{prop_prefix_1}energy'] - \
-            at.info[f'{prop_prefix_2}energy']
-
-        if f'{prop_prefix_1}forces' in at.arrays.keys() and \
-            f'{prop_prefix_2}forces' in at.arrays.keys():
-
-            at.arrays[f'{out_prop_prefix}forces'] = \
-                at.arrays[f'{prop_prefix_1}forces'] - \
-                at.arrays[f'{prop_prefix_2}forces']
+        util.assign_differences(at, prop_prefix_1, prop_prefix_2)
 
     write(output_fn, ats)
 
