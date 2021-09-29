@@ -23,17 +23,20 @@ from util import normal_modes as nm
 from util.util_config import Config
 from util.iterations import tools as it
 from util import configs
+from util.calculators import xtb2_plus_gap
 
 logger = logging.getLogger(__name__)
 
 
 def fit(no_cycles,
-        first_train_fname='train.xyz',
+        given_train_fname='train.xyz',
         gap_param_filename=None,
         smiles_csv=None, num_smiles_opt=None,
         num_nm_displacements_per_temp=None,
         num_nm_temps=None, energy_filter_threshold=0.05,
-        max_force_filter_threshold=0.1):
+        max_force_filter_threshold=0.1,
+        ref_type="DFT",
+        traj_step_interval=None):
     """ iteratively fits and optimises stuff
 
     Parameters
@@ -41,7 +44,7 @@ def fit(no_cycles,
 
     no_cycles: int
         number of gap-fit and optimise cycles to do
-    first_train_fname: str, default='train.xyz'
+    given_train_fname: str, default='train.xyz'
         fname for fitting the first GAP
     gap_param_filename: str, default None
         .yml with gap descriptors
@@ -62,15 +65,24 @@ def fit(no_cycles,
     max_force_filter_threshold: float, default=0.1
         structures with largest force component error above this will be
         included in the next training set
+    ref_type: str, default "dft"
+        "dft" or "dft-xtb2" for the type of reference energies/forces to
+        fit to.
+    traj_step_interval: int, default None
+        how many configs to sample form the trajectory. If None only the
+        last one is taken, otherwise follows ASE's dynamics.attach consensus
 
     """
+
+    assert ref_type in ['dft', 'dft-xtb2']
 
 
     logger.info(f'Optimising structures from {smiles_csv}, {num_smiles_opt} '
                 f'times. Displacing each at {num_nm_temps} different'
                 f'temperatures between 1 and 800 K '
                 f'{num_nm_displacements_per_temp} times each. GAP '
-                f'parameters from {gap_param_filename}.')
+                f'parameters from {gap_param_filename}. Fitting to '
+                f'{ref_type} energies and forces.')
 
 
 
@@ -84,26 +96,37 @@ def fit(no_cycles,
 
     it.make_dirs(['gaps', 'xyzs'])
 
-    # will need to add `atoms_filename` and `gap_file` when fitting
+    # will need to add `gap_file` when fitting
     with open(gap_param_filename) as yaml_file:
         gap_fit_base_params = yaml.safe_load(yaml_file)
 
     # setup orca parameters
     default_kw = Config.from_yaml(os.path.join(cfg['util_root'],
                                                'default_kwargs.yml'))
-    output_prefix = 'dft_'
+
+    dft_prop_prefix = 'dft_'
     orca_kwargs = default_kw['orca']
     logger.info(f'orca_kwargs: {orca_kwargs}')
+
+    if ref_type == 'dft':
+        fit_to_prop_prefix = dft_prop_prefix
+        calc_predicted_prop_prefix = 'gap_'
+        xtb2_prop_prefix=None
+    if ref_type == 'dft-xtb2':
+        fit_to_prop_prefix = 'dft_minus_xtb2_'
+        calc_predicted_prop_prefix = 'gap_plus_xtb2_'
+        xtb2_prop_prefix = 'xtb2_'
 
 
     # prepare 0th dataset
     initial_train_fname = 'xyzs/train_for_gap_0.xyz'
-    if not os.path.exists(initial_train_fname):
-        dset = read(first_train_fname, ':')
-        for at in dset:
-            if 'iter_no' not in at.info.keys():
-                at.info['iter_no'] = '0'
-        write(initial_train_fname, dset, write_results=False)
+    ci = ConfigSet_in(input_files=given_train_fname)
+    co = ConfigSet_out(output_files=initial_train_fname,
+                       force=True, all_or_none=True)
+    gap_inputs = it.prepare_0th_dataset(ci,co,
+                                ref_type=ref_type,
+                                dft_prop_prefix=dft_prop_prefix,
+                                xtb2_prop_prefix=xtb2_prop_prefix)
 
 
     for cycle_idx in range(0, no_cycles+1):
@@ -117,6 +140,8 @@ def fit(no_cycles,
         opt_fname = f'xyzs/{cycle_idx}.3.0_gap_opt_mols_rads.xyz'
         opt_filtered_fname =  f'xyzs/' \
                           f'{cycle_idx}.3.1.0_gap_opt_mols_rads_filtered.xyz'
+        bad_structures_fname = f'xyzs/' \
+                               f'{cycle_idx}.3.1.1_filtered_out_geometries.xyz'
         opt_fname_with_gap = f'xyzs/' \
                   f'{cycle_idx}.3.2_gap_opt_mols_rads.filtered.gap.xyz'
         opt_fname_w_dft = f'xyzs/' \
@@ -124,8 +149,8 @@ def fit(no_cycles,
 
         configs_with_large_errors = f'xyzs/' \
                             f'{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
-        bad_structures_fname = f'xyzs/' \
-                              f'{cycle_idx}.3.1.1_filtered_out_geometries.xyz'
+        energy_force_accurate_fname = f'xyzs/{cycle_idx}.4.2_' \
+                                      f'opt_mols_w_small_errors.xyz'
 
         nm_ref_fname = f'xyzs/{cycle_idx}.5_normal_modes_reference.xyz'
 
@@ -137,10 +162,10 @@ def fit(no_cycles,
 
         gap_fname = f'gaps/gap_{cycle_idx}.xml'
         gap_out_fname = f'gaps/gap_{cycle_idx}.out'
-        gap_prop_prefix = f'gap{cycle_idx}_'
-
-        if 'WFL_AUTOPARA_REMOTEINFO_TEMPLATE' in os.environ:
-            it.prepare_remoteinfo(gap_fname)
+        if ref_type == 'dft':
+            calc_predicted_prop_prefix = f'gap{cycle_idx}_'
+        elif ref_type == 'dft-xtb2':
+            calc_predicted_prop_prefix = f'gap{cycle_idx}_plus_xtb2_'
 
 
         # Check for the final training set from this iteration and skip if
@@ -156,19 +181,41 @@ def fit(no_cycles,
 
         # 1. fit GAP
         if not os.path.exists(gap_fname):
-            logger.info(f'fitting gap {gap_fname} on {train_set_fname}')
+            logger.info(f'fitting gap {gap_fname} on {initial_train_fname}')
             gap_params = deepcopy(gap_fit_base_params)
             gap_params['gap_file'] = gap_fname
-            wfl.fit.gap_simple.run_gap_fit(fitting_configs=train_set_fname,
+
+            if "energy_parameter_name" in gap_params and \
+                gap_params["energy_parameter_name"] != \
+                    f'{fit_to_prop_prefix}energy':
+                logger.warn(f'Overwriting '
+                            f'{gap_params["energy_parameter_name"]} found '
+                            f'in gap_params with "{fit_to_prop_prefix}energy"')
+                gap_params["energy_parameter_name"] =  \
+                                              f'{fit_to_prop_prefix}energy'
+            if "force_parameter_name" in gap_params and \
+                    gap_params["force_parameter_name"] != \
+                    f'{fit_to_prop_prefix}forces':
+                logger.warn(f'Overwriting '
+                            f'{gap_params["force_parameter_name"]} found '
+                            f'in gap_params with "'
+                            f'{fit_to_prop_prefix}forces"')
+                gap_params["force_parameter_name"] = \
+                    f'{fit_to_prop_prefix}forces'
+
+            wfl.fit.gap_simple.run_gap_fit(fitting_configs=gap_inputs,
                                              fitting_dict=gap_params,
                                            stdout_file=gap_out_fname,
                                            gap_fit_exec=gap_fit_path)
 
-        print(f'Full gap name: {Path(gap_fname).resolve()}')
-        calculator = (Potential, [],
-                      {'param_filename':str(Path(gap_fname).resolve())})
+        full_gap_fname = str(Path(gap_fname).resolve())
+        if ref_type == 'dft':
+            calculator = (Potential, [],
+                         {'param_filename':full_gap_fname})
+        elif ref_type == 'dft-xtb2':
+            calculator = (xtb2_plus_gap, [],
+                          {'gap_filename': full_gap_fname})
 
-        # calculator = (Potential, [], {'param_filename':gap_fname})
 
         # 2. generate structures for optimisation
         if not os.path.isfile(opt_starts_fname):
@@ -207,7 +254,7 @@ def fit(no_cycles,
         inputs = generic.run(inputs=inputs, outputs=outputs,
                              calculator=calculator,
                              properties=['energy', 'forces'],
-                             output_prefix=gap_prop_prefix, chunksize=50)
+                             output_prefix=calc_predicted_prop_prefix, chunksize=50)
 
         # evaluate DFT
         logger.info('evaluatig dft on optimised structures')
@@ -215,7 +262,7 @@ def fit(no_cycles,
                                 all_or_none=True)
         inputs = orca.evaluate(inputs=inputs, outputs=outputs,
                            orca_kwargs=orca_kwargs,
-                           output_prefix=output_prefix,
+                           output_prefix=dft_prop_prefix,
                            keep_files=False,
                            base_rundir=f'xyzs/wdir/'
                                        f'i{cycle_idx}_orca_outputs')
@@ -224,10 +271,14 @@ def fit(no_cycles,
         # 4 filter by energy and force error
         outputs = ConfigSet_out(output_files=configs_with_large_errors,
                                 force=True, all_or_none=True)
+        outputs_accurate_structures = ConfigSet_out(
+                            output_files=energy_force_accurate_fname,
+                            force=True, all_or_none=True)
         inputs = it.filter_configs(inputs=inputs, outputs=outputs,
-                             gap_prefix=gap_prop_prefix,
+                             gap_prefix=calc_predicted_prop_prefix,
                              e_threshold=energy_filter_threshold,
-                             f_threshold=max_force_filter_threshold)
+                             f_threshold=max_force_filter_threshold,
+                 outputs_accurate_structures=outputs_accurate_structures)
         logger.info(f'# opt structures: {len(read(opt_fname, ":"))}; # '
                     f'of selected structures: '
                     f'{len(read(configs_with_large_errors, ":"))}')
@@ -239,7 +290,7 @@ def fit(no_cycles,
         vib.generate_normal_modes_parallel_atoms(inputs=inputs,
                                              outputs=outputs,
                                              calculator=calculator,
-                                             prop_prefix=gap_prop_prefix)
+                                             prop_prefix=calc_predicted_prop_prefix)
 
 
         # 6. sample normal modes and get DFT energies and forces
@@ -259,7 +310,7 @@ def fit(no_cycles,
             nm.sample_downweighted_normal_modes(inputs=inputs,
                             outputs=outputs, temp=temp,
                             sample_size=num_nm_displacements_per_temp*2,
-                            prop_prefix=gap_prop_prefix,
+                            prop_prefix=calc_predicted_prop_prefix,
                             info_to_keep=info_to_keep)
 
             for idx, at in enumerate(outputs.to_ConfigSet_in()):
@@ -279,7 +330,7 @@ def fit(no_cycles,
         orca.evaluate(inputs=outputs_train.to_ConfigSet_in(),
                            outputs=outputs,
                            orca_kwargs=orca_kwargs,
-                           output_prefix=output_prefix,
+                           output_prefix=dft_prop_prefix,
                            keep_files=False,
                            base_rundir=f'xyzs/wdir/'
                                        f'i{cycle_idx}_orca_outputs')
