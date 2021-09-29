@@ -238,7 +238,7 @@ def fit(no_cycles,
         outputs = ConfigSet_out(output_files=opt_fname, force=True,
                                 all_or_none=True)
         inputs = opt.optimise(inputs=inputs, outputs=outputs,
-                               calculator=calculator, chunksize=2)
+                               calculator=calculator)
 
 
         # filter out insane geometries
