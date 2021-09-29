@@ -1086,10 +1086,13 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
               default='dft',
               help='reference type: either fit directly to DFT '
                    'energies/forces or to DFT-XTB2. ')
+@click.option('--traj-step-interval', type=click.INT, help='sampling for '
+                   'optimisation trajectory, None takes the last config '
+                                                           'only')
 def fit(num_cycles, train_fname, gap_param_filename, smiles_csv,
         num_smiles_opt, num_nm_displacements_per_temp, num_nm_temps,
         energy_filter_threshold, max_force_filter_threshold,
-        ref_type):
+        ref_type, traj_step_interval):
 
     import util.iterations.fit
 
@@ -1102,7 +1105,8 @@ def fit(num_cycles, train_fname, gap_param_filename, smiles_csv,
                  num_nm_temps=num_nm_temps,
                  energy_filter_threshold=energy_filter_threshold,
                  max_force_filter_threshold=max_force_filter_threshold,
-                 ref_type=ref_type)
+                 ref_type=ref_type,
+                 traj_step_interval=traj_step_interval)
 
 @subcli_gap.command('md-stability')
 @click.option('--gap-filename', '-g')

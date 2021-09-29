@@ -89,10 +89,9 @@ def fit(no_cycles,
     cfg = Config.load()
     gap_fit_path =  cfg['gap_fit_path']
     scratch_dir = cfg['scratch_path']
-    glue_fname = cfg['glue_fname']
 
     logger.info(f'Using:\n\tgap_fit {gap_fit_path}\n\tscratch_dir '
-                f'{scratch_dir}\n\tglue {glue_fname}')
+                f'{scratch_dir}')
 
     it.make_dirs(['gaps', 'xyzs'])
 
@@ -158,6 +157,9 @@ def fit(no_cycles,
                         f'{cycle_idx}.6.1_normal_modes_train_sample.xyz'
         nm_sample_fname_for_test = f'xyzs/' \
                      f'{cycle_idx}.6.2_normal_modes_test_sample.xyz'
+
+        nm_sample_fname_for_train_with_dft = f'xyzs/'\
+            f'{cycle_idx}.7_normal_modes_train_sample.dft.xyz'
 
 
         gap_fname = f'gaps/gap_{cycle_idx}.xml'
@@ -236,7 +238,7 @@ def fit(no_cycles,
         outputs = ConfigSet_out(output_files=opt_fname, force=True,
                                 all_or_none=True)
         inputs = opt.optimise(inputs=inputs, outputs=outputs,
-                               calculator=calculator)
+                               calculator=calculator, chunksize=2)
 
 
         # filter out insane geometries
@@ -304,8 +306,8 @@ def fit(no_cycles,
         nm_temperatures = np.random.randint(1, 800, num_nm_temps)
         logger.info(f'sampling {nm_ref_fname} at temperatures '
                     f'{nm_temperatures} K')
+        inputs = ConfigSet_in(input_files=nm_ref_fname)
         for temp in nm_temperatures:
-            inputs = ConfigSet_in(input_files=nm_ref_fname)
             outputs = ConfigSet_out()
             nm.sample_downweighted_normal_modes(inputs=inputs,
                             outputs=outputs, temp=temp,
@@ -325,7 +327,8 @@ def fit(no_cycles,
         outputs_test.end_write()
 
         # evaluate DFT
-        outputs = ConfigSet_out(output_files=nm_sample_fname_for_train,
+        outputs = ConfigSet_out(
+            output_files=nm_sample_fname_for_train_with_dft,
                                 force=True, all_or_none=True)
         orca.evaluate(inputs=outputs_train.to_ConfigSet_in(),
                            outputs=outputs,
