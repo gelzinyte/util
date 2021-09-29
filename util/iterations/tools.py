@@ -33,11 +33,6 @@ def prepare_0th_dataset(ci, co, ref_type,
                         xtb2_prop_prefix=None):
 
 
-    if ref_type == 'dft-xtb2':
-
-        from xtb.ase.calculator import XTB
-        xtb2_calc = XTB(method="GFN2-xTB")
-
     for at in ci:
 
         if 'iter_no' not in at.info.keys():
@@ -45,11 +40,6 @@ def prepare_0th_dataset(ci, co, ref_type,
         if at.cell is None:
             at.cell = [50, 50, 50]
 
-        if ref_type == 'dft-xtb2':
-            at.calc = xtb2_calc
-            at.info[f'{xtb2_prop_prefix}energy'] = at.get_potential_energy()
-            at.arrays[f'{xtb2_prop_prefix}forces'] = at.get_forces()
-            at = util.assign_differences(at, dft_prop_prefix, xtb2_prop_prefix)
         co.write(at)
     co.end_write()
     return co.to_ConfigSet_in()
@@ -102,6 +92,7 @@ def filter_configs(inputs, outputs,
                    gap_prefix,
                    e_threshold,
                    f_threshold,
+                   outputs_accurate_structures,
                    dft_prefix='dft_'):
 
     for at in inputs:
@@ -116,7 +107,10 @@ def filter_configs(inputs, outputs,
                       at.arrays[f'{dft_prefix}forces']
             if np.max(np.abs(f_error.flatten())) > f_threshold:
                 outputs.write(at)
+        else:
+            outputs_accurate_structures.write(at)
 
+    outputs_accurate_structures.end_write()
     outputs.end_write()
     return outputs.to_ConfigSet_in()
 

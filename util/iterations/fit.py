@@ -106,11 +106,11 @@ def fit(no_cycles,
     if ref_type == 'dft':
         fit_to_prop_prefix = dft_prop_prefix
         calc_predicted_prop_prefix = 'gap_'
-        xtb_prop_prefix=None
+        xtb2_prop_prefix=None
     if ref_type == 'dft-xtb2':
         fit_to_prop_prefix = 'dft_minus_xtb2_'
         calc_predicted_prop_prefix = 'gap_plus_xtb2_'
-        xtb_prop_prefix = 'xtb2_'
+        xtb2_prop_prefix = 'xtb2_'
 
 
     # prepare 0th dataset
@@ -119,9 +119,9 @@ def fit(no_cycles,
     co = ConfigSet_out(output_files=initial_train_fname,
                        force=True, all_or_none=True)
     gap_inputs = it.prepare_0th_dataset(ci,co,
-                                    ref_type=ref_type,
-                                    dft_prop_prefix=dft_prop_prefix,
-                                    xtb2_prop_prefix=xtb2_prop_prefix)
+                                ref_type=ref_type,
+                                dft_prop_prefix=dft_prop_prefix,
+                                xtb2_prop_prefix=xtb2_prop_prefix)
 
 
     for cycle_idx in range(0, no_cycles+1):
@@ -135,6 +135,8 @@ def fit(no_cycles,
         opt_fname = f'xyzs/{cycle_idx}.3.0_gap_opt_mols_rads.xyz'
         opt_filtered_fname =  f'xyzs/' \
                           f'{cycle_idx}.3.1.0_gap_opt_mols_rads_filtered.xyz'
+        bad_structures_fname = f'xyzs/' \
+                               f'{cycle_idx}.3.1.1_filtered_out_geometries.xyz'
         opt_fname_with_gap = f'xyzs/' \
                   f'{cycle_idx}.3.2_gap_opt_mols_rads.filtered.gap.xyz'
         opt_fname_w_dft = f'xyzs/' \
@@ -142,8 +144,8 @@ def fit(no_cycles,
 
         configs_with_large_errors = f'xyzs/' \
                             f'{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
-        bad_structures_fname = f'xyzs/' \
-                              f'{cycle_idx}.3.1.1_filtered_out_geometries.xyz'
+        energy_force_accurate_fname = f'xyzs/{cycle_idx}.4.2_' \
+                                      f'opt_mols_w_small_errors.xyz'
 
         nm_ref_fname = f'xyzs/{cycle_idx}.5_normal_modes_reference.xyz'
 
@@ -264,10 +266,14 @@ def fit(no_cycles,
         # 4 filter by energy and force error
         outputs = ConfigSet_out(output_files=configs_with_large_errors,
                                 force=True, all_or_none=True)
+        outputs_accurate_structures = ConfigSet_out(
+                            output_files=energy_force_accurate_fname,
+                            force=True, all_or_none=True)
         inputs = it.filter_configs(inputs=inputs, outputs=outputs,
                              gap_prefix=calc_predicted_prop_prefix,
                              e_threshold=energy_filter_threshold,
-                             f_threshold=max_force_filter_threshold)
+                             f_threshold=max_force_filter_threshold,
+                 outputs_accurate_structures=outputs_accurate_structures)
         logger.info(f'# opt structures: {len(read(opt_fname, ":"))}; # '
                     f'of selected structures: '
                     f'{len(read(configs_with_large_errors, ":"))}')
