@@ -274,20 +274,23 @@ def fit(no_cycles,
 
 
         # 4 filter by energy and force error
-        logger.info('Filtering by energy and force errors')
-        outputs = ConfigSet_out(output_files=configs_with_large_errors,
+        if not os.path.exists(configs_with_large_errors):
+            logger.info('Filtering by energy and force errors')
+            outputs = ConfigSet_out(output_files=configs_with_large_errors,
+                                    force=True, all_or_none=True)
+            outputs_accurate_structures = ConfigSet_out(
+                                output_files=energy_force_accurate_fname,
                                 force=True, all_or_none=True)
-        outputs_accurate_structures = ConfigSet_out(
-                            output_files=energy_force_accurate_fname,
-                            force=True, all_or_none=True)
-        inputs = it.filter_configs(inputs=inputs, outputs=outputs,
-                             gap_prefix=calc_predicted_prop_prefix,
-                             e_threshold=energy_filter_threshold,
-                             f_threshold=max_force_filter_threshold,
-                 outputs_accurate_structures=outputs_accurate_structures)
-        logger.info(f'# opt structures: {len(read(opt_fname, ":"))}; # '
-                    f'of selected structures: '
-                    f'{len(read(configs_with_large_errors, ":"))}')
+            inputs = it.filter_configs(inputs=inputs, outputs=outputs,
+                                 gap_prefix=calc_predicted_prop_prefix,
+                                 e_threshold=energy_filter_threshold,
+                                 f_threshold=max_force_filter_threshold,
+                     outputs_accurate_structures=outputs_accurate_structures)
+            logger.info(f'# opt structures: {len(read(opt_fname, ":"))}; # '
+                        f'of selected structures: '
+                        f'{len(read(configs_with_large_errors, ":"))}')
+        else:
+            logger.info('found file with structures with high errors')
 
 
         # 5. derive normal modes
