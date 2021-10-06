@@ -5,16 +5,6 @@ import numpy as np
 def ref_path():
     return os.path.abspath(os.path.dirname(__file__))
 
-def test_read_populations():
-
-    label = os.path.join(ref_path(), 'files/orca')
-    # at = orca.read_xyz_from_output(input + '.xyz')
-
-    calc = orca.PopORCA(label=label)
-    calc.read_populations()
-
-    assert 'mulliken_gross_atomic_charge' in calc.extra_results.keys()
-
 
 
 def test_read_xyz_from_output():
