@@ -62,10 +62,12 @@ def get_node_id(my_job_id, cluster='womble'):
 def node_id_from_line(line, cluster='womble'):
     if cluster == 'womble':
         node_pat = re.compile(r'@node\d+')
+        node_id_pat = re.compile(r"\d+$")
     elif cluster == 'young':
         node_pat = re.compile(r'node-[cyz]12[a-z]-\d{3}')
+        node_id_pat = re.compile(r'node-[cyz]12[a-z]-\d{3}')
 
-    node_id_pat = re.compile(r"\d+$")
+
 
     node_match = node_pat.search(line)
 
