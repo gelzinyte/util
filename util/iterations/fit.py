@@ -287,6 +287,7 @@ def fit(no_cycles,
 
 
         # 5. derive normal modes
+        logger.info('generating normal modes')
         outputs = ConfigSet_out(output_files=nm_ref_fname,
                                 force=True, all_or_none=True)
         vib.generate_normal_modes_parallel_atoms(inputs=inputs,
