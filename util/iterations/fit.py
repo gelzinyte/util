@@ -271,6 +271,7 @@ def fit(no_cycles,
 
 
         # 4 filter by energy and force error
+        logger.info('Filtering by energy and force errors')
         outputs = ConfigSet_out(output_files=configs_with_large_errors,
                                 force=True, all_or_none=True)
         outputs_accurate_structures = ConfigSet_out(
@@ -328,6 +329,7 @@ def fit(no_cycles,
         outputs_test.end_write()
 
         # evaluate DFT
+        logger.info('evaluating dft on new training set')
         outputs = ConfigSet_out(
             output_files=nm_sample_fname_for_train_with_dft,
                                 force=True, all_or_none=True)
@@ -342,6 +344,7 @@ def fit(no_cycles,
 
         # 7. Combine data
         if not os.path.exists(next_training_set_fname):
+            logger.info('combining new dataset')
             previous_dataset = read(train_set_fname, ':')
             additional_data = read(nm_sample_fname_for_train, ':')
             write(next_training_set_fname, previous_dataset + additional_data)
