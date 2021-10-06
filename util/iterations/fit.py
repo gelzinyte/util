@@ -119,13 +119,16 @@ def fit(no_cycles,
 
     # prepare 0th dataset
     initial_train_fname = 'xyzs/train_for_gap_0.xyz'
-    ci = ConfigSet_in(input_files=given_train_fname)
-    co = ConfigSet_out(output_files=initial_train_fname,
-                       force=True, all_or_none=True)
-    gap_inputs = it.prepare_0th_dataset(ci,co,
-                                ref_type=ref_type,
-                                dft_prop_prefix=dft_prop_prefix,
-                                xtb2_prop_prefix=xtb2_prop_prefix)
+    if not os.path.isfile(initial_train_fname):
+        logger.info('preparing initial dataset')
+        ci = ConfigSet_in(input_files=given_train_fname)
+        co = ConfigSet_out(output_files=initial_train_fname,
+                           force=True, all_or_none=True)
+        gap_inputs = it.prepare_0th_dataset(ci,co,
+                                    ref_type=ref_type,
+                                    dft_prop_prefix=dft_prop_prefix,
+                                    xtb2_prop_prefix=xtb2_prop_prefix)
+
 
 
     for cycle_idx in range(0, no_cycles+1):
