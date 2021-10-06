@@ -33,7 +33,10 @@ def track_mem(my_job_id, period=10, max_time=200000,
 
         node_name = 'waiting'
         if node_id is not None:
-            node_name = f'node{node_id}'
+            if cluster == 'womble':
+                node_name = f'node{node_id}'
+            else:
+                node_name = node_id
 
         now = time.time()
         elapsed = int(now - start)
