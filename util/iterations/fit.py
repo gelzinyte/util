@@ -186,7 +186,7 @@ def fit(no_cycles,
 
         # 1. fit GAP
         if not os.path.exists(gap_fname):
-            logger.info(f'fitting gap {gap_fname} on {initial_train_fname}')
+            logger.info(f'fitting gap {gap_fname} on {train_set_fname}')
             gap_params = deepcopy(gap_fit_base_params)
             gap_params['gap_file'] = gap_fname
             if cycle_idx > 0:
