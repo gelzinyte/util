@@ -4,7 +4,8 @@ from pathlib import Path
 import re
 import util
 
-def track_mem(my_job_id, period=10, max_time=100000, out_fname='mem_usage.txt'):
+def track_mem(my_job_id, period=10, max_time=200000,
+              out_fname='mem_usage.txt', cluster='womble'):
 
     start = time.time()
     no_checks = int(max_time / period)
@@ -20,19 +21,19 @@ def track_mem(my_job_id, period=10, max_time=100000, out_fname='mem_usage.txt'):
 
         time.sleep(period)
 
-        node_no = get_node_no(my_job_id)
+        node_id = get_node_id(my_job_id, cluster=cluster)
 
         mem = None
-        if node_no is not None:
+        if node_id is not None:
             # job is running
-            mem = get_mem_usage(node_no)
+            mem = get_mem_usage(node_id)
 
         if mem is None:
             mem = 'N/A'
 
         node_name = 'waiting'
-        if node_no is not None:
-            node_name = f'node{node_no}'
+        if node_id is not None:
+            node_name = f'node{node_id}'
 
         now = time.time()
         elapsed = int(now - start)
@@ -40,7 +41,7 @@ def track_mem(my_job_id, period=10, max_time=100000, out_fname='mem_usage.txt'):
             f.write(f'{idx:>6}, {elapsed:>6}, {node_name}, {mem:>8}\n')
 
 
-def get_node_no(my_job_id):
+def get_node_id(my_job_id, cluster='womble'):
     stdout, stderr = util.shell_stdouterr('qstat')
     job_id_pat = re.compile(r'^\d+')
 
@@ -52,15 +53,19 @@ def get_node_no(my_job_id):
             continue
 
         elif job_id.group() == my_job_id:
-            return node_no_from_line(line)
+            return node_id_from_line(line, cluster)
 
     print('Job has finished running, exiting!')
     exit(0)
 
 
-def node_no_from_line(line):
-    node_pat = re.compile(r'@node\d+')
-    node_no_pat = re.compile(r"\d+$")
+def node_id_from_line(line, cluster='womble'):
+    if cluster == 'womble':
+        node_pat = re.compile(r'@node\d+')
+    elif cluster == 'young':
+        node_pat = re.compile(r'node-[cyz]12[a-z]-\d{3}')
+
+    node_id_pat = re.compile(r"\d+$")
 
     node_match = node_pat.search(line)
 
@@ -68,16 +73,16 @@ def node_no_from_line(line):
         return None
 
     else:
-        return node_no_pat.search(node_match.group()).group()
+        return node_id_pat.search(node_match.group()).group()
 
 
-def get_mem_usage(node_no):
+def get_mem_usage(node_id):
     stdout, stderr = util.shell_stdouterr('qhost')
 
     for line in stdout.splitlines():
 
         elements = line.split()
-        if elements[0] == f'node{node_no}':
+        if elements[0] == f'node{node_id}':
             return elements[8]
 
 

@@ -1299,11 +1299,14 @@ def target_values_from_predicted_diff(input_fn, output_fn, prop_prefix_1,
 @click.option('--period', '-p', type=click.INT, default=60, help='how often to check')
 @click.option('--max_time', type=click.INT, default=1e5, help='How long to keep checking for, s')
 @click.option('--out_fname_prefix', default='mem_usage', help='output\'s prefix')
-def track_mem(my_job_id, period=10, max_time=100000, out_fname_prefix='mem_usage'):
+@click.option('--womble', 'cluster', flag_value='womble', default=True)
+@click.option('--young', 'cluster', flag_value='young')
+def track_mem(my_job_id, period=10, max_time=100000,
+              out_fname_prefix='mem_usage', cluster='womble'):
     from util import mem_tracker
     out_fname = f'{out_fname_prefix}_{my_job_id}.txt'
     mem_tracker.track_mem(my_job_id=my_job_id, period=period, max_time=max_time,
-                     out_fname=out_fname   )
+                     out_fname=out_fname, cluster=cluster)
 
 
 @subcli_plot.command('dimer')
