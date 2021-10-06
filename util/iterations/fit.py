@@ -189,6 +189,8 @@ def fit(no_cycles,
             logger.info(f'fitting gap {gap_fname} on {initial_train_fname}')
             gap_params = deepcopy(gap_fit_base_params)
             gap_params['gap_file'] = gap_fname
+            if cycle_idx > 0:
+                gap_inputs = ConfigSet_in(input_files=train_set_fname)
 
             if "energy_parameter_name" in gap_params and \
                 gap_params["energy_parameter_name"] != \
