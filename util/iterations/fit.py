@@ -298,42 +298,47 @@ def fit(no_cycles,
 
 
         # 6. sample normal modes and get DFT energies and forces
-        outputs_train = ConfigSet_out(output_files=nm_sample_fname_for_train,
-                                      force=True, all_or_none=True)
-        outputs_test = ConfigSet_out(output_files=nm_sample_fname_for_test,
-                                     force=True, all_or_none=True)
+        if not os.path.exists(nm_sample_fname_for_train):
+            outputs_train = ConfigSet_out(output_files=nm_sample_fname_for_train,
+                                          force=True, all_or_none=True)
+            outputs_test = ConfigSet_out(output_files=nm_sample_fname_for_test,
+                                         force=True, all_or_none=True)
 
-        info_to_keep = ['config_type', 'iter_no', 'minim_n_steps',
-                        'compound_type', 'mol_or_rad', 'smiles']
-        nm_temperatures = np.random.randint(1, 800, num_nm_temps)
-        logger.info(f'sampling {nm_ref_fname} at temperatures '
-                    f'{nm_temperatures} K')
-        inputs = ConfigSet_in(input_files=nm_ref_fname)
-        for temp in nm_temperatures:
-            outputs = ConfigSet_out()
-            nm.sample_downweighted_normal_modes(inputs=inputs,
-                            outputs=outputs, temp=temp,
-                            sample_size=num_nm_displacements_per_temp*2,
-                            prop_prefix=calc_predicted_prop_prefix,
-                            info_to_keep=info_to_keep)
+            info_to_keep = ['config_type', 'iter_no', 'minim_n_steps',
+                            'compound_type', 'mol_or_rad', 'smiles']
+            nm_temperatures = np.random.randint(1, 800, num_nm_temps)
+            logger.info(f'sampling {nm_ref_fname} at temperatures '
+                        f'{nm_temperatures} K')
+            inputs = ConfigSet_in(input_files=nm_ref_fname)
+            for temp in nm_temperatures:
+                outputs = ConfigSet_out()
+                nm.sample_downweighted_normal_modes(inputs=inputs,
+                                outputs=outputs, temp=temp,
+                                sample_size=num_nm_displacements_per_temp*2,
+                                prop_prefix=calc_predicted_prop_prefix,
+                                info_to_keep=info_to_keep)
 
-            for idx, at in enumerate(outputs.to_ConfigSet_in()):
-                at.cell = [50, 50, 50]
-                at.info['normal_modes_temp'] = f'{temp:.2f}'
-                if idx % 2 == 0:
-                    outputs_train.write(at)
-                else:
-                    outputs_test.write(at)
+                for idx, at in enumerate(outputs.to_ConfigSet_in()):
+                    at.cell = [50, 50, 50]
+                    at.info['normal_modes_temp'] = f'{temp:.2f}'
+                    if idx % 2 == 0:
+                        outputs_train.write(at)
+                    else:
+                        outputs_test.write(at)
 
-        outputs_train.end_write()
-        outputs_test.end_write()
+            outputs_train.end_write()
+            outputs_test.end_write()
+            inputs = outputs_train.to_ConfigSet_in()
+        else:
+            inputs = ConfigSet_in(input_files=nm_sample_fname_for_train)
 
         # evaluate DFT
-        logger.info('evaluating dft on new training set')
-        outputs = ConfigSet_out(
-            output_files=nm_sample_fname_for_train_with_dft,
-                                force=True, all_or_none=True)
-        orca.evaluate(inputs=outputs_train.to_ConfigSet_in(),
+        if not os.path.exists(nm_sample_fname_for_train_with_dft):
+            logger.info('evaluating dft on new training set')
+            outputs = ConfigSet_out(
+                output_files=nm_sample_fname_for_train_with_dft,
+                                    force=True, all_or_none=True)
+            orca.evaluate(inputs=inputs,
                            outputs=outputs,
                            orca_kwargs=orca_kwargs,
                            output_prefix=dft_prop_prefix,
@@ -346,7 +351,7 @@ def fit(no_cycles,
         if not os.path.exists(next_training_set_fname):
             logger.info('combining new dataset')
             previous_dataset = read(train_set_fname, ':')
-            additional_data = read(nm_sample_fname_for_train, ':')
+            additional_data = read(nm_sample_fname_for_train_with_dft, ':')
             write(next_training_set_fname, previous_dataset + additional_data)
 
 
