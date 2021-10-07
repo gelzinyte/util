@@ -26,7 +26,6 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, output_fname,
     dft_h = Atoms('H', positions=[(0, 0, 0)])
     dft_h.info['config_type'] = 'H'
 
-
     output_prefix=dft_prop_prefix
     inputs = ConfigSet_in(input_configs=dft_h)
     dft_outputs = ConfigSet_out()
@@ -38,7 +37,7 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, output_fname,
                   output_prefix=output_prefix)
 
     outputs = ConfigSet_out(output_files=output_fname)
-    generic.run(inputs=dft_outputs.output_configs,
+    generic.run(inputs=dft_outputs.to_ConfigSet_in(),
                 outputs=outputs,
                 calculator=calculator, properties=['energy'],
                 output_prefix=ip_prop_prefix)
@@ -98,7 +97,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
     dft_bde_with_ip_fname = pj(wdir, dft_fname_prefix + 'with_ip.xyz')
     ip_reopt_fname = pj(wdir, output_fname_prefix + 'ip_reopt_only.xyz')
-    ip_reopt_with_ip_fname = output_fname_prefix + 'ip_bde_without_dft.xyz'
+    ip_reopt_with_ip_fname = pj(wdir, output_fname_prefix +
+                                'ip_bde_without_dft.xyz')
     ip_reopt_with_dft_fname = output_fname_prefix + 'ip_bde.xyz'
 
 
@@ -112,7 +112,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
         outputs_ip_energies = ConfigSet_out(output_files=dft_bde_with_ip_fname)
         inputs = generic.run(inputs=inputs, outputs=outputs_ip_energies,
                      calculator=calculator,
-                    properties=['energy', 'forces'], output_prefix=output_prefix)
+                     properties=['energy', 'forces'],
+                             output_prefix=output_prefix)
     else:
         logger.info(f'found {energy_key} in at.info.keys(), not evaluating '
                     f'GAP on sturctures')
@@ -121,7 +122,8 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
 
 
     logger.info('IP-optimising DFT structures')
-    outputs = ConfigSet_out(output_files=ip_reopt_fname)
+    outputs = ConfigSet_out(output_files=ip_reopt_fname,
+                            force=True, all_or_none=True)
     inputs = opt.optimise(inputs=inputs,
                            outputs=outputs,
                            calculator=calculator,
@@ -131,23 +133,26 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     logger.info('Evaluating IP-optimised structures with IP')
     output_prefix = f'{ip_prop_prefix}opt_{ip_prop_prefix}'
     inputs_to_ip_opt_reip = ConfigSet_in(input_configs=inputs)
-    outputs_ip_opt_w_ip = ConfigSet_out(output_files=ip_reopt_with_ip_fname)
+    outputs_ip_opt_w_ip = ConfigSet_out(output_files=ip_reopt_with_ip_fname,
+                                        force=True, all_or_none=True)
     generic.run(inputs=inputs_to_ip_opt_reip,
                 outputs=outputs_ip_opt_w_ip,
                 calculator=calculator, properties=['energy', 'forces'],
                 output_prefix=output_prefix,
                 chunksize=chunksize)
 
-    logger.info('Labeling IP-optimised positions')
     atoms = read(ip_reopt_with_ip_fname, ':')
-    for at in atoms:
-        at.arrays[f'{ip_prop_prefix}opt_positions'] = at.positions.copy()
-    write(ip_reopt_with_ip_fname, atoms)
+    if f'{ip_prop_prefix}opt_positions' not in atoms[0].arrays.keys():
+        logger.info('Labeling IP-optimised positions')
+        for at in atoms:
+            at.arrays[f'{ip_prop_prefix}opt_positions'] = at.positions.copy()
+        write(ip_reopt_with_ip_fname, atoms)
 
     logger.info('Re-evaluating ip-optimised structures with DFT')
     output_prefix=f'{ip_prop_prefix}opt_{dft_prop_prefix}'
     inputs_to_dft_reeval = ConfigSet_in(input_configs=atoms)
-    final_outputs = ConfigSet_out(output_files=ip_reopt_with_dft_fname)
+    final_outputs = ConfigSet_out(output_files=ip_reopt_with_dft_fname,
+                                  force=True, all_or_none=True)
     orca_kwargs = setup_orca_kwargs()
     orca.evaluate(inputs=inputs_to_dft_reeval,
                   outputs=final_outputs,
