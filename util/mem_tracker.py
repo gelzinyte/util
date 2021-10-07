@@ -87,7 +87,7 @@ def get_mem_usage(node_id):
     for line in stdout.splitlines():
 
         elements = line.split()
-        if elements[0] == f'node{node_id}':
+        if elements[0] == node_id:
             return elements[8]
 
 
