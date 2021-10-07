@@ -19,6 +19,9 @@ from util import opt
 
 logger = logging.getLogger(__name__)
 
+cfg = Config.load()
+scratch_dir = cfg['scratch_path']
+
 
 def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, output_fname,
                    wdir='ip_bde_wdir'):
@@ -30,6 +33,7 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, output_fname,
     inputs = ConfigSet_in(input_configs=dft_h)
     dft_outputs = ConfigSet_out()
     orca_kwargs = setup_orca_kwargs()
+    orca_kwargs['scratch_path'] = scratch_dir
     orca.evaluate(inputs=inputs,
                   outputs=dft_outputs,
                   base_rundir=pj(wdir, 'orca_outputs'),
@@ -154,6 +158,7 @@ def everything(calculator, dft_bde_filename, output_fname_prefix,
     final_outputs = ConfigSet_out(output_files=ip_reopt_with_dft_fname,
                                   force=True, all_or_none=True)
     orca_kwargs = setup_orca_kwargs()
+    orca_kwargs['scratch_path'] = scratch_dir
     orca.evaluate(inputs=inputs_to_dft_reeval,
                   outputs=final_outputs,
                   base_rundir=pj(wdir, 'orca_outputs'),
