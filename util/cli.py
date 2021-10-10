@@ -563,7 +563,7 @@ def generate_ip_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_pref
     import util.bde.generate
     from util import calculators
 
-    logging.info(f'Generating {calculator_name} bdes from dft bde files')
+    logging.info(f'Generating {calculator_name} bdes from {dft_bde_file} files')
 
     if calculator_name == 'gap':
         calculator = (Potential, [], {'param_filename':ip_fname})
@@ -580,13 +580,17 @@ def generate_ip_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_pref
 
     if iso_h_fname is not None and not os.path.isfile(iso_h_fname):
         # generate isolated atom stuff
+        logger.info('generating isolated atom stuff for BDE')
         util.bde.generate.ip_isolated_h(calculator=calculator,
                                          dft_prop_prefix=dft_prop_prefix,
                                          ip_prop_prefix=ip_prop_prefix,
                                          output_fname=iso_h_fname,
                                          wdir=wdir)
+    else:
+        logger.info('not generating isolated atoms stuff')
     #
     # generate all molecule stuff
+    logger.info('generating all the BDE stuff')
     util.bde.generate.everything(calculator=calculator,
                                  dft_bde_filename=dft_bde_file,
                                  output_fname_prefix=output_fname_prefix,
