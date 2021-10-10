@@ -118,6 +118,20 @@ def subcli_ace():
 
 logger = logging.getLogger(__name__)
 
+@subcli_qm.command('prepare-q')
+@click.argument('input_fname')
+@click.option('--output-fname', '-o')
+def prepare_q(input_fname, output_fname):
+
+    from util.calculators.gap import PopGAP
+
+    ats = read(input_fname, ':')
+    for at in tqdm(ats):
+        PopGAP.prepare_local_q(at, 'dft_mulliken_gross_atomic_charge')
+    write(output_fname, ats)
+
+
+
 
 @subcli_ace.command('evaluate')
 @click.argument('input_fname')

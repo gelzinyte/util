@@ -12,7 +12,7 @@ class PopGAP(Calculator):
                  keep_files='default', **kwargs):
         super().__init__(**kwargs)
 
-        self.gap = Potential(gap_filename)
+        self.gap = Potential(param_filename=gap_filename)
         self.orca_kwargs = orca_kwargs
         self.base_rundir = base_rundir
         self.dir_prefix=dir_prefix
@@ -54,10 +54,11 @@ class PopGAP(Calculator):
         in_vals = atoms.arrays[input_arrays_name]
         out_vals = in_vals + 1
         for in_val, out_val in zip(in_vals, out_vals):
+            # print(in_val)
             assert in_val < 1 and in_val > -1
-            if in_val < 1:
+            if in_val < 0:
                 assert out_val > 0 and out_val < 1
-            elif in_val > 1:
+            elif in_val > 0:
                 assert out_val > 1 and out_val < 2
             elif in_val == 0:
                 assert out_val == 1
