@@ -12,7 +12,10 @@ class PopGAP(Calculator):
                  keep_files='default', **kwargs):
         super().__init__(**kwargs)
 
-        self.gap = Potential(param_filename=gap_filename)
+        self.gap = Potential(param_filename=gap_filename,
+                             add_arrays="atom_gaussian_weight",
+             calc_args="atom_gaussian_weight_name=atom_gaussian_weight")
+
         self.orca_kwargs = orca_kwargs
         self.base_rundir = base_rundir
         self.dir_prefix=dir_prefix
@@ -20,10 +23,10 @@ class PopGAP(Calculator):
         self.keep_files=keep_files
 
 
-    def calculate(selfself, atoms=None, properties='default',
+    def calculate(self, atoms=None, properties='default',
                   system_changes=all_changes):
 
-        if propertis == 'default':
+        if properties == 'default':
             properties = self.implemented_properties
 
 
@@ -37,7 +40,7 @@ class PopGAP(Calculator):
                                  output_prefix=self.output_prefix,
                                  basin_hopping=False)
 
-        atoms = self.prepare_local_q(atoms)
+        self.prepare_local_q(atoms)
 
         atoms.calc = self.gap
         self.results['energy'] = atoms.get_potential_energy()
@@ -46,7 +49,7 @@ class PopGAP(Calculator):
 
     @staticmethod
     def prepare_local_q(atoms,
-                        input_arrays_name='mulliken_gross_atomic_charge'):
+                        input_arrays_name='dft_mulliken_gross_atomic_charge'):
         """sets negative charge to be between 0 and 1 and positive between
         1 and 2 and assignes it to "local_q" arrays entry
         """
@@ -63,7 +66,7 @@ class PopGAP(Calculator):
             elif in_val == 0:
                 assert out_val == 1
 
-        atoms.arrays['local_q'] = out_vals
+        atoms.arrays['atom_gaussian_weight'] = out_vals
 
 
 

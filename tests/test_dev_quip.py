@@ -4,6 +4,7 @@ from ase.io import read, write
 import numpy as np
 import os
 from quippy.descriptors import Descriptor
+from quippy.potential import Potential
 
 def ref_path():
     return os.path.abspath(os.path.dirname(__file__))
@@ -117,5 +118,32 @@ def test_calculate_descriptor(at_in):
     assert pytest.approx(my_desc['data']) == modified_quip_desc_halves
 
 
+def test_quip_energies_forces():
+
+    ats_in_fname = os.path.join(ref_path(),
+                                'files/atoms_for_modified_gap.xyz')
+    gap_fname = os.path.join(ref_path(), 'files/modified_gap.xml')
+    quip_command = f'/home/eg475/dev/dev_QUIP/build' \
+                   f'/linux_x86_64_gfortran_openmp/quip ' \
+                   f'atoms_filename={ats_in_fname} param_filename={gap_fname} ' \
+                   f'calc_args={{atom_gaussian_weight_name=at_gaussian_weight}} E F'
 
 
+    result = subprocess.run(quip_command, shell=True, capture_output=True,
+                            text=True)
+    assert "got atom gaussian weight" in result.stdout
+
+
+def test_quippy_energies_forces():
+
+    gap_fname = os.path.join(ref_path(), 'files/modified_gap.xml')
+    gap = Potential(param_filename=gap_fname, add_arrays="at_gaussian_weight",
+                    calc_args="atom_gaussian_weight_name=at_gaussian_weight")
+
+    at = read(os.path.join(ref_path(),
+                                'files/atoms_for_modified_gap.xyz'))
+
+    quip_energy = at.info['gap_energy']
+    at.calc = gap
+    quippy_energy = at.get_potential_energy()
+    assert pytest.approx(quippy_energy) == quip_energy
