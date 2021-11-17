@@ -60,11 +60,11 @@ def smiles_csv_to_molecules(smiles_csv, repeat=1):
 
     molecules = ConfigSet_out()
     smiles.run(outputs=molecules, smiles=smiles_to_convert)
-    for at, name in zip(molecules.output_configs, smi_names):
+    for at, name in zip(molecules.to_ConfigSet_in(), smi_names):
         at.info['config_type'] = name
         at.cell = [50, 50, 50]
 
-    return molecules.output_configs
+    return [at for at in molecules.to_ConfigSet_in()]
 
 
 

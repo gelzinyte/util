@@ -74,7 +74,8 @@ def make_structures(smiles_csv, iter_no, num_smi_repeat, outputs):
 
     for at in atoms_out:
         at.cell = [50, 50, 50]
-        at.info['iter_no'] = iter_no
+        if iter_no is not None:
+            at.info['iter_no'] = iter_no
         outputs.write(at)
 
     outputs.end_write()

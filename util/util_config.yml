@@ -1,5 +1,5 @@
 # config file with file paths and other stuff that would be computer-dependant
-orca_path: /opt/womble/orca/orca_4_2_1_linux_x86-64_openmpi314/orca
+orca_path: /opt/womble/orca/orca_5.0.0/orca
 gap_fit_path: /opt/womble/QUIP/2021_07_06//bin/gap_fit
 quip_path: /opt/womble/QUIP/2021_07_06//linux_x86_64_gfortran_openmp/quip
 

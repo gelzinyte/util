@@ -252,6 +252,7 @@ def rattle(at, stdev, natoms):
 
 def gradient_test(mol, calc, start=-3, stop=-7):
     """gradient test on general molecule with general calculator"""
+    text = ""
     unit_d = np.random.random((len(mol), 3))
     unit_d = unit_d / (np.linalg.norm(unit_d))
 
@@ -261,10 +262,12 @@ def gradient_test(mol, calc, start=-3, stop=-7):
     mol.set_calculator(calc)
     f_analytical = np.vdot(mol.get_forces(), unit_d)
 
-    print('{:<12s} {:<22s} {:<25s} {:<20s}'.format('', '', 'force', 'initial energy'))
-    print('{:<12} {:<22} {:<25.14e} {:<20}'.format('', '', f_analytical, mol.get_potential_energy()))
+    text += '{:<12s} {:<22s} {:<25s} {:<20s}\n'.format('', '', 'force', 'initial energy')
+    text += '{:<12} {:<22} {:<25.14e} {:<20}\n'.format('', '',
+                f_analytical, mol.get_potential_energy())
 
-    print('{:<12s} {:<22s} {:<25s} {:<20s}'.format('epsilon', 'ratio', 'energy gradient', 'displaced energy'))
+    text += '{:<12s} {:<22s} {:<25s} {:<20s}\n'.format('epsilon', 'ratio',
+                  'energy gradient', 'displaced energy')
 
     for eps in epsilons:
         atoms = mol.copy()
@@ -285,7 +288,10 @@ def gradient_test(mol, calc, start=-3, stop=-7):
         else:
             ratio = f_analytical / f_numerical
 
-        print('{:<12} {:<22} {:<25.14e} {:<20}'.format(eps, ratio, f_numerical, e_displ))
+        text += '{:<12} {:<22} {:<25.14e} {:<20}\n'.format(eps, ratio,
+                                                      f_numerical, e_displ)
+
+    print(text)
 
 
 

@@ -118,6 +118,18 @@ def subcli_ace():
 
 logger = logging.getLogger(__name__)
 
+@subcli_qm.command('orca-gradient-test')
+@click.argument("input_fname")
+def orca_gradient_test(input_fname):
+
+    from util.single_use import orca_gradient_test
+
+    atoms = read(input_fname, ':')
+    for at in atoms:
+        logger.info(f'atoms.info: {at.info}')
+        orca_gradient_test.do_orca_grad_test(at)
+
+
 @subcli_qm.command('prepare-q')
 @click.argument('input_fname')
 @click.option('--output-fname', '-o')
@@ -155,7 +167,7 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
     logger.info('setting up ace calculator')
     calc = pyjulip.ACE(ace_fname)
     logger.info('loaded up ace calculator')
-    for at in inputs:
+    for at in tqdm(inputs):
         calc.reset()
         at.calc = calc
         at.calc.atoms = at
@@ -675,6 +687,19 @@ def select_with_info(input_filename, output_filename, info_key):
             ats_out.append(at)
     write(output_filename, ats_out)
 
+@subcli_configs.command('csv-to-mols-rads')
+@click.argument('smiles-csv')
+@click.option('--output-fname', '-o')
+@click.option("--repeats", '-n', type=click.INT, default=1, help='number of '
+                                                           'repeats for each smiles')
+def smiles_to_molecules_and_atoms(smiles_csv, repeats, output_fname):
+
+    from util.iterations import tools as it
+
+    outputs = ConfigSet_out(output_files=output_fname)
+
+    it.make_structures(smiles_csv, iter_no=None, num_smi_repeat=repeats,
+                       outputs=outputs)
 
 
 @subcli_configs.command('csv-to-mols')
@@ -682,6 +707,8 @@ def select_with_info(input_filename, output_filename, info_key):
 @click.option('--num-repeats', '-n', type=click.INT)
 @click.option('--output-fname', '-o')
 def smiles_to_molecules(smiles_csv, num_repeats, output_fname):
+
+    from util import configs
 
     molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
     write(output_fname, molecules)
@@ -714,7 +741,6 @@ def rads_from_opt_mols(molecules_fname, output_fname, info_to_keep, arrays_to_ke
             mols_and_rads.append(rad)
 
     write(output_fname, mols_and_rads)
-
 
 
 @subcli_configs.command('hash')
