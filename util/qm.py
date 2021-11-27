@@ -11,7 +11,7 @@ from ase.io.orca import read_geom_orcainp
 from matplotlib import cm
 
 
-def read_orca_output(orca_label, input_xyz):
+def read_orca_output(orca_label, input_xyz, prop_prefix="dft_"):
 
     if input_xyz:
         at = read(input_xyz)
@@ -20,10 +20,10 @@ def read_orca_output(orca_label, input_xyz):
     calc = orca.ExtendedORCA()
     calc.label=orca_label
     calc.read_energy()
-    at.info['dft_energy'] = calc.results['energy']
+    at.info[f'{prop_prefix}energy'] = calc.results['energy']
     try:
         calc.read_forces()
-        at.arrays['dft_forces'] = calc.results['forces']
+        at.arrays[f'{prop_prefix}forces'] = calc.results['forces']
     except FileNotFoundError:
         pass
 

@@ -3,7 +3,9 @@ import subprocess
 import logging
 import warnings
 import os
+import yaml
 import numpy as np
+from copy import deepcopy
 
 from tqdm import tqdm
 import pandas as pd
@@ -117,6 +119,64 @@ def subcli_ace():
     pass
 
 logger = logging.getLogger(__name__)
+
+
+@subcli_data.command("zinc")
+@click.argument("wget_fname")
+@click.option('--output-label', '-l',
+              help='label for all the output files ')
+@click.option("--wdir", default='wdir')
+def get_smiles_from_zinc(wget_fname, output_label, wdir):
+    from util.single_use import zinc
+    zinc.main(wget_fname, output_label, wdir=wdir)
+
+@subcli_bde.command('dissociate-h')
+@click.argument('input_fname')
+@click.option('--output-fname', '-o')
+@click.option('--h-idx', '-h', type=click.INT, help='index of hidrogen to ' \
+                                             'dissociate')
+@click.option('--c-idx', '-c', type=click.INT, help='index of carbon in C-H '
+                                                   'to dissociate')
+def do_dissociate_h(input_fname, output_fname, h_idx, c_idx):
+    from util.bde import dissociate_h
+
+    atoms = read(input_fname, '0')
+    frames = dissociate_h.dissociate_h(atoms, h_idx, c_idx)
+    write(output_fname, frames)
+
+
+
+@subcli_configs.command('calc-desc')
+@click.argument('input_fname')
+@click.option('--output-fname', '-o')
+@click.option('--param-fname', '-p')
+@click.option('--key', '-k', help='key for info/arays to store descriptor in')
+@click.option('--local', is_flag=True, help='calculate local descriptor')
+def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
+
+    import wfl.calc_descriptor
+
+    with open(param_fname) as f:
+        params = yaml.safe_load(f)
+
+    if isinstance(params, list):
+        # it's a descriptor dict
+        descriptors = deepcopy(params)
+    else:
+        # means it's a gap_fit param
+        descriptors = deepcopy(params.pop('_gap'))
+
+
+
+    inputs = ConfigSet_in(input_files=input_fname)
+    outputs = ConfigSet_out(output_files=output_fname)
+
+    wfl.calc_descriptor.calc(inputs=inputs, outputs=outputs,
+                             descs=descriptors, key=key,
+                        local=local)
+
+
+
 
 @subcli_qm.command('orca-gradient-test')
 @click.argument("input_fname")
@@ -271,7 +331,10 @@ def assign_similarity(set_to_eval, train_set, output_name, zeta,
 @subcli_data.command('xtb-normal-modes')
 @click.argument('input-fname')
 @click.option('-o', '--output-fname')
-def xtb_normal_modes(input_fname, output_fname):
+@click.option('--parallel-hessian', "parallel_hessian", flag_value=True,
+              default=True)
+@click.option('--parallel-atoms', "parallel_hessian", flag_value=False)
+def xtb_normal_modes(input_fname, output_fname, parallel_hessian):
 
     from xtb.ase.calculator import XTB
 
@@ -282,10 +345,17 @@ def xtb_normal_modes(input_fname, output_fname):
 
     prop_prefix = 'xTB_'
 
-    vib.generate_normal_modes_parallel_hessian(inputs=configset_in,
+    if parallel_hessian:
+        vib.generate_normal_modes_parallel_hessian(inputs=configset_in,
                                           outputs=configset_out,
                                           calculator=calc,
                                           prop_prefix=prop_prefix)
+    else:
+        vib.generate_normal_modes_parallel_atoms(inputs=configset_in,
+                                                 outputs=configset_out,
+                                                 calculator=calc,
+                                                 prop_prefix=prop_prefix,
+                                                 chunksize=1)
 
 
 @subcli_qm.command('cu-cy')
@@ -858,6 +928,7 @@ def cleanup_info_entries(input_fname, output_fname):
 def sample_normal_modes(input_fname, output_fname, temperature, sample_size,
                         prop_prefix, info_to_keep, arrays_to_keep):
 
+    from util import normal_modes
     inputs = ConfigSet_in(input_files=input_fname)
     outputs = ConfigSet_out(output_files=output_fname)
     if info_to_keep is not None:
