@@ -17,10 +17,15 @@ def draw_mols(mols, legend=None, molsPerRow=4):
 
 def main(input_csv, name_col, smiles_col):
     df = pd.read_csv(input_csv, index_col='Unnamed: 0')
+    fname = os.path.basename(os.path.splitext(input_csv)[0]) + '.png'
+    from_df(df, name_col, smiles_col, fname)
+
+def from_df(df, name_col, smiles_col, fname):
     mols = [Chem.MolFromSmiles(s) for s in df[smiles_col]]
     legend = [f'{name}' for i, name in enumerate(df[name_col])]
     img = draw_mols(mols, legend)
 
-    fname = os.path.basename(os.path.splitext(input_csv)[0]) + '.png'
-    img.save(fname)
+
+    # img.save(fname)
+    return img
 

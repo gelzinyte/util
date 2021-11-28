@@ -49,22 +49,25 @@ def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
 
 
 
-def smiles_csv_to_molecules(smiles_csv, repeat=1):
+def smiles_csv_to_molecules(smiles_csv, outputs, repeat=1,
+                            smiles_col='smiles',
+                            name_col='zinc_id'):
 
     df = pd.read_csv(smiles_csv)
     smi_names = []
     smiles_to_convert = []
-    for smi, name in zip(df['SMILES'], df['Name']):
+    for smi, name in zip(df[smiles_col], df[name_col]):
         smiles_to_convert += [smi] * repeat
         smi_names += [name] * repeat
 
-    molecules = ConfigSet_out()
-    smiles.run(outputs=molecules, smiles=smiles_to_convert)
+    smiles.run(outputs=outputs, smiles=smiles_to_convert)
     for at, name in zip(molecules.to_ConfigSet_in(), smi_names):
         at.info['config_type'] = name
+        at.info['compound'] = name
         at.cell = [50, 50, 50]
 
-    return [at for at in molecules.to_ConfigSet_in()]
+    return outputs.to_ConfigSet_in()
+
 
 
 
@@ -170,6 +173,13 @@ def process_config_info(fname_in, fname_out):
     ats = process_config_info_on_atoms(ats)
 
     write(fname_out, ats)
+
+def assign_info_entries(atoms, config_type, compound, mol_or_rad, rad_no):
+    atoms.info["config_type"] = config_type
+    atoms.info["compound"] = compound
+    atoms.info["mol_or_rad"] = mol_or_rad
+    atoms.info["rad_num"] = rad_no
+    atoms.info["graph_name"] = f'{compound}_{rad_no}'
 
 
 def process_config_info_on_atoms(ats, verbose=True):

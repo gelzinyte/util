@@ -8,7 +8,7 @@ from wfl.calculators import generic
 from wfl.configset import ConfigSet_in, ConfigSet_out
 
 import util
-from util import smiles, radicals
+from util import radicals
 from util import configs
 
 logger = logging.getLogger(__name__)
@@ -44,33 +44,26 @@ def prepare_0th_dataset(ci, co, ref_type,
     co.end_write()
     return co.to_ConfigSet_in()
 
-def make_structures(smiles_csv, iter_no, num_smi_repeat, outputs):
+def make_structures(smiles_csv, iter_no, num_smi_repeat, outputs,
+                    num_rads_per_mol, smiles_col='smiles',
+                    name_col='zinc_id'):
 
     atoms_out = []
 
     logger.info(f"writing to {outputs.output_files}")
 
     # generate molecules
-    df = pd.read_csv(smiles_csv)
-    for smi, name in zip(df['SMILES'], df['Name']):
+    df = pd.read_csv(smiles_csv, delim_whitespace=True)
+    for smi, name in zip(df[smiles_col], df[name_col]):
         for _ in range(num_smi_repeat):
-            mol = smiles.smi_to_atoms(smi)
-            mol.info['config_type'] = name
-
-            interim_ats = radicals.abstract_sp3_hydrogen_atoms(mol)
-            num_mols_and_rads = len(interim_ats)
-
-            for idx in range(num_mols_and_rads):
-                # make a new conformer for each molecule/radical I take
-                mol = smiles.smi_to_atoms(smi)
-                mol.info['config_type'] = name
-
-                tmp_outputs = radicals.abstract_sp3_hydrogen_atoms(mol)
-
-                atoms_out.append(tmp_outputs[idx])
+            try:
+                mol_and_rads = radicals.rad_conformers_from_smi(smi=smi,
+                                compound=name, num_radicals=num_rads_per_mol)
+            except RuntimeError:
+                continue
+            atoms_out += mol_and_rads
 
     logger.info(f'length of output atoms: {len(atoms_out)}')
-
 
     for at in atoms_out:
         at.cell = [50, 50, 50]

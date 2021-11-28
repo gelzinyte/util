@@ -21,26 +21,36 @@ def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2):
 @click.option('--output-fname', '-o')
 @click.option("--repeats", '-n', type=click.INT, default=1, help='number of '
                                                            'repeats for each smiles')
-def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname):
+@click.option("--num-rads-per-mol", type=click.INT,
+         help="how many radicals create for each molecule. Defaults to all.")
+@click.option("--smiles-col", default="smiles")
+@click.option("--name-col", default="zinc_id")
+def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
+                                 num_rads_per_mol, smiles_col, name_col):
 
     from util.iterations import tools as it
 
     outputs = ConfigSet_out(output_files=output_fname)
 
     it.make_structures(smiles_csv, iter_no=None, num_smi_repeat=repeats,
-                       outputs=outputs)
+                       outputs=outputs, num_rads_per_mol=num_rads_per_mol,
+                       smiles_col=smiles_col, name_col=name_col)
 
 
 @click.command('csv-to-mols')
 @click.argument('smiles-csv')
-@click.option('--num-repeats', '-n', type=click.INT)
+@click.option('--num-repeats', '-n', default=1, type=click.INT)
 @click.option('--output-fname', '-o')
-def smiles_to_molecules(smiles_csv, num_repeats, output_fname):
+@click.option("--smiles-col", default="smiles", help="column name in csv")
+@click.option("--name-col", default='zinc_id')
+def smiles_to_molecules(smiles_csv, num_repeats, output_fname, smiles_col,
+                        name_col):
 
     from util import configs
 
-    molecules = configs.smiles_csv_to_molecules(smiles_csv, repeat=num_repeats)
-    write(output_fname, molecules)
+    outputs = ConfigSet_out(output_file=output_fname)
+    configs.smiles_csv_to_molecules(smiles_csv,
+        outputs, repeat=num_repeats, smiles_col=smiles_col, name_col=name_col)
 
 @click.command('distribute')
 @click.argument('in-fname')
