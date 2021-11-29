@@ -9,10 +9,12 @@ from wfl.pipeline.base import iterable_loop
 logger = logging.getLogger(__name__)
 
 
-def optimise(inputs, outputs, calculator, chunksize=10):
+def optimise(inputs, outputs, calculator, chunksize=1,
+             traj_step_interval=None):
     return iterable_loop(iterable=inputs, configset_out=outputs,
                          calculator=calculator, op=optimise_op,
-                         chunksize=chunksize)
+                         chunksize=chunksize,
+                         traj_step_interval=traj_step_interval)
 
 
 def optimise_op(atoms, calculator, traj_step_interval=None):

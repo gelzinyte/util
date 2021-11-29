@@ -1,6 +1,8 @@
 import click
 import os
 
+from pathlib import Path
+
 from ase.io import read, write
 
 @click.command('data-summary')
@@ -199,4 +201,28 @@ def scatter(ref_energy_name, pred_energy_name, ref_force_name,
                                      energy_shift=energy_shift,
                                      no_legend=no_legend,
                                      error_type=error_type)
+
+
+@click.command("dist-corr")
+@click.argument('trajectory-fname')
+@click.option('--idx1', '-i1', type=click.INT, help='index for atom 1 in '
+                                                    'molecule')
+@click.option("--idx2", "-i2", type=click.INT, help="index for atom 2 in "
+                                                    "molecule")
+@click.option("--vector-distance", is_flag=True,
+              help="get distance as vector")
+def distance_autocorrelation(trajectory_fname, idx1, idx2, vector_distance):
+    """plots distance autocorrelation between two atoms"""
+
+    from util.plot.autocorrelation import plot_autocorrelation
+
+    stem = Path(trajectory_fname).stem
+
+    title = f'{stem} distance autocorrelation between atoms {idx1} and ' \
+            f'{idx2} distances as vectors- {vector_distance}'
+
+    ats = read(trajectory_fname, ":")
+
+    plot_autocorrelation(ats=ats, idx1=idx1, idx2=idx2, title=title,
+                             vector_distance=vector_distance)
 

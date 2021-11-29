@@ -3,6 +3,8 @@ import yaml
 
 from copy import deepcopy
 
+from tqdm import tqdm
+
 from ase.io import read, write
 
 from wfl.configset import ConfigSet_in, ConfigSet_out
@@ -24,7 +26,7 @@ def xtb_normal_modes(input_fname, output_fname, parallel_hessian):
 
     calc = (XTB, [], {'method':'GFN2-xTB'})
 
-    prop_prefix = 'xTB2_'
+    prop_prefix = 'xtb2_'
 
     if parallel_hessian:
         vib.generate_normal_modes_parallel_hessian(inputs=configset_in,
@@ -97,7 +99,7 @@ def evaluate_diff_calc(input_fname, output_fname, prefix, gap_fname, force):
                 properties=['energy', 'forces'], output_prefix=prefix)
 
 
-@click.command('calc-desc')
+@click.command('desc')
 @click.argument('input_fname')
 @click.option('--output-fname', '-o')
 @click.option('--param-fname', '-p')

@@ -50,10 +50,12 @@ subcli_bde.add_command(generate_bdes)
 def subcli_plot():
     """Plots and tables for analysing results"""
     pass
-from util.cli.plot_commands import plot_dataset, plot_error_table, scatter
+from util.cli.plot_commands import plot_dataset, plot_error_table, scatter,  \
+                distance_autocorrelation
 subcli_plot.add_command(plot_dataset)
 subcli_plot.add_command(plot_error_table)
 subcli_plot.add_command(scatter)
+subcli_plot.add_command(distance_autocorrelation)
 
 
 @cli.group("track")
