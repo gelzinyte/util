@@ -51,11 +51,12 @@ def subcli_plot():
     """Plots and tables for analysing results"""
     pass
 from util.cli.plot_commands import plot_dataset, plot_error_table, scatter,  \
-                distance_autocorrelation
+                distance_autocorrelation, plot_mols
 subcli_plot.add_command(plot_dataset)
 subcli_plot.add_command(plot_error_table)
 subcli_plot.add_command(scatter)
 subcli_plot.add_command(distance_autocorrelation)
+subcli_plot.add_command(plot_mols)
 
 
 @cli.group("track")
@@ -81,12 +82,14 @@ def subcli_configs():
     pass
 from util.cli.config_commands import assign_differences, \
     smiles_to_molecules_and_rads, smiles_to_molecules, distribute_configs, \
-    gather_configs
+    gather_configs, info_to_numbers
 subcli_configs.add_command(assign_differences)
 subcli_configs.add_command(smiles_to_molecules_and_rads)
 subcli_configs.add_command(smiles_to_molecules)
 subcli_configs.add_command(distribute_configs)
 subcli_configs.add_command(gather_configs)
+subcli_configs.add_command(info_to_numbers)
+
 
 @cli.group("calc")
 def subcli_calc():

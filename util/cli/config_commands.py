@@ -1,6 +1,7 @@
 import click
 import util
 from wfl.configset import ConfigSet_out
+from ase.io import read, write
 
 @click.command('assign-diff')
 @click.argument('input-fn')
@@ -75,3 +76,24 @@ def distribute_configs(in_fname, num_tasks, prefix, dir_prefix):
 def gather_configs(out_fname, num_tasks, prefix):
     configs.collect_configs(out_fname=out_fname, num_tasks=num_tasks,
                               batch_out_fname_prefix=prefix)
+
+
+@click.command('info-to-no')
+@click.argument('fname_in')
+@click.option('--info-key', '-i', help='atosm.info key to nubmer')
+@click.option('--output', '-o', help='output filename')
+def info_to_numbers(fname_in, info_key, output):
+
+    ats = read(fname_in, ':')
+
+    entries = list(set([at.info[info_key] for at in ats]))
+    entries_dict = {}
+    for idx, entry in enumerate(entries):
+        entries_dict[entry] = idx
+
+    for at in ats:
+        at.info[info_key + '_no'] = entries_dict[at.info[info_key]]
+
+    print(entries_dict)
+
+    write(output, ats)

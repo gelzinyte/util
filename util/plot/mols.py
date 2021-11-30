@@ -16,7 +16,8 @@ def draw_mols(mols, legend=None, molsPerRow=4):
                                 legends=legend)#, maxMols=400)
 
 def main(input_csv, name_col, smiles_col):
-    df = pd.read_csv(input_csv, index_col='Unnamed: 0')
+    # df = pd.read_csv(input_csv, index_col='Unnamed: 0')
+    df = pd.read_csv(input_csv, delim_whitespace=True)
     fname = os.path.basename(os.path.splitext(input_csv)[0]) + '.png'
     from_df(df, name_col, smiles_col, fname)
 
@@ -26,6 +27,6 @@ def from_df(df, name_col, smiles_col, fname):
     img = draw_mols(mols, legend)
 
 
-    # img.save(fname)
+    img.save(fname)
     return img
 

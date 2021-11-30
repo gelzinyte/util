@@ -57,7 +57,7 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
     if len(data.keys()) < 11:
         plt.legend()
     plt.xlabel('index in dataset')
-    plt.ylabel('binding energy / ev/atom')
+    plt.ylabel(f'{prop_prefix} binding energy / ev/atom')
     plt.grid(color='lightgrey', linestyle=':')
 
     fig_name = title.replace(' ', '_')
@@ -104,7 +104,7 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
     if len(data.keys()) < 11:
         plt.legend(bbox_to_anchor=(1, 1), markerscale=6)
     plt.xlabel('index in dataset')
-    plt.ylabel('force component / eV/Ā')
+    plt.ylabel(f'{prop_prefix} force component / eV/Ā')
     plt.grid(color='lightgrey', linestyle=':')
 
     fig_name = title.replace(' ', '_')

@@ -227,14 +227,7 @@ def split_train_test(all_data, train_csv, train_xyz, test_xyz):
 
 
 
-@subcli_plot.command('mols')
-@click.argument('input-csv')
-@click.option('--name-col', default='name', help='csv column for mol names' )
-@click.option('--smiles-col', default='smiles', help='csv column for smiles')
-def plot_mols(input_csv, name_col, smiles_col):
-    mols.main(input_csv=input_csv,
-              name_col=name_col,
-              smiles_col=smiles_col)
+
 
 
 

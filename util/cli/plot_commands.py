@@ -226,3 +226,18 @@ def distance_autocorrelation(trajectory_fname, idx1, idx2, vector_distance):
     plot_autocorrelation(ats=ats, idx1=idx1, idx2=idx2, title=title,
                              vector_distance=vector_distance)
 
+
+@click.command('mols')
+@click.argument('input-csv')
+@click.option('--name-col', default='name',
+              help='csv column for mol names')
+@click.option('--smiles-col', default='smiles',
+              help='csv column for smiles')
+def plot_mols(input_csv, name_col, smiles_col):
+
+    from util.plot import mols
+
+    mols.main(input_csv=input_csv,
+              name_col=name_col,
+              smiles_col=smiles_col)
+
