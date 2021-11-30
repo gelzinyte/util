@@ -179,7 +179,8 @@ def assign_info_entries(atoms, config_type, compound, mol_or_rad, rad_no):
     atoms.info["compound"] = compound
     atoms.info["mol_or_rad"] = mol_or_rad
     atoms.info["rad_num"] = rad_no
-    atoms.info["graph_name"] = f'{compound}_{rad_no}'
+    atoms.info["graph_name"] = f'{compound}_{rad_no}' if rad_no == 'mol' \
+        else f'{compound}_rad{rad_no}'
 
 
 def process_config_info_on_atoms(ats, verbose=True):
