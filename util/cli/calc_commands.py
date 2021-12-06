@@ -1,5 +1,6 @@
 import click
 import yaml
+import logging
 
 from copy import deepcopy
 
@@ -9,6 +10,8 @@ from ase.io import read, write
 
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.generate_configs import vib
+
+logger = logging.getLogger(__name__)
 
 
 @click.command('xtb-normal-modes')

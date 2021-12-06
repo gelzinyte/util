@@ -1,9 +1,71 @@
 import click
+from pathlib import Path
 import os
+import glob
+import logging
 
 from pathlib import Path
 
 from ase.io import read, write
+
+logger = logging.getLogger(__name__)
+
+@click.command("dissociate-h")
+@click.argument("fname")
+@click.option("--pred-prefix", default='ace_')
+@click.option("--rin", type=click.FLOAT, default=0.9)
+@click.option("--rout", type=click.FLOAT, default=4.4)
+def dissociate(fname, pred_prefix, rin, rout):
+    from util.plot import dissociate_h_test
+    ats = read(fname, ':')
+    dissociate_h_test.curves_from_all_atoms(ats, pred_prefix, rin, rout)
+
+
+@click.command("dimer-curve")
+@click.argument("ip-fname", nargs=-1)
+@click.option("--ip-type",
+              help="which potential to call")
+@click.option("--train-fname", help="to get distances hist")
+@click.option("--ref-isolated-fname", help="to plot dft reference")
+@click.option("--ref-prefix", default="dft_")
+@click.option("--pred-label",help='for y label')
+def plot_dimer(ip_fname, ip_type, train_fname, ref_isolated_fname, ref_prefix,
+               pred_label):
+
+    from util.plot.dimer import calc_on_dimer
+
+    info_fnames = '\n'.join(ip_fname)
+    logger.info(f"filenames: {info_fnames}")
+
+    train_ats = read(train_fname, ':')
+    ref_isolated_ats = read(ref_isolated_fname, ':')
+
+    if pred_label is None:
+        pred_label = ip_type + '_'
+
+    if ip_type.lower() == 'gap':
+        from quippy.potential import Potential
+    elif ip_type.lower() == 'ace':
+        import pyjulip
+
+
+    for fname in ip_fname:
+        print(fname)
+        if ip_type.lower() == 'gap':
+            calc = Potential(param_filename=fname)
+        elif ip_type.lower() == 'ace':
+            calc = pyjulip.ACE(fname)
+
+        title = Path(fname).stem
+
+
+        calc_on_dimer(calc=calc,
+                      train_ats=train_ats,
+                      ref_isolated_ats=ref_isolated_ats,
+                      ref_prefix=ref_prefix,
+                      pred_label=pred_label,
+                      title=title)
+
 
 @click.command('data-summary')
 @click.argument('in-fname')
@@ -13,8 +75,9 @@ from ase.io import read, write
               help='cutoff for counting distances')
 @click.option('--info', default='config_type', help='label to color by')
 @click.option('--prop-prefix', default='dft_', type=click.STRING)
+@click.option('--no-ef', is_flag=True, help='dont plot energy and forces')
 def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff,
-                 info, prop_prefix):
+                 info, prop_prefix, no_ef):
 
     from util.plot import dataset
 
@@ -36,11 +99,17 @@ def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff,
         title_energy = f'{fig_prefix}_{fname_stem}_by_{info}_energies'
         title_forces = f'{fig_prefix}_{fname_stem}_by_{info}_forces'
 
-    dataset.energy_by_idx(atoms, title=title_energy,
-                          isolated_atoms=isolated_ats,
-                          info_label=info, prop_prefix=prop_prefix)
-    dataset.forces_by_idx(atoms, title=title_forces, info_label=info,
-                          prop_prefix=prop_prefix)
+    dists_fig_name = f'{fig_prefix}_{fname_stem}_distances_hist.pdf'
+
+
+    if not no_ef:
+        dataset.energy_by_idx(atoms, title=title_energy,
+                              isolated_atoms=isolated_ats,
+                              info_label=info, prop_prefix=prop_prefix)
+        dataset.forces_by_idx(atoms, title=title_forces, info_label=info,
+                              prop_prefix=prop_prefix)
+
+    dataset.pairwise_distances_hist(atoms, dists_fig_name)
 
 
 
@@ -78,72 +147,10 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
     error_table.plot(data=inputs, ref_prefix=ref_prefix, pred_prefix=pred_prefix, calculator=calc,
                      output_fname=output_fname, chunksize=chunksize)
 
-    @click.command('error-scatter')
-    @click.argument('atoms-filename')
-    @click.option('--ref-energy-name', '-re', type=str)
-    @click.option('--pred-energy-name', '-pe', type=str)
-    @click.option('--ref-force-name', '-rf', type=str)
-    @click.option('--pred-force-name', '-pf', type=str)
-    @click.option('--output-dir', default='.', show_default=True,
-                  type=click.Path(),
-                  help='directory for figures. Create if not-existent')
-    @click.option('--prefix', '-p', help='prefix to label plots')
-    @click.option('--info-label',
-                  help='info entry to label by')
-    @click.option('--isolated-at-fname')
-    @click.option('--total-energy', '-te', 'energy_type',
-                  flag_value='total_energy',
-                  help='plot total energy, not binding energy per atom')
-    @click.option('--binding-energy', '-be', 'energy_type', default=True,
-                  flag_value='binding_energy', help='Binding energy per atom')
-    @click.option('--mean-shifted-energy', '-sft', 'energy_shift',
-                  is_flag=True,
-                  help='shift energies by the mean. ')
-    @click.option('--no-legend', is_flag=True,
-                  help='doesn\'t plot the legend')
-    @click.option('--error-type', default='rmse')
-    def make_plots(ref_energy_name, pred_energy_name, ref_force_name,
-                   pred_force_name,
-                   atoms_filename,
-                   output_dir, prefix, info_label, isolated_at_fname,
-                   energy_type, energy_shift, no_legend, error_type):
-        """Makes energy and force scatter plots and dimer curves"""
-
-        from util.plot import rmse_scatter_evaled
-
-        if output_dir:
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-
-        all_atoms = read(atoms_filename, ':')
-        if energy_type == 'binding_energy':
-
-            if isolated_at_fname is not None:
-                isolated_atoms = read(isolated_at_fname, ':')
-            else:
-                isolated_atoms = [at for at in all_atoms if len(at) == 1]
-
-        else:
-            isolated_atoms = None
-
-        rmse_scatter_evaled.scatter_plot(ref_energy_name=ref_energy_name,
-                                         pred_energy_name=pred_energy_name,
-                                         ref_force_name=ref_force_name,
-                                         pred_force_name=pred_force_name,
-                                         all_atoms=all_atoms,
-                                         output_dir=output_dir,
-                                         prefix=prefix,
-                                         color_info_name=info_label,
-                                         isolated_atoms=isolated_atoms,
-                                         energy_type=energy_type,
-                                         energy_shift=energy_shift,
-                                         no_legend=no_legend,
-                                         error_type=error_type)
-
 
 
 @click.command('error-scatter')
-@click.argument('atoms-filename')
+@click.argument('atoms-filenames', nargs=-1)
 @click.option('--ref-energy-name', '-re', type=str)
 @click.option('--pred-energy-name', '-pe', type=str)
 @click.option('--ref-force-name', '-rf', type=str)
@@ -164,43 +171,59 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
               help='shift energies by the mean. ')
 @click.option('--no-legend', is_flag=True, help='doesn\'t plot the legend')
 @click.option('--error-type', default='rmse')
+@click.option('--xvals', help="values for x axis for multi-file plot")
+@click.option('--xlabel', help='x axis label ')
 def scatter(ref_energy_name, pred_energy_name, ref_force_name,
             pred_force_name,
-               atoms_filename,
+               atoms_filenames,
                output_dir, prefix, info_label, isolated_at_fname,
-               energy_type, energy_shift, no_legend, error_type):
+               energy_type, energy_shift, no_legend, error_type, xvals, xlabel):
     """Makes energy and force scatter plots and dimer curves"""
 
-    from util.plot import rmse_scatter_evaled
+    from util.plot import rmse_scatter_evaled, multiple_error_files
 
     if output_dir:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-    all_atoms = read(atoms_filename, ':')
-    if energy_type=='binding_energy':
 
+    if prefix is None:
+        prefix = Path(atoms_filenames[0]).stem
+
+    if len(atoms_filenames) == 1:
+        atoms_filename = atoms_filenames[0]
+        all_atoms = read(atoms_filename, ":")
+
+        isolated_atoms = None
         if isolated_at_fname is not None:
             isolated_atoms = read(isolated_at_fname, ':')
-        else:
-            isolated_atoms = [at for at in all_atoms if len(at) == 1]
 
+        rmse_scatter_evaled.scatter_plot(ref_energy_name=ref_energy_name,
+                                         pred_energy_name=pred_energy_name,
+                                         ref_force_name=ref_force_name,
+                                         pred_force_name=pred_force_name,
+                                         all_atoms=all_atoms,
+                                         output_dir=output_dir,
+                                         prefix=prefix,
+                                         color_info_name=info_label,
+                                         isolated_atoms=isolated_atoms,
+                                         energy_type=energy_type,
+                                         energy_shift=energy_shift,
+                                         no_legend=no_legend,
+                                         error_type=error_type)
     else:
-        isolated_atoms = None
+        if xvals is not None:
+            xvals = [float(x) for x in xvals.split()]
+        multiple_error_files.main(ref_energy_name=ref_energy_name,
+                             pred_energy_name=pred_energy_name,
+                             ref_force_name=ref_force_name,
+                             pred_force_name=pred_force_name,
+                             atoms_filenames=atoms_filenames,
+                             output_dir=output_dir,
+                             prefix=prefix,
+                             color_info_name=info_label,
+                                  xvals=xvals, xlabel=xlabel)
 
-    rmse_scatter_evaled.scatter_plot(ref_energy_name=ref_energy_name,
-                                     pred_energy_name=pred_energy_name,
-                                     ref_force_name=ref_force_name,
-                                     pred_force_name=pred_force_name,
-                                     all_atoms=all_atoms,
-                                     output_dir=output_dir,
-                                     prefix=prefix,
-                                     color_info_name=info_label,
-                                     isolated_atoms=isolated_atoms,
-                                     energy_type=energy_type,
-                                     energy_shift=energy_shift,
-                                     no_legend=no_legend,
-                                     error_type=error_type)
 
 
 @click.command("dist-corr")

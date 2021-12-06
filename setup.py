@@ -8,6 +8,6 @@ setuptools.setup(
     ],
     entry_points="""
     [console_scripts]
-    egg=util.cli.cli:cli
+    util=util.cli.cli:cli
     """
 )

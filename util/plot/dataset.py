@@ -214,6 +214,39 @@ def distances_distributions(atoms_in, group_compounds=True, extend_y=-0.7,
     plt.savefig(title + '.png', dpi=300)
 
 
+
+def pairwise_distances_hist(atoms, fig_name):
+
+
+    distances_dict = util.distances_dict(atoms)
+    num_pairs = len(distances_dict.keys())
+    num_cols = 2
+    num_rows = int(num_pairs/2)
+
+    fig = plt.figure(figsize=(10, 3*num_rows))
+    gs = mpl.gridspec.GridSpec(num_rows, num_cols)
+    axes = [plt.subplot(g) for g in gs]
+
+    for ax, (key, vals) in zip(axes, distances_dict.items()):
+
+        if len(vals) == 0:
+            continue
+
+        ax.set_title(key)
+        ax.grid(color='lightgrey', ls=':')
+        ax.hist(vals, density=True, label=f'{min(vals):.3f}')
+        ax.set_xlabel('distance, Å')
+        ax.set_ylabel('density')
+        ax.set_xlim(left=0)
+        ax.legend(title="min distance, Å")
+
+    plt.tight_layout()
+
+    plt.savefig(fig_name, bbox_inches='tight')
+
+
+
+
 def all_pair_distances(atoms_list):
     distances_dict = util.distances_dict(atoms_list)
     all_distances = []
@@ -249,5 +282,6 @@ def pair_distances_within_cutoff(atoms_list, cutoff=6.0):
                 all_distances = np.concatenate([all_distances, distances])
 
     return all_distances
+
 
 

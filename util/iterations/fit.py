@@ -28,7 +28,7 @@ from util.calculators import xtb2_plus_gap
 logger = logging.getLogger(__name__)
 
 
-def fit(no_cycles,
+def fit(num_cycles,
         given_train_fname='train.xyz',
         gap_param_filename=None,
         smiles_csv=None, num_smiles_opt=None,
@@ -42,7 +42,7 @@ def fit(no_cycles,
     Parameters
     ---------
 
-    no_cycles: int
+    num_cycles: int
         number of gap-fit and optimise cycles to do
     given_train_fname: str, default='train.xyz'
         fname for fitting the first GAP
@@ -106,6 +106,7 @@ def fit(no_cycles,
     dft_prop_prefix = 'dft_'
     orca_kwargs = default_kw['orca']
     logger.info(f'orca_kwargs: {orca_kwargs}')
+    logger.info(f'orca in environment: {shutil.which("orca")}')
 
     if ref_type == 'dft':
         fit_to_prop_prefix = dft_prop_prefix
@@ -131,7 +132,7 @@ def fit(no_cycles,
 
 
 
-    for cycle_idx in range(0, no_cycles+1):
+    for cycle_idx in range(0, num_cycles+1):
 
         train_set_fname = f'xyzs/{cycle_idx-1}_train_for_gap' \
                           f'_{cycle_idx}.xyz'

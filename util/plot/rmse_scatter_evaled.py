@@ -48,7 +48,10 @@ def scatter_plot(ref_energy_name,
                  no_legend=False,
                  error_type='rmse'):
 
+    errors_to_return = {"energy": {}, "forces": {}}
 
+    if isolated_atoms is None and energy_type=='binding_energy':
+        isolated_atoms = [at for at in all_atoms if len(at) == 1]
     all_atoms = [at for at in all_atoms if len(at) != 1]
 
 
@@ -183,9 +186,13 @@ def scatter_plot(ref_energy_name,
 
         error = error_function(ref, pred) * 1e3
 
+        errors = np.abs(ref - pred) * 1e3
+        
+        errors_to_return["energy"][label] = errors
+
         ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}', color=color,
                        zorder=2, **marker_kwargs)
-        ax_err.scatter(ref, np.abs(ref - pred) * 1e3, **marker_kwargs,
+        ax_err.scatter(ref, errors, **marker_kwargs,
                        color=color, zorder=2)
         ax_err.axhline(error, color=color, lw=0.8)
 
@@ -237,11 +244,14 @@ def scatter_plot(ref_energy_name,
             pred = data['predicted']
 
             error = error_function(ref, pred)*1e3
+            errors = np.abs(ref - pred)*1e3
+
+            errors_to_return["forces"][label] = errors
 
             ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}',
                             color=color,
                             **marker_kwargs)
-            ax_err.scatter(ref, np.abs(ref - pred)*1e3, color=color,
+            ax_err.scatter(ref, errors , color=color,
             **marker_kwargs)
             ax_err.axhline(error, color=color, lw=0.8)
 
@@ -268,11 +278,10 @@ def scatter_plot(ref_energy_name,
             lims = (min([left_lim, bottom_lim]), max(left_lim, top_lim))
             ax.plot(lims, lims, c='k', linewidth=0.8)
 
-
-
     if not prefix:
-        prefix = os.path.basename(param_fname)
-        prefix = os.path.splitext(prefix)[0]
+        # prefix = os.path.basename(param_fname)
+        # prefix = os.path.splitext(prefix)[0]
+        prefix = ''
     picture_fname = f'{prefix}_by_{color_info_name}_scatter.png'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
@@ -286,3 +295,6 @@ def scatter_plot(ref_energy_name,
         plt.close(fig)
     else:
         plt.show()
+
+    return errors_to_return
+
