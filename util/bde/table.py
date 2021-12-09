@@ -304,9 +304,9 @@ def add_H_data(t, isolated_h, gap_prefix, dft_prefix):
     gap_energy = isolated_h.info[f'{gap_prefix}energy']
     dft_energy = isolated_h.info[f'{dft_prefix}energy']
 
-    print('HHHHHHHHHHHHHHHHHHHHHHHHHHhh')
-    print(dft_energy)
-    print(gap_energy)
+    # print('HHHHHHHHHHHHHHHHHHHHHHHHHHhh')
+    # print(dft_energy)
+    # print(gap_energy)
 
     t.loc['H', 'energy_absolute_error'] = abs_error(gap_energy, dft_energy)
     t.loc['H', 'dft_opt_dft_energy']= dft_energy
