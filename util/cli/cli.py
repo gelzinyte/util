@@ -83,11 +83,12 @@ def subcli_configs():
     """operations on atomic configurations"""
     pass
 from util.cli.config_commands import assign_differences, \
-    smiles_to_molecules_and_rads, smiles_to_molecules, distribute_configs, \
+    smiles_to_molecules_and_rads, distribute_configs, \
     gather_configs, info_to_numbers
+# smiles_to_molecules
 subcli_configs.add_command(assign_differences)
 subcli_configs.add_command(smiles_to_molecules_and_rads)
-subcli_configs.add_command(smiles_to_molecules)
+# subcli_configs.add_command(smiles_to_molecules)
 subcli_configs.add_command(distribute_configs)
 subcli_configs.add_command(gather_configs)
 subcli_configs.add_command(info_to_numbers)

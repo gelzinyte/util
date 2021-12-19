@@ -15,6 +15,15 @@ import hashlib
 
 logger = logging.getLogger(__name__)
 
+def into_dict_of_labels(ats, info_label):
+    data = {}
+    for at in ats:
+        label = at.info[info_label]
+        if label not in data.keys():
+            data[label] = []
+        data[label].append(at)
+
+    return data
 
 def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
 
@@ -48,25 +57,25 @@ def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
 
 
 
-
-def smiles_csv_to_molecules(smiles_csv, outputs, repeat=1,
-                            smiles_col='smiles',
-                            name_col='zinc_id'):
-
-    df = pd.read_csv(smiles_csv)
-    smi_names = []
-    smiles_to_convert = []
-    for smi, name in zip(df[smiles_col], df[name_col]):
-        smiles_to_convert += [smi] * repeat
-        smi_names += [name] * repeat
-
-    smiles.run(outputs=outputs, smiles=smiles_to_convert)
-    for at, name in zip(molecules.to_ConfigSet_in(), smi_names):
-        at.info['config_type'] = name
-        at.info['compound'] = name
-        at.cell = [50, 50, 50]
-
-    return outputs.to_ConfigSet_in()
+#
+# def smiles_csv_to_molecules(smiles_csv, outputs, repeat=1,
+#                             smiles_col='smiles',
+#                             name_col='zinc_id'):
+#
+#     df = pd.read_csv(smiles_csv, delim_whitespace=True)
+#     smi_names = []
+#     smiles_to_convert = []
+#     for smi, name in zip(df[smiles_col], df[name_col]):
+#         smiles_to_convert += [smi] * repeat
+#         smi_names += [name] * repeat
+#
+#     smiles.run(outputs=outputs, smiles=smiles_to_convert)
+#     for at, name in zip(outputs.to_ConfigSet_in(), smi_names):
+#         at.info['config_type'] = name
+#         at.info['compound'] = name
+#         at.cell = [50, 50, 50]
+#
+#     return outputs.to_ConfigSet_in()
 
 
 
@@ -92,12 +101,16 @@ def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_',
         write(output_filename, batch)
 
 
-def collect_configs(out_fname, num_tasks, batch_out_fname_prefix='out_', 
-                    count_from=1):
+def collect_configs(out_fname, num_tasks, batch_out_fname_prefix='out_',
+                    dir_prefix='job_', count_from=1):
 
     ats_out = []
     for idx in range(num_tasks):
-        ats = read(f'{batch_out_fname_prefix}{idx+count_from}.xyz', ':')
+        if dir_prefix is None:
+            this_dir_prefix=""
+        else:
+            this_dir_prefix=f'{dir_prefix}{idx+count_from}/'
+        ats = read(f'{this_dir_prefix}{batch_out_fname_prefix}{idx+count_from}.xyz', ':')
         ats_out += ats
 
     write(out_fname, ats_out)

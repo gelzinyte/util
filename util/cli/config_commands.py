@@ -23,7 +23,8 @@ def assign_differences(input_fn, output_fn, prop_prefix_1, prop_prefix_2):
 @click.option("--repeats", '-n', type=click.INT, default=1, help='number of '
                                                            'repeats for each smiles')
 @click.option("--num-rads-per-mol", type=click.INT,
-         help="how many radicals create for each molecule. Defaults to all.")
+         help="how many radicals create for each molecule. Defaults to all. "
+              "Returns only molecules if zero.")
 @click.option("--smiles-col", default="smiles")
 @click.option("--name-col", default="zinc_id")
 def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
@@ -37,21 +38,21 @@ def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
                        outputs=outputs, num_rads_per_mol=num_rads_per_mol,
                        smiles_col=smiles_col, name_col=name_col)
 
-
-@click.command('csv-to-mols')
-@click.argument('smiles-csv')
-@click.option('--num-repeats', '-n', default=1, type=click.INT)
-@click.option('--output-fname', '-o')
-@click.option("--smiles-col", default="smiles", help="column name in csv")
-@click.option("--name-col", default='zinc_id')
-def smiles_to_molecules(smiles_csv, num_repeats, output_fname, smiles_col,
-                        name_col):
-
-    from util import configs
-
-    outputs = ConfigSet_out(output_file=output_fname)
-    configs.smiles_csv_to_molecules(smiles_csv,
-        outputs, repeat=num_repeats, smiles_col=smiles_col, name_col=name_col)
+#
+# @click.command('csv-to-mols')
+# @click.argument('smiles-csv')
+# @click.option('--num-repeats', '-n', default=1, type=click.INT)
+# @click.option('--output-fname', '-o')
+# @click.option("--smiles-col", default="smiles", help="column name in csv")
+# @click.option("--name-col", default='zinc_id')
+# def smiles_to_molecules(smiles_csv, num_repeats, output_fname, smiles_col,
+                        # name_col):
+#
+#     from util import configs
+#
+#     outputs = ConfigSet_out(output_files=output_fname)
+#     configs.smiles_csv_to_molecules(smiles_csv,
+#         outputs, repeat=num_repeats, smiles_col=smiles_col, name_col=name_col)
 
 @click.command('distribute')
 @click.argument('in-fname')
@@ -69,13 +70,16 @@ def distribute_configs(in_fname, num_tasks, prefix, dir_prefix):
 
 @click.command('gather')
 @click.option('--out-fname', '-o', help='output for gathered configs')
-@click.option('--num-tasks', '-n', default=8, type=click.INT,
+@click.option('--num-tasks', '-n', type=click.INT,
               help='number of files to gather configs from')
-@click.option('--prefix', '-p', default='out_',
+@click.option('--prefix', '-p', default='out_', show_default=True,
               help='prefix for individual files')
-def gather_configs(out_fname, num_tasks, prefix):
+@click.option("--dir-prefix", default='job_', show_default=True)
+def gather_configs(out_fname, num_tasks, prefix, dir_prefix):
+    from util import configs
     configs.collect_configs(out_fname=out_fname, num_tasks=num_tasks,
-                              batch_out_fname_prefix=prefix)
+                              batch_out_fname_prefix=prefix,
+                            dir_prefix=dir_prefix)
 
 
 @click.command('info-to-no')

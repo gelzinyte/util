@@ -140,7 +140,7 @@ def scatter_plot(ref_energy_name,
         cmap = plt.get_cmap('jet')
         colors = [cmap(idx) for idx in np.linspace(0, 1, n_colors)]
 
-    marker_kwargs = {'marker': 'x', 'alpha': 0.5, 's': 10}
+    marker_kwargs = {'marker': 'o', 'alpha': 1, 's': 10, 'facecolors':'none'}
 
     num_columns = 2
     if ref_force_name is None:
@@ -190,10 +190,10 @@ def scatter_plot(ref_energy_name,
         
         errors_to_return["energy"][label] = errors
 
-        ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}', color=color,
+        ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}', edgecolors=color,
                        zorder=2, **marker_kwargs)
         ax_err.scatter(ref, errors, **marker_kwargs,
-                       color=color, zorder=2)
+                       edgecolors=color, zorder=2)
         ax_err.axhline(error, color=color, lw=0.8)
 
     if not no_legend:
@@ -249,9 +249,9 @@ def scatter_plot(ref_energy_name,
             errors_to_return["forces"][label] = errors
 
             ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}',
-                            color=color,
+                            edgecolors=color,
                             **marker_kwargs)
-            ax_err.scatter(ref, errors , color=color,
+            ax_err.scatter(ref, errors , edgecolors=color,
             **marker_kwargs)
             ax_err.axhline(error, color=color, lw=0.8)
 
@@ -282,7 +282,7 @@ def scatter_plot(ref_energy_name,
         # prefix = os.path.basename(param_fname)
         # prefix = os.path.splitext(prefix)[0]
         prefix = ''
-    picture_fname = f'{prefix}_by_{color_info_name}_scatter.png'
+    picture_fname = f'{prefix}_by_{color_info_name}_scatter.pdf'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
@@ -290,7 +290,7 @@ def scatter_plot(ref_energy_name,
     plt.tight_layout()
 
     if output_dir:
-        plt.savefig(picture_fname, dpi=300,
+        plt.savefig(picture_fname,# dpi=300,
                     bbox_inches='tight')
         plt.close(fig)
     else:

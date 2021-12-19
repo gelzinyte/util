@@ -136,6 +136,8 @@ def rad_conformers_from_smi(smi, compound, num_radicals):
         else:
             selected_sp3_h_nos = np.random.choice(selected_sp3_h_nos, size=num_radicals,
                                         replace=False)
+    elif num_radicals == 0:
+        selected_sp3_h_nos = []
 
     output_ats = [mol]
     for idx in selected_sp3_h_nos:

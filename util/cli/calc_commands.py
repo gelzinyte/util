@@ -140,8 +140,7 @@ def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
 def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
 
 
-    logger.info('importing pyjulip')
-    import pyjulip
+    import ace
 
     inputs = ConfigSet_in(input_files=input_fname)
     outputs = ConfigSet_out(output_files=output_fname)
@@ -151,8 +150,7 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
     #             properties=['energy', 'forces'], output_prefix=prop_prefix)
 
 
-    logger.info('setting up ace calculator')
-    calc = pyjulip.ACE(ace_fname)
+    calc = ace.ACECalculator(jsonpath=ace_fname)
     logger.info('loaded up ace calculator')
     for at in tqdm(inputs):
         calc.reset()

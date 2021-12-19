@@ -82,7 +82,7 @@ def set_limits(axes_dimers):
 
 
 def calc_on_dimer(calc, train_ats, ref_isolated_ats, ref_prefix='dft_',
-                  pred_label=None, title='dimer_curve'):
+                  pred_label=None, title='dimer_curve', close=True):
 
     distances_dict = util.distances_dict(train_ats)
     dimers = [key for key, item in distances_dict.items() if len(item)!=0]
@@ -104,8 +104,11 @@ def calc_on_dimer(calc, train_ats, ref_isolated_ats, ref_prefix='dft_',
 
     plt.suptitle(title)
     plt.tight_layout()
-    plt.savefig(title + '.pdf', bbox_inches='tight')
-    plt.close()
+    if close:
+        plt.savefig(title + '.pdf', bbox_inches='tight')
+        plt.close()
+    else:
+        return plt.gcf()
 
 
 

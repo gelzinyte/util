@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from util import shift0 as sft
 import numpy as np
 
-def curves_from_all_atoms(ats_in, pred_prefix, rin, rout):
+def curves_from_all_atoms(ats_in, pred_prefix, rin=None, rout=None):
 
     isolated_at = [at for at in ats_in if len(at) == 1][0]
 
@@ -33,7 +33,7 @@ def curves_from_all_atoms(ats_in, pred_prefix, rin, rout):
 
 
 
-def plot_curve(diss_mol, iso_h, rad, pred_prefix, title, rin, rout,
+def plot_curve(diss_mol, iso_h, rad, pred_prefix, title, rin=None, rout=None,
                bh_prefix='dft_hop_', dft_prefix='dft_'):
 
     c_idx = rad.info["dissociation_test_c_idx"]
@@ -45,7 +45,7 @@ def plot_curve(diss_mol, iso_h, rad, pred_prefix, title, rin, rout,
     dft_ref = iso_h.info[f'{dft_prefix}energy'] + np.min([rad.info[f'{bh_prefix}{idx}_energy'] for idx in range(10)])
     pred_ref = iso_h.info[f'{pred_prefix}energy'] + rad.info[f'{pred_prefix}energy']
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(6, 4))
 
     plt.plot(distances, sft(pred_energies, dft_ref))
     plt.axhline(dft_ref - dft_ref, lw=0.8, color='k', label=f"dft bhop reference: {dft_ref:.3f} eV")
@@ -53,8 +53,10 @@ def plot_curve(diss_mol, iso_h, rad, pred_prefix, title, rin, rout,
     plt.axhline(shifted_pred, lw=0.8, color='tab:orange', ls='--',
                 label=f'{pred_prefix} reference: {shifted_pred*1e3:.3f} meV or {shifted_pred*1e3/(len(rad)+1):.3f} meV/at')
 
-    plt.axvline(rin, color='k', lw=0.8, ls='--', label=f'rin: {rin:2f} Å')
-    plt.axvline(rout, color='k', lw=0.8, ls='--', label=f'rout: {rout:2f} Å')
+    if rin is not None:
+        plt.axvline(rin, color='k', lw=0.8, ls='--', label=f'rin: {rin:2f} Å')
+    if rout is not None:
+        plt.axvline(rout, color='k', lw=0.8, ls='--', label=f'rout: {rout:2f} Å')
 
     for at_idx, (dist, at)  in enumerate(zip(distances, diss_mol)):
         d = [dist] * 10

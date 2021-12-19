@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 @click.command("dissociate-h")
 @click.argument("fname")
 @click.option("--pred-prefix", default='ace_')
-@click.option("--rin", type=click.FLOAT, default=0.9)
-@click.option("--rout", type=click.FLOAT, default=4.4)
+@click.option("--rin", type=click.FLOAT)
+@click.option("--rout", type=click.FLOAT)
 def dissociate(fname, pred_prefix, rin, rout):
     from util.plot import dissociate_h_test
     ats = read(fname, ':')

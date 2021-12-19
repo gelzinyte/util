@@ -86,7 +86,9 @@ def run_op(smiles, useBasicKnowledge=True, useExpTorsionAnglePrefs=True, extra_i
     for smi in smiles:
         at = smi_to_atoms(smi=smi, useBasicKnowledge=useBasicKnowledge,
                           useExpTorsionAnglePrefs=useExpTorsionAnglePrefs)
-        at.info['smiles'] = smi
+        if at is None:
+            continue
+        # at.info['smiles'] = smi
         for key, value in extra_info.items():
             at.info[key] = value
         atoms_list.append(at)
