@@ -28,13 +28,9 @@ def make_dirs(dir_names):
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
 
-def prepare_0th_dataset(ci, co, ref_type,
-                        dft_prop_prefix='dft_',
-                        xtb2_prop_prefix=None):
-
+def prepare_0th_dataset(ci, co):
 
     for at in ci:
-
         if 'iter_no' not in at.info.keys():
             at.info['iter_no'] = '0'
         if at.cell is None:

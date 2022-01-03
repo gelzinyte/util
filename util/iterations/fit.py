@@ -29,75 +29,51 @@ logger = logging.getLogger(__name__)
 
 
 def fit(num_cycles,
-        given_train_fname='train.xyz',
-        gap_param_filename=None,
-        smiles_csv=None, num_smiles_opt=None,
-        num_nm_displacements_per_temp=None,
-        num_nm_temps=None, energy_filter_threshold=0.05,
-        max_force_filter_threshold=0.1,
-        ref_type="DFT",
-        traj_step_interval=None):
-    """ iteratively fits and optimises stuff
+        base_train_fname='train.xyz',
+        fit_param_fname=None,
+        additional_smiles_csv=None,
+        md_temp=500, energy_filter_threshold=0.05):
+    """ iteratively fits potetnials
 
     Parameters
     ---------
 
     num_cycles: int
-        number of gap-fit and optimise cycles to do
-    given_train_fname: str, default='train.xyz'
-        fname for fitting the first GAP
-    gap_param_filename: str, default None
-        .yml with gap descriptors
-    smiles_csv: str, default None
-        CSV of idx, name, smiles to generate structures from
-    num_smiles_opt: int, default None
-        for smiles, how many to generate-optimise structures
-    opt_starts_fname: str, default=None
-        xyz with structures to optimise every cycle
-    num_nm_displacements_per_temp: int, default=None
-        how many normal modes to sample from GAP-optimised structures for each
-        temperature
-    num_nm_temps: int, default=None
-        how many temperatures to draw nm samples from
+        number of fit-optimise cycles to do
+    base_train_fname: str, default='train.xyz'
+        fname for fitting the first IP
+    fit_param_fname: str, default None
+        template ace_fit.jl
+    additional_smiles_csv: str, default None
+        CSV of id and smiles to generate structures from
+    md_temp: float, default 500
+        temperature to run MD at
     energy_filter_threshold: float, default 0.05
-        structures with total energy error above will be included in next
+        structures with total energy error above will be sampled and included in next
         training set
-    max_force_filter_threshold: float, default=0.1
-        structures with largest force component error above this will be
-        included in the next training set
     ref_type: str, default "dft"
         "dft" or "dft-xtb2" for the type of reference energies/forces to
         fit to.
-    traj_step_interval: int, default None
-        how many configs to sample form the trajectory. If None only the
-        last one is taken, otherwise follows ASE's dynamics.attach consensus
-
     """
 
     assert ref_type in ['dft', 'dft-xtb2']
 
 
-    logger.info(f'Optimising structures from {smiles_csv}, {num_smiles_opt} '
-                f'times. Displacing each at {num_nm_temps} different'
+    logger.info(f'Optimising structures from {additional_smiles_csv}. '
+                f'Displacing each at {num_nm_temps} different'
                 f'temperatures between 1 and 800 K '
                 f'{num_nm_displacements_per_temp} times each. GAP '
-                f'parameters from {gap_param_filename}. Fitting to '
+                f'parameters from {fit_param_fname}. Fitting to '
                 f'{ref_type} energies and forces.')
 
 
 
     cfg = Config.load()
-    gap_fit_path =  cfg['gap_fit_path']
     scratch_dir = cfg['scratch_path']
 
-    logger.info(f'Using:\n\tgap_fit {gap_fit_path}\n\tscratch_dir '
-                f'{scratch_dir}')
+    logger.info(f'Using:scratch_dir: {scratch_dir}')
 
-    it.make_dirs(['gaps', 'xyzs'])
-
-    # will need to add `gap_file` when fitting
-    with open(gap_param_filename) as yaml_file:
-        gap_fit_base_params = yaml.safe_load(yaml_file)
+    it.make_dirs(['fits', 'xyzs'])
 
     # setup orca parameters
     default_kw = Config.from_yaml(os.path.join(cfg['util_root'],
@@ -110,7 +86,7 @@ def fit(num_cycles,
 
     if ref_type == 'dft':
         fit_to_prop_prefix = dft_prop_prefix
-        calc_predicted_prop_prefix = 'gap_'
+        calc_predicted_prop_prefix = 'ace_'
         xtb2_prop_prefix=None
     if ref_type == 'dft-xtb2':
         fit_to_prop_prefix = 'dft_minus_xtb2_'
@@ -119,54 +95,41 @@ def fit(num_cycles,
 
 
     # prepare 0th dataset
-    initial_train_fname = 'xyzs/train_for_gap_0.xyz'
+    initial_train_fname = 'xyzs/train_for_fit_0.xyz'
     if not os.path.isfile(initial_train_fname):
         logger.info('preparing initial dataset')
-        ci = ConfigSet_in(input_files=given_train_fname)
+        ci = ConfigSet_in(input_files=base_train_fname)
         co = ConfigSet_out(output_files=initial_train_fname,
                            force=True, all_or_none=True)
-        gap_inputs = it.prepare_0th_dataset(ci,co,
-                                    ref_type=ref_type,
-                                    dft_prop_prefix=dft_prop_prefix,
-                                    xtb2_prop_prefix=xtb2_prop_prefix)
-
+        fit_inputs = it.prepare_0th_dataset(ci,cox)
 
 
     for cycle_idx in range(0, num_cycles+1):
 
-        train_set_fname = f'xyzs/{cycle_idx-1}_train_for_gap' \
-                          f'_{cycle_idx}.xyz'
+        train_set_fname = f'xyzs/{cycle_idx-1}.train_for_fit{cycle_idx}.xyz'
         if cycle_idx == 0:
             train_set_fname = initial_train_fname
-
-        opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
-        opt_fname = f'xyzs/{cycle_idx}.3.0_gap_opt_mols_rads.xyz'
-        opt_filtered_fname =  f'xyzs/' \
-                          f'{cycle_idx}.3.1.0_gap_opt_mols_rads_filtered.xyz'
-        bad_structures_fname = f'xyzs/' \
-                               f'{cycle_idx}.3.1.1_filtered_out_geometries.xyz'
-        opt_fname_with_gap = f'xyzs/' \
-                  f'{cycle_idx}.3.2_gap_opt_mols_rads.filtered.gap.xyz'
-        opt_fname_w_dft = f'xyzs/' \
-                f'{cycle_idx}.3.3_gap_opt_mols_rads.filtered.gap.dft.xyz'
-
-        configs_with_large_errors = f'xyzs/' \
-                            f'{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
-        energy_force_accurate_fname = f'xyzs/{cycle_idx}.4.2_' \
-                                      f'opt_mols_w_small_errors.xyz'
-
-        nm_ref_fname = f'xyzs/{cycle_idx}.5_normal_modes_reference.xyz'
-
-        nm_sample_fname_for_train = f'xyzs/' \
-                        f'{cycle_idx}.6.1_normal_modes_train_sample.xyz'
-        nm_sample_fname_for_test = f'xyzs/' \
-                     f'{cycle_idx}.6.2_normal_modes_test_sample.xyz'
-
-        nm_sample_fname_for_train_with_dft = f'xyzs/'\
-            f'{cycle_idx}.7_normal_modes_train_sample.dft.xyz'
+        # 
+        # opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
+        # opt_fname = f'xyzs/{cycle_idx}.3.0_gap_opt_mols_rads.xyz'
+        # 
+        # opt_filtered_fname =  f'xyzs/{cycle_idx}.3.1.0_gap_opt_mols_rads_filtered.xyz'
+        # bad_structures_fname = f'xyzs/{cycle_idx}.3.1.1_filtered_out_geometries.xyz'
+        # opt_fname_with_gap = f'xyzs/{cycle_idx}.3.2_gap_opt_mols_rads.filtered.gap.xyz'
+        # opt_fname_w_dft = f'xyzs/{cycle_idx}.3.3_gap_opt_mols_rads.filtered.gap.dft.xyz'
+        # 
+        # configs_with_large_errors = f'xyzs/{cycle_idx}.4.1_opt_mols_w_large_errors.xyz'
+        # energy_force_accurate_fname = f'xyzs/{cycle_idx}.4.2_opt_mols_w_small_errors.xyz'
+        # 
+        # nm_ref_fname = f'xyzs/{cycle_idx}.5_normal_modes_reference.xyz'
+        # 
+        # nm_sample_fname_for_train = f'xyzs/{cycle_idx}.6.1_normal_modes_train_sample.xyz'
+        # nm_sample_fname_for_test = f'xyzs/{cycle_idx}.6.2_normal_modes_test_sample.xyz'
+        # 
+        # nm_sample_fname_for_train_with_dft = f'xyzs/{cycle_idx}.7_normal_modes_train_sample.dft.xyz'
 
 
-        gap_fname = f'gaps/gap_{cycle_idx}.xml'
+        fit_fname = f'gaps/gap_{cycle_idx}.xml'
         gap_out_fname = f'gaps/gap_{cycle_idx}.out'
         if ref_type == 'dft':
             calc_predicted_prop_prefix = f'gap{cycle_idx}_'
@@ -186,12 +149,12 @@ def fit(num_cycles,
         
 
         # 1. fit GAP
-        if not os.path.exists(gap_fname):
-            logger.info(f'fitting gap {gap_fname} on {train_set_fname}')
+        if not os.path.exists(fit_fname):
+            logger.info(f'fitting gap {fit_fname} on {train_set_fname}')
             gap_params = deepcopy(gap_fit_base_params)
-            gap_params['gap_file'] = gap_fname
+            gap_params['gap_file'] = fit_fname
             if cycle_idx > 0:
-                gap_inputs = ConfigSet_in(input_files=train_set_fname)
+                fit_inputs = ConfigSet_in(input_files=train_set_fname)
 
             if "energy_parameter_name" in gap_params and \
                 gap_params["energy_parameter_name"] != \
@@ -211,18 +174,18 @@ def fit(num_cycles,
                 gap_params["force_parameter_name"] = \
                     f'{fit_to_prop_prefix}forces'
 
-            wfl.fit.gap_simple.run_gap_fit(fitting_configs=gap_inputs,
+            wfl.fit.gap_simple.run_gap_fit(fitting_configs=fit_inputs,
                                              fitting_dict=gap_params,
                                            stdout_file=gap_out_fname,
                                            gap_fit_exec=gap_fit_path)
 
-        full_gap_fname = str(Path(gap_fname).resolve())
+        full_fit_fname = str(Path(fit_fname).resolve())
         if ref_type == 'dft':
             calculator = (Potential, [],
-                         {'param_filename':full_gap_fname})
+                         {'param_filename':full_fit_fname})
         elif ref_type == 'dft-xtb2':
             calculator = (xtb2_plus_gap, [],
-                          {'gap_filename': full_gap_fname})
+                          {'gap_filename': full_fit_fname})
 
 
         # 2. generate structures for optimisation
@@ -231,8 +194,8 @@ def fit(num_cycles,
             outputs = ConfigSet_out(output_files=opt_starts_fname,
                                     force=True, all_or_none=True,
                                     verbose=False)
-            inputs = it.make_structures(smiles_csv, iter_no=cycle_idx,
-                               num_smi_repeat=num_smiles_opt,
+            inputs = it.make_structures(additional_smiles_csv, iter_no=cycle_idx,
+                               num_smi_repeat=1,
                                outputs=outputs)
         else:
             inputs = ConfigSet_in(input_files=opt_starts_fname)

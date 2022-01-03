@@ -2,6 +2,20 @@ import click
 import util
 from wfl.configset import ConfigSet_out
 from ase.io import read, write
+from util import configs    
+
+@click.command('hash')
+@click.argument('input-fname')
+@click.option('--output-fname', '-o')
+@click.option('--prefix', '-p', help='prefix for info entries')
+def hash_structures(input_fname, output_fname, prefix):
+    """assigns positions/numbers hash to all structures in the file"""
+
+    atoms = read(input_fname, ':')
+    for at in atoms:
+        at.info[f'{prefix}hash'] = configs.hash_atoms(at)
+
+    write(output_fname, atoms)
 
 @click.command('assign-diff')
 @click.argument('input-fn')
