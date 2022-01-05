@@ -30,6 +30,19 @@ except:
 from contextlib import contextmanager,redirect_stderr,redirect_stdout
 from os import devnull
 
+
+
+def remove_energy_force_containing_entries(at):
+    "remove info keys with 'energy' in label and arrays keys with 'force' in label"
+    info_keys_to_remove = [key for key in at.info.keys() if 'energy' in key]
+    arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key]
+
+    for key in info_keys_to_remove:
+        del at.info[key]
+
+    for key in arrays_keys_to_remove:
+        del at.arrays[key]
+
 def ace_constructor(ace_fname):
     import pyjulip
     return pyjulip.ACE(ace_fname)
