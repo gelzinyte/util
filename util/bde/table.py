@@ -2,6 +2,10 @@ from util import natural_sort
 import pandas as pd
 import numpy as np
 from tabulate import tabulate
+import warnings
+
+import logging
+logger = logging.getLogger(__name__)
 
 def atom_sorter(atoms, info_key='mol_or_rad'):
     convert = lambda text: int(text) if text.isdigit() else text.lower()
@@ -9,11 +13,17 @@ def atom_sorter(atoms, info_key='mol_or_rad'):
     return sorted(atoms, key=alphanum_key)
 
 
-def assign_atoms_bde_info(all_atoms, h_energy, prop_prefix, dft_prefix):
+def assign_bde_info(all_atoms, prop_prefix, dft_prop_prefix, h_energy=None, isolated_h=None):
     """prop_prefix - which prefix to use for energies for bdes
-        dft_prefix - used to get dft_opt_mol_positions_hash"""
+        dft_prop_prefix - used to get dft_opt_mol_positions_hash"""
 
-    atoms_by_hash = get_atoms_by_hash_dict(all_atoms, dft_prefix)
+    if h_energy is not None:
+        assert isolated_h is None
+    if isolated_h is not None:
+        assert h_energy is None
+        h_energy = isolated_h.info[f"{prop_prefix}energy"]
+
+    atoms_by_hash = get_atoms_by_hash_dict(all_atoms, dft_prop_prefix)
 
     atoms_out = []
     for hash, atoms in atoms_by_hash.items():
@@ -71,6 +81,7 @@ def multiple_tables_from_atoms(all_atoms, isolated_h, gap_prefix,
 def get_atoms_by_hash_dict(atoms, dft_prefix):
     """returns dictionary of hash:[Atoms]"""
 
+    # put everything into a dictionary 
     atoms_by_hash = {}
     for at in atoms:
         hash = at.info[f'{dft_prefix}opt_mol_positions_hash']
@@ -78,12 +89,24 @@ def get_atoms_by_hash_dict(atoms, dft_prefix):
             atoms_by_hash[hash] = []
         atoms_by_hash[hash].append(at)
 
+    # check which hashes don't have a molecule in them
     no_mol_hashes = []
+    no_mol_compounds = {}
     for hash, atoms in atoms_by_hash.items():
         mol_or_rads = [at.info['mol_or_rad'] for at in atoms]
         if 'mol' not in mol_or_rads:
             no_mol_hashes.append(hash)
+            comp = atoms[0].info["compound"]
+            if comp not in no_mol_compounds.keys():
+                no_mol_compounds[comp] = len(mol_or_rads)  
+            else:
+                no_mol_compounds[comp] += len(mol_or_rads)
 
+    if len(no_mol_compounds) > 0:
+        warnings.warn(f"not generating BDEs for the following entries, because no molecule"
+                f"was found. {no_mol_compounds}")
+
+    # delete entries without corresponding molecule
     for bad_hash in no_mol_hashes:
         del atoms_by_hash[bad_hash]
 

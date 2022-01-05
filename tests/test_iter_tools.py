@@ -1,7 +1,7 @@
 import os
 import pytest
 from ase.io import read
-from util import iter_tools as it
+from util.iterations import tools as it
 
 
 def ref_path():

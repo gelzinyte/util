@@ -2,7 +2,7 @@ import os
 from pytest import approx
 import numpy as np
 from quippy.potential import Potential
-from util.calculators import xtb_plus_gap
+from util.calculators import xtb2_plus_gap
 from ase.build import molecule
 from xtb.ase.calculator import XTB
 

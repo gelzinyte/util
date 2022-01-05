@@ -24,6 +24,63 @@ def fake_isolated_h():
 
     return isolated_h
 
+@pytest.fixture()
+def ats_for_bde(atoms):
+    atoms.info["dft_opt_mol_positions_hash"] = "fake_hash"
+    atoms.info["compound"] = "fake_compound"
+    return atoms
+
+
+
+def test_get_atoms_by_hash_dict(ats_for_bde):
+
+    at1 = ats_for_bde.copy()
+    at1.info['mol_or_rad'] = "mol"
+    at2 = ats_for_bde.copy()
+    at2.info["mol_or_rad"] = "rad"
+
+    atoms_by_hash = table.get_atoms_by_hash_dict([at1, at2], 'dft_')
+    assert len(atoms_by_hash["fake_hash"]) == 2
+
+    at1.info["mol_or_rad"] = "rad"
+    with pytest.warns(UserWarning):
+       atoms_by_hash = table.get_atoms_by_hash_dict([at1, at2], 'dft_')
+    assert len(atoms_by_hash) == 0
+
+
+def test_get_bde():
+       fake_h_energy = 1
+       fake_rad_energy = 5
+       fake_mol_energy = 4
+       bde = table.get_bde(mol_energy=fake_mol_energy,
+                            rad_energy=fake_rad_energy,
+                            isolated_h_energy=fake_h_energy)
+       assert bde == 2
+
+
+def test_assign_bde_info(ats_for_bde):
+       
+       at1 = ats_for_bde.copy()
+       at1.info["mol_or_rad"] = "rad"
+       at1.info["fake_energy"] = 5
+
+       at2 = ats_for_bde.copy()
+       at2.info["mol_or_rad"] = "mol"
+       at2.info["fake_energy"] = 4
+
+       fake_h_energy = 1
+
+       ats_in = [at1, at2]
+
+       table.assign_bde_info(all_atoms=ats_in, 
+                                   h_energy=fake_h_energy, 
+                                   prop_prefix='fake_', 
+                                   dft_prop_prefix='dft_')
+
+       # hasn't mixed up the order
+       assert ats_in[0].info["mol_or_rad"] == "rad"
+       # got the correct bde
+       assert ats_in[0].info["fake_bde"] == 2
 
 def test_bde_table(fake_atoms, fake_isolated_h):
 
