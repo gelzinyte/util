@@ -10,6 +10,7 @@ from quippy.potential import Potential
 
 from wfl.configset import ConfigSet_in
 import wfl.fit.gap_simple
+import wfl.fit.ace
 
 from util import radicals
 from util import configs
@@ -132,6 +133,7 @@ def filter_configs(
 
 def do_gap_fit(fit_dir, idx, ref_type, train_set_fname, fit_params_base, gap_fit_path):
 
+    fit_dir.mkdir(exist_ok=True)
     fit_fname = fit_dir / f"gap_{idx}.xml"
     gap_out_fname = fit_dir / f"gap_{idx}.out"
 
@@ -165,7 +167,7 @@ def fix_fit_params(fit_params_base, fit_to_prop_prefix):
         and fit_params_base["energy_parameter_name"] != f"{fit_to_prop_prefix}energy"
     ):
 
-        logger.warn(
+        logger.warning(
             f'Overwriting {fit_params_base["energy_parameter_name"]} found '
             f'in fit_params_base with "{fit_to_prop_prefix}energy"'
         )
@@ -176,7 +178,7 @@ def fix_fit_params(fit_params_base, fit_to_prop_prefix):
         and fit_params_base["force_parameter_name"] != f"{fit_to_prop_prefix}forces"
     ):
 
-        logger.warn(
+        logger.warning(
             f'Overwriting {fit_params_base["force_parameter_name"]} found '
             f'in fit_params_base with "{fit_to_prop_prefix}forces"'
         )
@@ -225,6 +227,6 @@ def do_ace_fit(
         wait_for_results=True,
     )
 
-    assert ace_file_base + ".json" == ace_fname
+    assert ace_file_base + ".json" == str(ace_fname)
 
     return (ace.ACECalculator, [], {"jsonpath": ace_fname})
