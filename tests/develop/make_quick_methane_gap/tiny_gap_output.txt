@@ -1,0 +1,140 @@
+libAtoms::Hello World: 27/04/2021   15:29:59
+libAtoms::Hello World: git version  https://github.com/libAtoms/QUIP.git,d467b6c92-dirty
+libAtoms::Hello World: QUIP_ARCH    linux_x86_64_gfortran_openmp
+libAtoms::Hello World: compiled on  Feb  9 2021 at 09:37:23
+libAtoms::Hello World: OpenMP parallelisation with 16 threads
+WARNING: libAtoms::Hello World: environment variable OMP_STACKSIZE not set explicitly. The default value - system and compiler dependent - may be too small for some applications.
+libAtoms::Hello World: Random Seed = 55799051
+libAtoms::Hello World: global verbosity = 0
+
+Calls to system_timer will do nothing by default
+
+
+================================ Input parameters ==============================
+
+atoms_filename = train.xyz
+at_file = //MANDATORY//
+gap = "soap l_max=4 n_max=8 cutoff=4 delta=1 covariance_type=dot_product zeta=4 n_sparse=20 sparse_method=cur_points atom_gaussian_width=0.4 add_species=True"
+e0 = 0.0
+local_property0 = 0.0
+e0_offset = 0.0
+e0_method = isolated
+default_kernel_regularisation = //MANDATORY//
+default_sigma = "0.001 0.03 0.0 0.0"
+default_kernel_regularisation_local_property = 0.001
+default_local_property_sigma = 0.001
+sparse_jitter = 1.0e-10
+hessian_displacement = 1.0e-2
+hessian_delta = 1.0e-2
+baseline_param_filename = quip_params.xml
+core_param_file = /home/eg475/scripts/source_files/glue_repulsive_fitted.xml
+baseline_ip_args =
+core_ip_args = "IP Glue"
+energy_parameter_name = dft_energy
+local_property_parameter_name = local_property
+force_parameter_name = dft_forces
+virial_parameter_name = virial
+stress_parameter_name = stress
+hessian_parameter_name = hessian
+config_type_parameter_name = config_type
+kernel_regularisation_parameter_name = sigma
+sigma_parameter_name = sigma
+force_mask_parameter_name = force_mask
+parameter_name_prefix =
+config_type_kernel_regularisation = isolated_atom:0.0001:0.0:0.0:0.0
+config_type_sigma =
+kernel_regularisation_is_per_atom = T
+sigma_per_atom = T
+do_copy_atoms_file = T
+do_copy_at_file = T
+sparse_separate_file = F
+sparse_use_actual_gpcov = F
+gap_file = gap_new.xml
+gp_file = tiny_gap.xml
+verbosity = NORMAL
+rnd_seed = -1
+openmp_chunk_size = 1
+do_ip_timing = F
+template_file = template.xyz
+sparsify_only_no_fit = F
+
+========================================  ======================================
+
+
+============== Gaussian Approximation Potentials - Database fitting ============
+
+
+Initial parsing of command line arguments finished.
+Found 1 GAPs.
+Descriptors have been parsed
+XYZ file read
+Old GAP: {soap l_max=4 n_max=8 cutoff=4 delta=1 covariance_type=dot_product zeta=4 n_sparse=20 sparse_method=cur_points atom_gaussian_width=0.4 add_species=True}
+New GAP: {soap l_max=4 n_max=8 cutoff=4 delta=1 covariance_type=dot_product zeta=4 n_sparse=20 sparse_method=cur_points atom_gaussian_width=0.4                  n_species=2 Z=6 species_Z={6 1 }}
+New GAP: {soap l_max=4 n_max=8 cutoff=4 delta=1 covariance_type=dot_product zeta=4 n_sparse=20 sparse_method=cur_points atom_gaussian_width=0.4                  n_species=2 Z=1 species_Z={6 1 }}
+Sparse points and target errors per pre-defined types of configurations
+isolated_atom    0.10000000000000000E-003  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000
+default    0.10000000000000000E-002  0.29999999999999999E-001  0.00000000000000000E+000  0.00000000000000000E+000
+Multispecies support added where requested
+
+===================== Report on number of descriptors found ====================
+
+---------------------------------------------------------------------
+Descriptor: soap l_max=4 n_max=8 cutoff=4 delta=1 covariance_type=dot_product zeta=4 n_sparse=20 sparse_method=cur_points atom_gaussian_width=0.4                  n_species=2 Z=6 species_Z={6 1 }
+Number of descriptors:                        201
+Number of partial derivatives of descriptors: 2520
+---------------------------------------------------------------------
+Descriptor: soap l_max=4 n_max=8 cutoff=4 delta=1 covariance_type=dot_product zeta=4 n_sparse=20 sparse_method=cur_points atom_gaussian_width=0.4                  n_species=2 Z=1 species_Z={6 1 }
+Number of descriptors:                        641
+Number of partial derivatives of descriptors: 8160
+
+========================================  ======================================
+
+E0/atom =  -0.13547478676206193E+002  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000 -0.10284321581399468E+004  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000
+
+========== Report on number of target properties found in training XYZ: ========
+
+Number of target energies (property name: dft_energy) found: 202
+Number of target local_properties (property name: local_property) found: 0
+Number of target forces (property name: dft_forces) found: 2520
+Number of target virials (property name: virial) found: 0
+Number of target Hessian eigenvalues (property name: hessian) found: 0
+
+================================= End of report ================================
+
+
+===== Report on per-configuration/per-atom sigma (error parameter) settings ====
+
+Number of per-configuration setting of energy_sigma found:     0
+Number of per-configuration setting of force_sigma found:      0
+Number of per-configuration setting of virial_sigma found:     0
+Number of per-configuration setting of hessian_sigma found:    0
+Number of per-configuration setting of local_propery_sigma found:0
+Number of per-atom setting of force_atom_sigma found:          0
+Number of per-component setting of force_component_sigma found:          0
+
+================================= End of report ================================
+
+Started CUR decomposition
+cur_decomposition: iteration: 1, error: .13772794254574865E-006
+Finished CUR decomposition
+Started CUR decomposition
+cur_decomposition: iteration: 1, error: .14780831412293091
+Finished CUR decomposition
+Cartesian coordinates transformed to descriptors
+Started sparse covariance matrix calculation of coordinate 1
+
+Finished sparse covariance matrix calculation of coordinate 1
+TIMER: gpFull_covarianceMatrix_sparse_Coordinate1_sparse  done in 4.3582949999999983 cpu secs, .94534183898940682 wall clock secs.
+TIMER: gpFull_covarianceMatrix_sparse_Coordinate1         done in 4.3583669999999870 cpu secs, .94538527191616595 wall clock secs.
+Started sparse covariance matrix calculation of coordinate 2
+
+Finished sparse covariance matrix calculation of coordinate 2
+TIMER: gpFull_covarianceMatrix_sparse_Coordinate2_sparse  done in 4.1739529999999831 cpu secs, 1.0998997839633375 wall clock secs.
+TIMER: gpFull_covarianceMatrix_sparse_Coordinate2         done in 4.1740039999999965 cpu secs, 1.0999500069301575 wall clock secs.
+TIMER: gpFull_covarianceMatrix_sparse_LinearAlgebra       done in .17290399999998840 cpu secs, .54752046009525657E-001 wall clock secs.
+TIMER: gpFull_covarianceMatrix_sparse_FunctionValues      done in .13599999999769352E-003 cpu secs, .17286976799368858E-004 wall clock secs.
+TIMER: gpFull_covarianceMatrix_sparse                     done in 8.7076989999999910 cpu secs, 2.1005579540506005 wall clock secs.
+TIMER: GP sparsify                                        done in 9.8956079999999815 cpu secs, 2.5853565479628742 wall clock secs.
+
+libAtoms::Finalise: 27/04/2021   15:30:41
+libAtoms::Finalise: Bye-Bye!

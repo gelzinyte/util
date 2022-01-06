@@ -1,0 +1,35 @@
+Tue 27 Apr 15:17:14 BST 2021
+/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:31: UserWarning: No universal_SOAPs, some functionality will not be available
+  warnings.warn('No universal_SOAPs, some functionality will not be available')
+Traceback (most recent call last):
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/bin/wfl", line 8, in <module>
+    sys.exit(cli())
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/click/core.py", line 829, in __call__
+    return self.main(*args, **kwargs)
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/click/core.py", line 782, in main
+    rv = self.invoke(ctx)
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/click/core.py", line 1259, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/click/core.py", line 1259, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/click/core.py", line 1066, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/click/core.py", line 610, in invoke
+    return callback(*args, **kwargs)
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/click/decorators.py", line 21, in new_func
+    return f(get_current_context(), *args, **kwargs)
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/cli/cli.py", line 206, in sample_normal_modes
+    configset_out = ConfigSet_out(output_files=outputs, force=force)
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/configset.py", line 316, in __init__
+    self.fail_if_output_exists()
+  File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/configset.py", line 343, in fail_if_output_exists
+    raise RuntimeError(('Will write to file \'{}\' that exists, '
+RuntimeError: Will write to file 'methane_sample.xyz' that exists, pass force to override
+ConfigSet_in:
+   input files: methane_sample.xyz @ :
+ConfigSet_out:
+   output files: : methane_sample_dft.xyz
+ORCA calculation parameters:  {'smearing': 5000, 'scratch_path': '/scratch-ssd/eg475', 'orcasimpleinput': 'UKS B3LYP def2-SV(P) def2/J D3BJ'}
+/opt/womble/miniconda3/user_envs/eg475/py3.8/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:30: UserWarning: No universal_SOAPs, some functionality will not be available
+  warnings.warn('No universal_SOAPs, some functionality will not be available')
+Running <function evaluate_op at 0x14dd931da8b0> with npool=32

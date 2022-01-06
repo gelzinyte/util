@@ -1,0 +1,37 @@
+Tue 27 Apr 14:08:55 UTC 2021
+smiles: ('C',)
+info: {'config_type': 'methane'}
+ConfigSet_out:
+   output files: : mol_non_opt.xyz
+/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:31: UserWarning: No universal_SOAPs, some functionality will not be available
+  warnings.warn('No universal_SOAPs, some functionality will not be available')
+Running <function run_op at 0x14ede39b6af0> with npool=16
+/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:31: UserWarning: No universal_SOAPs, some functionality will not be available
+  warnings.warn('No universal_SOAPs, some functionality will not be available')
+ConfigSet_in:
+   input files: mol_non_opt.xyz @ :
+ConfigSet_out:
+   output files: : mol_rad_non_opt.xyz
+optimising
+ConfigSet_in:
+   input files: mol_rad_non_opt.xyz @ :
+ConfigSet_out:
+   output files: : opt_mol_rad.xyz
+ORCA calculation parameters:  {'task': 'opt', 'smearing': 5000, 'scratch_path': '/scratch-ssd/eg475', 'orcasimpleinput': 'UKS B3LYP def2-SV(P) def2/J D3BJ'}
+/opt/womble/miniconda3/user_envs/eg475/py3.8/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:30: UserWarning: No universal_SOAPs, some functionality will not be available
+  warnings.warn('No universal_SOAPs, some functionality will not be available')
+Running <function evaluate_op at 0x14cce485c8b0> with npool=16
+generating normal modes
+ConfigSet_in:
+   input files: opt_mol_rad.xyz @ :
+ConfigSet_out:
+   output files: : mol_rad_nms.xyz
+calc_kwargs: {'orcasimpleinput': 'UKS B3LYP def2-SV(P) def2/J D3BJ', 'scratch_path': '/scratch-ssd/eg475', 'n_run': 1, 'n_hop': 1, 'smearing': 5000}
+calc_args: []
+/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:31: UserWarning: No universal_SOAPs, some functionality will not be available
+  warnings.warn('No universal_SOAPs, some functionality will not be available')
+Running <function run_op at 0x151a871e2160> with npool=16
+Running <function run_op at 0x151a871e2160> with npool=16
+Running <function run_op at 0x151a871e2160> with npool=16
+Running <function run_op at 0x151a871e2160> with npool=16
+Running <function run_op at 0x151a871e2160> with npool=16

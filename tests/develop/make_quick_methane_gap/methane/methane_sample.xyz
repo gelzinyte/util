@@ -1,0 +1,1550 @@
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.04043763491921539 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00550444       0.00453635      -0.00659225
+H       -0.67440084       0.85478730      -0.08047735
+H       -0.40107998      -0.86455406      -0.55828912
+H        0.13234676      -0.30987924       1.04179404
+H        1.00565232       0.26692380      -0.32341633
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.22048103625803253 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00288992       0.00673045       0.01609493
+H       -0.62937464       0.91258898      -0.15163222
+H       -0.30951985      -0.87622563      -0.61708821
+H        0.07177995      -0.37169216       1.05611860
+H        0.89847992       0.25646142      -0.47813079
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1614892847184422 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00578696      -0.00037052      -0.00372074
+H       -0.64786658       0.88106206      -0.04358991
+H       -0.37745680      -0.86925254      -0.51170131
+H       -0.02937903      -0.33627097       1.06154780
+H        0.98266926       0.33020883      -0.46086299
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.08048219527350114 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00437471       0.00030727       0.00004827
+H       -0.73668638       0.80485520      -0.09195331
+H       -0.42093262      -0.77488061      -0.59332718
+H        0.08554601      -0.27800844       1.07092798
+H        1.01686900       0.24570446      -0.38516632
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.14089900810532002 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00098089       0.01234526      -0.01788130
+H       -0.67821785       0.85284061      -0.03508944
+H       -0.42143550      -0.92393226      -0.49669817
+H        0.09316939      -0.34817742       1.04687516
+H        1.01509919       0.27349586      -0.30095512
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.09509103987584094 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00976144       0.00302124       0.01375469
+H       -0.68048711       0.82063367      -0.14568756
+H       -0.43413029      -0.82648252      -0.61176404
+H        0.04213456      -0.32376133       1.03996086
+H        0.95309117       0.29494287      -0.44535356
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.12457615461274385 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00768724      -0.00192530       0.00835536
+H       -0.62406417       0.85727604      -0.11003524
+H       -0.38430313      -0.84957796      -0.58689505
+H        0.07828876      -0.30701365       1.02954573
+H        1.01860447       0.32359103      -0.43112011
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.10387279077141816 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00117367       0.00926464       0.00079938
+H       -0.70465468       0.88912998      -0.10504390
+H       -0.40545457      -0.90541479      -0.54015464
+H        0.08604397      -0.37170183       1.02362319
+H        1.03497696       0.27892047      -0.38689187
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1017706896698632 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00373279       0.00197805       0.00109446
+H       -0.67171814       0.84846579      -0.12919714
+H       -0.39870977      -0.81434239      -0.56676281
+H        0.08957594      -0.33392018       1.06566973
+H        0.93329969       0.27755926      -0.38169599
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1318179439306085 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00218826       0.00226893      -0.01346459
+H       -0.71831642       0.88505646      -0.08828656
+H       -0.43860800      -0.86681936      -0.52844725
+H        0.14119352      -0.33324780       1.07547630
+H        1.03873317       0.28930603      -0.29724131
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.21818289387590037 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00902854       0.00984770      -0.01828298
+H       -0.68012000       0.88548368       0.01876772
+H       -0.37126425      -0.94315618      -0.48321504
+H        0.07910171      -0.32133635       1.00661720
+H        1.07679256       0.26299489      -0.32324877
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.12161645402476076 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00935496      -0.00238174      -0.00348232
+H       -0.66435400       0.85483631      -0.12005490
+H       -0.39088150      -0.80071812      -0.54109379
+H        0.14504492      -0.31741361       1.04637155
+H        1.01859046       0.29300813      -0.34267085
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.04726864857605118 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00186283       0.00251492      -0.00257258
+H       -0.67962061       0.83499477      -0.07565168
+H       -0.41361586      -0.84387152      -0.55996791
+H        0.04996968      -0.31615455       1.07592730
+H        1.01799372       0.29639659      -0.40859605
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.0621781959795092 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00108811       0.00035020       0.00679794
+H       -0.65222374       0.83349599      -0.08449930
+H       -0.39304212      -0.84300183      -0.61988032
+H        0.05970637      -0.27530108       1.04576934
+H        0.96951967       0.28196832      -0.42133649
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.16984236680832943 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00668480      -0.00443387       0.00854200
+H       -0.63242065       0.87526646      -0.18626420
+H       -0.42293134      -0.82696750      -0.59109587
+H        0.17523405      -0.31948976       1.00921912
+H        0.95670265       0.32535874      -0.33258823
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1279948597819664 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00437376       0.00816338       0.00544407
+H       -0.68144919       0.80350699      -0.12043591
+H       -0.45901289      -0.86310453      -0.56791875
+H        0.06255820      -0.34000022       1.02396752
+H        1.02271042       0.30365653      -0.39942602
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.09522524639780898 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00401474       0.00781710      -0.00471289
+H       -0.70436546       0.84120388      -0.00385507
+H       -0.35244066      -0.87520867      -0.58885336
+H        0.06240781      -0.27061280       1.04692627
+H        1.03916355       0.21280127      -0.39700038
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.0833579091427496 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00625553      -0.00387299       0.00357912
+H       -0.72685347       0.84233782      -0.11329340
+H       -0.41366612      -0.77888545      -0.62715134
+H        0.08471542      -0.27761994       1.10640714
+H        0.97818951       0.26165091      -0.40755650
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.07876884558920177 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00154073       0.00147557       0.00408835
+H       -0.73345726       0.80446306      -0.08529806
+H       -0.40754711      -0.79093991      -0.63655874
+H        0.09616638      -0.25705966       1.07151622
+H        1.02340394       0.22728641      -0.39731961
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.04064774011202524 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00105828      -0.00339004      -0.00597011
+H       -0.69870836       0.84732649      -0.07441478
+H       -0.42016120      -0.81829431      -0.58867248
+H        0.12412379      -0.26064097       1.06354158
+H        1.00428314       0.27333773      -0.32825703
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.07450767843625247 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00156047      -0.00464185      -0.00408358
+H       -0.69682124       0.88426814      -0.01959520
+H       -0.39443110      -0.86806754      -0.61148450
+H        0.07236223      -0.22885471       1.04664519
+H        0.99722285       0.26929984      -0.36584638
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.04893449164138899 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00375040       0.00850732      -0.00486134
+H       -0.67735670       0.84108745      -0.04554614
+H       -0.37741121      -0.88238028      -0.58722148
+H        0.08772788      -0.29974240       1.06740513
+H        1.00865630       0.24099550      -0.37565227
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.0813690958782492 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00386374      -0.00479833      -0.00874027
+H       -0.65326385       0.84595927      -0.01659047
+H       -0.37126291      -0.82761070      -0.58113773
+H        0.07021637      -0.23863665       1.07715370
+H        0.99727666       0.27879884      -0.37421884
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.20125025960674428 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00363824       0.00656962      -0.00040304
+H       -0.71023179       0.84909323       0.01569902
+H       -0.35921685      -0.89546622      -0.62780711
+H       -0.00022708      -0.25428423       1.07570927
+H        1.02324745       0.22370685      -0.45774027
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.04973293093923277 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00392133      -0.00227744       0.00548595
+H       -0.68840595       0.84014586      -0.12306642
+H       -0.40679559      -0.79674695      -0.62005886
+H        0.09031311      -0.28820119       1.08040228
+H        0.95508866       0.27327373      -0.40159218
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1558226871578058 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01363523       0.00725580       0.00441408
+H       -0.70229483       0.85574498      -0.12663592
+H       -0.34605905      -0.82354093      -0.59040987
+H        0.19171430      -0.31581177       1.00075062
+H        1.01604542       0.19847838      -0.33524534
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.09602479379310166 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00599636       0.00082186       0.00558650
+H       -0.67288509       0.93036177      -0.13433460
+H       -0.37933338      -0.88889801      -0.59750209
+H        0.13135284      -0.34014118       1.05092632
+H        0.98924660       0.29021650      -0.38460170
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.17346249171851366 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00116707       0.00559997      -0.00359242
+H       -0.67823741       0.88305026      -0.14758841
+H       -0.45944239      -0.88921139      -0.49221594
+H        0.10012783      -0.40392225       1.03120033
+H        1.02057107       0.34468609      -0.34753101
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.15025168313728693 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.01149108      -0.00267048       0.01456316
+H       -0.72464744       0.81892434      -0.19266809
+H       -0.49316093      -0.78436427      -0.60306222
+H        0.07992093      -0.32531836       1.03553349
+H        0.99788446       0.32391261      -0.41228123
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.0795770033830572 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00019421      -0.00095377      -0.00771276
+H       -0.68549388       0.82249284      -0.07301072
+H       -0.45274582      -0.83390558      -0.55784401
+H        0.08933671      -0.28897851       1.07391368
+H        1.04351320       0.31309012      -0.35009609
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.13369392391454687 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00901705       0.00006420       0.00602518
+H       -0.68143841       0.80937270      -0.06756564
+H       -0.38041509      -0.79519210      -0.60750054
+H        0.00639023      -0.27064818       1.06283981
+H        0.94494150       0.25703592      -0.45851323
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.0826905364315499 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00012967       0.00322830      -0.00522148
+H       -0.70189182       0.90006610      -0.09604917
+H       -0.38209327      -0.85932132      -0.55585334
+H        0.10730376      -0.33851721       1.07361950
+H        0.97206448       0.26063565      -0.35844176
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.0979605772127388 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00028016       0.01651914       0.00125556
+H       -0.73086908       0.84443673      -0.10733346
+H       -0.37280927      -0.86296958      -0.52487236
+H        0.07924266      -0.39247886       1.02070888
+H        1.02470003       0.21549935      -0.40240707
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1130141801386705 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01390781      -0.00587337      -0.00596532
+H       -0.64685389       0.86775393      -0.02601146
+H       -0.34286881      -0.83258389      -0.59369254
+H        0.11928307      -0.23177436       1.05445898
+H        1.03309142       0.26792454      -0.36261407
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1192470115468331 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00276835      -0.01011723      -0.00633138
+H       -0.62443275       0.90425943      -0.08700300
+H       -0.45245333      -0.88345918      -0.55213298
+H        0.10722675      -0.28297519       1.03928391
+H        0.99957380       0.38406677      -0.32364417
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1536282261569087 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00446008       0.00561563      -0.00864269
+H       -0.69096188       0.87514945      -0.08498300
+H       -0.41884948      -0.88764890      -0.53781763
+H        0.15983761      -0.31620131       0.99778821
+H        1.00004913       0.26311735      -0.27094156
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.07820620467880451 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00716332       0.00023710       0.00228761
+H       -0.70651147       0.82606994      -0.09065870
+H       -0.40206073      -0.79476144      -0.57785467
+H        0.05854600      -0.28872414       1.03858143
+H        0.96159454       0.25592262      -0.39627010
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.18985153023992463 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00850628       0.01257403       0.00194050
+H       -0.74835415       0.81977001      -0.06567708
+H       -0.36031030      -0.84683715      -0.63991696
+H        0.12989027      -0.29161857       1.08088383
+H        1.07706044       0.17018521      -0.39735621
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.07087564127923607 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00143247      -0.00546441       0.00475944
+H       -0.63903144       0.88094925      -0.07069247
+H       -0.35739403      -0.84272480      -0.63246160
+H        0.05062189      -0.26692497       1.09701489
+H        0.95979934       0.29514879      -0.44951854
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.18946204023370547 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.01232428      -0.00499421      -0.01266129
+H       -0.72507323       0.81391012      -0.06491707
+H       -0.51164668      -0.81034103      -0.50992347
+H        0.06957188      -0.27214564       1.01997634
+H        1.01721708       0.32942043      -0.29320394
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.11193202589584735 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00463678       0.00125236      -0.01052627
+H       -0.71324695       0.84275665      -0.06508722
+H       -0.43174244      -0.84701145      -0.60208873
+H        0.15569324      -0.26684851       1.09643040
+H        1.04147479       0.25751390      -0.30276634
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.13453963684995096 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.02014196       0.00882905       0.00095820
+H       -0.77121019       0.81119375      -0.10507994
+H       -0.48503611      -0.84022495      -0.56226491
+H        0.03035120      -0.33515768       1.04071772
+H        0.98280916       0.26031391      -0.38373304
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.20459702643475525 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.01430706       0.00123697       0.00888969
+H       -0.70619762       0.78852994      -0.08296800
+H       -0.45052461      -0.82248953      -0.68045965
+H        0.02297463      -0.24679764       1.10531563
+H        0.96018983       0.26735330      -0.44676154
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.06491975008927416 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00781971      -0.00545031      -0.00245849
+H       -0.66903882       0.87400054      -0.07095103
+H       -0.35272260      -0.80975035      -0.61039936
+H        0.11744566      -0.26067293       1.09474929
+H        0.99442242       0.26270162      -0.38304784
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.19517769192054177 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00195151      -0.00276574       0.01080308
+H       -0.64685667       0.85074054      -0.18315849
+H       -0.48513365      -0.85458977      -0.60717231
+H        0.09936185      -0.33799877       1.06679380
+H        1.00629920       0.37613983      -0.40413614
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1453500597459223 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00999495      -0.00492258      -0.00367074
+H       -0.58467220       0.87266672      -0.03658898
+H       -0.35217413      -0.87250616      -0.59715649
+H        0.06603822      -0.26314742       1.09184839
+H        0.98683370       0.32297978      -0.41330548
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.11827651888938984 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00569491      -0.00300417      -0.00376777
+H       -0.62883756       0.86486760      -0.05249517
+H       -0.35388427      -0.84329445      -0.61228076
+H        0.10911431      -0.24914227       1.06949527
+H        0.93839667       0.26470153      -0.35876563
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.08240816131130473 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00484416       0.00485115      -0.00107877
+H       -0.69429505       0.85480616      -0.12946836
+H       -0.41771792      -0.84508219      -0.55116120
+H        0.15494944      -0.33483306       1.01299554
+H        1.01171406       0.26863473      -0.31845328
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.11517924777805796 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.00358866       0.00909855       0.00946487
+H       -0.72800750       0.89332280      -0.11921779
+H       -0.37972181      -0.88277074      -0.58906173
+H        0.06167134      -0.36311474       1.03989852
+H        1.00022221       0.24547526      -0.44334567
+5
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_mol dft_normal_mode_energy=0.1579509364779826 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01129171       0.00594226      -0.00746654
+H       -0.69485156       0.82087535      -0.08113180
+H       -0.37700163      -0.81261585      -0.53831656
+H        0.15096452      -0.31149066       1.03559882
+H        1.05236657       0.23375448      -0.32612160
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.020723336060789674 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17236099      -0.22607304       0.01902412
+H       -0.52090812      -0.81786972      -0.58460364
+H        0.01199662      -0.22641279       1.10341974
+H        0.95043289       0.42279930      -0.36936233
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.029601613959711073 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.18027855      -0.23966115       0.02917426
+H       -0.51714624      -0.73339904      -0.64428610
+H       -0.03370012      -0.18107453       1.12532704
+H        0.89801566       0.45488433      -0.45254588
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.06818249792852718 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.19276726      -0.25043948       0.03555711
+H       -0.57404058      -0.69359051      -0.66813812
+H       -0.07085477      -0.13242580       1.07660435
+H        0.84324312       0.49483983      -0.45603411
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.013655824564899761 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17168112      -0.22790547       0.02320952
+H       -0.51472652      -0.80953646      -0.62513374
+H        0.02539930      -0.20865157       1.10716846
+H        0.93895021       0.41853896      -0.38245539
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.08356904892900668 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17575390      -0.24127991       0.01937330
+H       -0.52725199      -0.75148804      -0.61335037
+H       -0.00544091      -0.16674695       1.15323762
+H        0.93377903       0.47793824      -0.39460172
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.053405561642061096 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15147261      -0.19890241       0.02019102
+H       -0.39712553      -0.89696978      -0.58030499
+H        0.07325991      -0.34485599       1.12782942
+H        1.01430579       0.29662248      -0.41196510
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.1189604742770527 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15786825      -0.21049856       0.03793379
+H       -0.39729984      -0.82709963      -0.64827601
+H        0.04050898      -0.30566098       1.07216823
+H        0.97101472       0.32571775      -0.49976217
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.033567501844352345 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17713566      -0.23502372       0.02028371
+H       -0.53952216      -0.78002728      -0.58685003
+H       -0.02011040      -0.20159925       1.11631195
+H        0.94425431       0.46678563      -0.39502179
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.03719231951308959 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15998172      -0.21801462       0.03366334
+H       -0.43608475      -0.82576214      -0.68146850
+H        0.06134767      -0.25048456       1.11237245
+H        0.96377579       0.35875738      -0.45588958
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.13044339679160205 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.18209794      -0.25532531       0.02032885
+H       -0.55632060      -0.69448244      -0.59629786
+H       -0.03105925      -0.11626775       1.11783032
+H        0.91286392       0.53779801      -0.38763765
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.04086275215303262 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15640112      -0.21922100       0.02244292
+H       -0.46202109      -0.85584334      -0.64852938
+H        0.10532690      -0.22426005       1.11694198
+H        0.98840117       0.37699291      -0.35969201
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.07752856869900296 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.18544339      -0.24730625       0.03274427
+H       -0.52474152      -0.69003433      -0.65182308
+H       -0.06661190      -0.16114511       1.12462791
+H        0.87697421       0.48267611      -0.48685456
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.05451314041627115 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.14531573      -0.19513316       0.01738761
+H       -0.41202210      -0.94549233      -0.56424543
+H        0.11149502      -0.35089766       1.09951632
+H        1.06433548       0.30628198      -0.36630043
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.1110997677669569 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.13103580      -0.19013399       0.02355614
+H       -0.36162896      -0.97890754      -0.65928997
+H        0.20524300      -0.33417399       1.12152877
+H        1.09036134       0.26342189      -0.36676893
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.05074143561918667 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.18076750      -0.23154910       0.01682564
+H       -0.55529784      -0.79475807      -0.56927522
+H       -0.03470015      -0.21596954       1.12399012
+H        0.93134315       0.45448405      -0.37906807
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.03129859749179568 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15650836      -0.20849048       0.02828358
+H       -0.44271234      -0.88007951      -0.63408987
+H        0.05884232      -0.30203892       1.11497670
+H        1.01430007       0.35115186      -0.44176202
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.10103346361507962 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17260287      -0.25001993       0.02490285
+H       -0.52423698      -0.72424200      -0.64111109
+H        0.03189056      -0.11520722       1.09783287
+H        0.93097894       0.50329229      -0.37732647
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.09871556218811021 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15128629      -0.22129045       0.02913355
+H       -0.40661221      -0.82132438      -0.70659978
+H        0.11846841      -0.21576721       1.15876787
+H        0.98079985       0.35864242      -0.42317633
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.07084769941915973 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.13554027      -0.19030308       0.02523157
+H       -0.33266666      -0.93530359      -0.62721074
+H        0.14473789      -0.36743931       1.13543128
+H        1.06822576       0.25509234      -0.43271895
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.018295290387922287 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16070251      -0.21869372       0.02024441
+H       -0.45987808      -0.83799933      -0.59892549
+H        0.06204862      -0.24978113       1.10972785
+H        0.97827873       0.37838289      -0.37588558
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.08581303358199596 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16586938      -0.20729166       0.03425497
+H       -0.46302297      -0.86854998      -0.64309953
+H        0.00094892      -0.32338214       1.10655335
+H        0.98095535       0.34667264      -0.49548724
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.06987083313101612 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16574989      -0.22317389       0.03112057
+H       -0.42757030      -0.77675522      -0.65903968
+H        0.02406867      -0.24191270       1.13436787
+H        0.92380346       0.36264592      -0.47001891
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.0650844495396855 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16856385      -0.21257286       0.02853190
+H       -0.44875088      -0.82651057      -0.62752828
+H       -0.00575686      -0.29894273       1.13967644
+H        0.94128008       0.34311753      -0.47598928
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.02681657804656458 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17884947      -0.22888643       0.02427880
+H       -0.54186322      -0.80187140      -0.60967379
+H       -0.03111462      -0.22732597       1.11893426
+H        0.93717937       0.44122911      -0.42242530
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.10892594095690251 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.13574986      -0.18223658       0.03067510
+H       -0.33259819      -0.96950769      -0.67098549
+H        0.14643170      -0.39389272       1.14389620
+H        1.06396897       0.21963760      -0.46227300
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.09530224171823719 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.14523693      -0.18340024       0.03046186
+H       -0.37100994      -0.95960221      -0.61639192
+H        0.08384289      -0.41463555       1.10254959
+H        1.05191708       0.24433069      -0.47298011
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.13605818290423638 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.18070646      -0.25036495       0.02696835
+H       -0.51127407      -0.68566541      -0.66456042
+H       -0.02620205      -0.12930102       1.16611073
+H        0.87954381       0.48291291      -0.44677441
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.06892398875426516 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.18293214      -0.24156395       0.02315714
+H       -0.53996649      -0.73423592      -0.60449245
+H       -0.01928809      -0.15927988       1.08109622
+H        0.87480329       0.45659735      -0.37640695
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.08868968217400267 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.14836743      -0.19604365       0.02683579
+H       -0.41787917      -0.94153919      -0.66460368
+H        0.11678971      -0.32708043       1.13239227
+H        1.02853436       0.28935787      -0.41140630
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.05639267986918274 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.19250531      -0.25317252       0.02715444
+H       -0.56611278      -0.67568687      -0.62190399
+H       -0.07973201      -0.13015859       1.10785370
+H        0.84731279       0.50723345      -0.43339245
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.02073425129213079 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.14968312      -0.20655045       0.02329796
+H       -0.42113500      -0.89392766      -0.61934344
+H        0.10255591      -0.29696628       1.11378874
+H        1.03034175       0.33681875      -0.39590863
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.10107066846142383 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16391882      -0.21612569       0.02056827
+H       -0.51626588      -0.88428120      -0.59781748
+H        0.03240750      -0.27268488       1.12253607
+H        1.02598100       0.41696711      -0.39365941
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.03263489537059457 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15447634      -0.21159470       0.02691413
+H       -0.40643101      -0.84595312      -0.64986186
+H        0.08318339      -0.27527167       1.13299689
+H        0.97789196       0.32724760      -0.42769400
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.10331173655752965 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15001418      -0.19471256       0.01524479
+H       -0.43678872      -0.94993198      -0.53407107
+H        0.06438527      -0.37543153       1.11981372
+H        1.08022265       0.33023906      -0.39123950
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.040052281401567864 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15634846      -0.21751333       0.03065215
+H       -0.43336002      -0.83907019      -0.68156488
+H        0.09350810      -0.23853883       1.11114077
+H        0.97218645       0.35415085      -0.41867819
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.07628759604322402 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16031897      -0.21563012       0.03643193
+H       -0.40874406      -0.81169125      -0.69351548
+H        0.04747503      -0.26760828       1.12992471
+H        0.94628953       0.33339815      -0.49438704
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.06731577147390054 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16844468      -0.22227389       0.03251662
+H       -0.46075999      -0.79447068      -0.61460718
+H       -0.00965906      -0.26868098       1.08419182
+H        0.95860736       0.39640254      -0.48090848
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.041390776487081254 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.18451188      -0.23206662       0.02525699
+H       -0.53646882      -0.76218667      -0.58181222
+H       -0.06924076      -0.23003891       1.09813708
+H        0.90243455       0.44214367      -0.44114871
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.09279457967213589 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17040027      -0.20368225       0.02084855
+H       -0.49200073      -0.89010453      -0.56511107
+H       -0.02127309      -0.34408263       1.12576403
+H        0.97816493       0.34591866      -0.43293391
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.19479966337360477 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.13806002      -0.20483061       0.02392553
+H       -0.33781713      -0.87811288      -0.69937277
+H        0.18610222      -0.26568679       1.17798969
+H        1.00198481       0.26924450      -0.38755907
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.18097296300774576 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17259094      -0.24713469       0.01658276
+H       -0.50348044      -0.71837501      -0.60077838
+H        0.04475075      -0.11811469       1.10303996
+H        0.89750618       0.46595643      -0.32372332
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.07604685129422165 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17101206      -0.23386499       0.03444537
+H       -0.48303492      -0.76387627      -0.70537857
+H        0.01606527      -0.18840139       1.14422483
+H        0.92456347       0.42363560      -0.47315899
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.06932064194713063 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16723483      -0.21780756       0.01770120
+H       -0.51762826      -0.86524920      -0.56373316
+H        0.00962189      -0.27590052       1.11734196
+H        1.01061356       0.42118717      -0.38838687
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.26633620289325155 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17490518      -0.22670987       0.01273400
+H       -0.58927582      -0.86857478      -0.61656276
+H        0.05216969      -0.18307597       1.12110877
+H        0.94831287       0.43775591      -0.28013713
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.10463381887372142 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.17131700      -0.24457450       0.02725464
+H       -0.52650798      -0.75550398      -0.68075491
+H        0.06465776      -0.11324989       1.08819307
+H        0.91580876       0.46771707      -0.35606458
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.09223326185719456 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15917566      -0.22008413       0.03642513
+H       -0.41679423      -0.80106668      -0.66002468
+H        0.04217133      -0.26187508       1.09160730
+H        0.97326478       0.37010992      -0.48947849
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.16522197995401097 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.15957641      -0.21793495       0.00763847
+H       -0.50342605      -0.88143769      -0.54888099
+H        0.06007376      -0.25781774       1.15933061
+H        1.03722034       0.42081878      -0.32531790
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.04104232572450989 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.18188425      -0.24381509       0.03270512
+H       -0.54032827      -0.72962919      -0.65312803
+H       -0.03157246      -0.16043645       1.08586066
+H        0.89993477       0.47996891      -0.44631114
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.03191110013285459 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16323042      -0.21755601       0.03073347
+H       -0.46565954      -0.83821491      -0.63549394
+H        0.03872286      -0.26419813       1.08308329
+H        0.97726228       0.37945616      -0.43766101
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad1 dft_normal_mode_energy=0.11036580423083586 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.16912970      -0.23562280       0.03205916
+H       -0.49279145      -0.77414952      -0.72902607
+H        0.05815723      -0.15356274       1.14438820
+H        0.91465996       0.42001760      -0.42123976
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.05598038584613065 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08441468       0.21614396       0.14501060
+H       -0.74024031       0.83622860      -0.12968870
+H        0.10012568      -0.39768611       1.02482048
+H        1.03604784       0.17070825      -0.44055948
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.12130961005953002 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09585674       0.21239592       0.13443834
+H       -0.82788497       0.84997853      -0.05625439
+H        0.04887864      -0.35599152       1.03376630
+H        1.03860223       0.15991947      -0.39695384
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.127779591379908 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07999826       0.18439786       0.13167035
+H       -0.65641043       0.92683454      -0.07479727
+H        0.09532268      -0.26606691       1.08938509
+H        1.00969711       0.32673479      -0.40101912
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.05388502812226545 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10687199       0.21500342       0.15128741
+H       -0.79146778       0.81760060      -0.14749679
+H       -0.04183360      -0.40838019       1.05726600
+H        0.96161375       0.21363467      -0.53000462
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.006031349100986607 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08779122       0.20478952       0.14222871
+H       -0.73056737       0.87833725      -0.13099948
+H        0.07192914      -0.37213574       1.07490705
+H        1.01434983       0.23834009      -0.45617817
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.10109412715739637 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09431516       0.22017568       0.14107475
+H       -0.72893726       0.79263249      -0.11035415
+H        0.02773619      -0.41731913       1.06860589
+H        0.97915127       0.18590230      -0.45678659
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.05763732579379106 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10710721       0.22701517       0.15487148
+H       -0.81025034       0.78638649      -0.17198370
+H       -0.00132897      -0.44793274       1.00105117
+H        0.93707405       0.14128043      -0.49202199
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.03492166785594397 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10745105       0.23115679       0.16243363
+H       -0.81352452       0.77384086      -0.20582582
+H       -0.01600371      -0.47842453       0.99927159
+H        0.95091349       0.13497478      -0.54651908
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.017179350489065316 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10286383       0.22697403       0.15539346
+H       -0.79372662       0.78019452      -0.16501513
+H       -0.00942418      -0.45173689       1.02232607
+H        0.97920996       0.15176587      -0.52648390
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.09370930813634289 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09771452       0.22861104       0.14527041
+H       -0.82458414       0.81564967      -0.14853403
+H        0.06465582      -0.46759817       1.03901810
+H        0.99735939       0.11265724      -0.43902380
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.056798856171645644 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08874072       0.20610652       0.14209025
+H       -0.73729222       0.84785471      -0.09250819
+H        0.04148852      -0.34565257       1.04924303
+H        1.04019711       0.22664719      -0.46735525
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.12619979189909591 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08239789       0.19461474       0.12370121
+H       -0.71464561       0.88126664      -0.00157420
+H        0.07171869      -0.27349215       1.08398049
+H        1.06293414       0.25798736      -0.37387932
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.03440128515748791 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09647921       0.21223788       0.14222998
+H       -0.79008613       0.85884153      -0.12703672
+H        0.04762167      -0.39658345       1.05957370
+H        0.99463679       0.19353787      -0.44483161
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.022799153231664527 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10161276       0.23200491       0.16218158
+H       -0.77951709       0.76579820      -0.20606938
+H        0.01595745      -0.47508451       0.98477332
+H        0.95451702       0.12956930      -0.52877208
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.019265530949132414 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09843019       0.21517584       0.14559024
+H       -0.76730658       0.82830236      -0.13492095
+H        0.02674267      -0.40203348       1.04607266
+H        0.96948025       0.19452422      -0.46349280
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.06626165384699857 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09516296       0.20222500       0.14291465
+H       -0.77665991       0.89414665      -0.12956313
+H        0.02760842      -0.37033278       1.09449613
+H        1.01691878       0.25128790      -0.48537844
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.10615857678310024 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09926854       0.20747954       0.12787063
+H       -0.81066627       0.85352653      -0.02952270
+H        0.00124167      -0.34931919       1.10294205
+H        1.02837296       0.20827774      -0.41459560
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.16255456585442365 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07954282       0.16577644       0.10805817
+H       -0.67624091       0.98856410       0.05016591
+H        0.04768461      -0.18728241       1.21481406
+H        1.08263155       0.40808461      -0.37001889
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.05023900269799795 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09148661       0.21479471       0.14258163
+H       -0.77718725       0.86379935      -0.14510117
+H        0.07429198      -0.42570796       1.08020608
+H        1.01455938       0.18723794      -0.45159081
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.11046647960792956 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10126389       0.23397400       0.16200585
+H       -0.78569158       0.77069498      -0.21806482
+H       -0.00022086      -0.51231168       1.03941375
+H        0.98102394       0.13843835      -0.56932555
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.011902047139622767 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09776901       0.22323551       0.14899404
+H       -0.78636839       0.80003282      -0.13811932
+H        0.02063298      -0.43165331       1.03447640
+H        1.00251758       0.15638277      -0.48926537
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.04079137522765805 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08214379       0.19897232       0.14168405
+H       -0.71650516       0.90830393      -0.13305539
+H        0.11275286      -0.34481806       1.05880584
+H        1.02677027       0.25036534      -0.43152310
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.013576281504393882 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09677890       0.22234608       0.14663885
+H       -0.78746472       0.80619059      -0.12906910
+H        0.03708889      -0.42178319       1.02634458
+H        0.99896054       0.15095039      -0.46211651
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.12792771485168697 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07389614       0.19284899       0.13358801
+H       -0.71016322       0.95628155      -0.11661924
+H        0.14285066      -0.34865951       1.13426468
+H        1.08862802       0.27918185      -0.42693332
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.02694168174755572 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08853029       0.20901226       0.14440967
+H       -0.73551195       0.86171694      -0.13824639
+H        0.05815415      -0.39449964       1.08128344
+H        1.02425466       0.22701154      -0.48130111
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.06540759232704002 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09457062       0.20847778       0.14611766
+H       -0.76330553       0.87895137      -0.16345479
+H        0.04209730      -0.41241798       1.09692163
+H        0.99612509       0.23406752      -0.49208727
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.043257803025304555 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09408151       0.20444738       0.13970321
+H       -0.77462655       0.86040422      -0.07998752
+H        0.01882456      -0.34005378       1.06128860
+H        1.03655542       0.22826834      -0.46347663
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.061198432548643635 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09583945       0.21872684       0.15585955
+H       -0.77737001       0.85165264      -0.21404526
+H        0.07290951      -0.44862063       1.02485243
+H        0.96423916       0.17545486      -0.48552603
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.06753717913339873 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09130136       0.21846880       0.15457685
+H       -0.73410164       0.83833592      -0.20669275
+H        0.09536088      -0.43549773       1.01000104
+H        0.95259944       0.17872077      -0.46273980
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.2685411089719456 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09786566       0.20844519       0.16356011
+H       -0.75592831       0.86993356      -0.23338922
+H        0.06250996      -0.38755383       0.96716147
+H        0.92905716       0.21861976      -0.50024717
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.11644381831100706 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08622412       0.18206109       0.11559653
+H       -0.75182342       0.94242723       0.02962014
+H        0.03677705      -0.24254491       1.15839836
+H        1.08947867       0.31545550      -0.38290312
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.05933286510372477 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10897555       0.24440366       0.16345828
+H       -0.83692615       0.71126441      -0.18305503
+H       -0.03398978      -0.50815998       0.97014132
+H        0.97411677       0.06944882      -0.55237994
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.06951116839099176 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10848214       0.23699974       0.16757614
+H       -0.77640233       0.71836028      -0.20924401
+H       -0.04545745      -0.48552988       0.97298432
+H        0.93094511       0.12794533      -0.57810010
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.13948780345154219 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09356419       0.22386952       0.14426522
+H       -0.73512680       0.80700943      -0.15753500
+H        0.05199724      -0.46576999       1.08823266
+H        0.97002321       0.17596525      -0.46725606
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.018936812772663503 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09471358       0.21266398       0.14422110
+H       -0.74766040       0.82852210      -0.11938569
+H        0.03511249      -0.38162389       1.04169621
+H        0.98575712       0.20382174      -0.45833215
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.022731203392380155 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09589230       0.20824222       0.13910907
+H       -0.78067529       0.85015564      -0.08510160
+H        0.02161353      -0.35831735       1.06084540
+H        1.01823350       0.21156466      -0.45084333
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.1287520707734729 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07725480       0.21080132       0.13964793
+H       -0.70752668       0.85607111      -0.11009190
+H        0.14239451      -0.36856625       1.02633801
+H        1.04639821       0.18539799      -0.39776165
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.09523963821955324 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07924571       0.20394650       0.13147548
+H       -0.73008930       0.91097483      -0.10689735
+H        0.15973929      -0.36682524       1.07825854
+H        1.02790804       0.21042539      -0.35548547
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.05694548908534877 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08411987       0.19776388       0.13605174
+H       -0.74066819       0.92934349      -0.12235333
+H        0.09890959      -0.36285083       1.11829690
+H        1.04123431       0.26175518      -0.43459899
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.04873879117607066 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09167792       0.21514442       0.14791864
+H       -0.77556468       0.83349952      -0.12678484
+H        0.05555065      -0.38668245       1.01391100
+H        1.02939209       0.17434794      -0.46720921
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.2187817294609766 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08481055       0.21481928       0.13446971
+H       -0.70184035       0.85064209      -0.12945146
+H        0.10253189      -0.43378143       1.12353261
+H        0.99053536       0.20816973      -0.41390011
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.06455316071321637 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07783577       0.20713702       0.13574876
+H       -0.71710811       0.87842710      -0.10076097
+H        0.13237590      -0.36853090       1.06843840
+H        1.05908227       0.20666573      -0.40272605
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.03726895185097858 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.10042329       0.22329229       0.14468391
+H       -0.80022943       0.78411375      -0.09644800
+H       -0.00147154      -0.40803977       1.02629415
+H        1.00685599       0.14800994      -0.47139238
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.060369144601617374 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07390263       0.18773631       0.12194224
+H       -0.69115934       0.94608149      -0.04111127
+H        0.13511233      -0.29015660       1.13332709
+H        1.07730031       0.29179036      -0.36272082
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.05753182401750171 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09915330       0.22958001       0.16855446
+H       -0.75387349       0.78148893      -0.25113521
+H        0.02855443      -0.48549706       0.98550647
+H        0.94558259       0.15318747      -0.56038045
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.05409491778464786 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09394932       0.22276493       0.16195378
+H       -0.72353665       0.80504970      -0.22742605
+H        0.05226806      -0.45702509       1.00889673
+H        0.95355950       0.18235176      -0.52881500
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.030281925056774545 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.09406030       0.20325352       0.14311388
+H       -0.73942029       0.88314010      -0.14375053
+H        0.04590951      -0.37490928       1.08452004
+H        0.97451772       0.25461590      -0.46359042
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.166566982482736 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07629592       0.18539810       0.13918014
+H       -0.67829844       0.95238560      -0.12046021
+H        0.14128026      -0.28011708       1.05114344
+H        1.02974122       0.30331762      -0.40660416
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.045872315308302436 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.08909435       0.20596917       0.14790847
+H       -0.70199834       0.86007457      -0.15788208
+H        0.04590268      -0.38740657       1.08136874
+H        0.99627105       0.25782293      -0.50344326
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad2 dft_normal_mode_energy=0.10886444509517079 dft_normal_mode_temperature=300.0 pbc="F F F"
+C        0.07627579       0.18099552       0.12326747
+H       -0.67989734       0.94856502      -0.02664104
+H        0.07951440      -0.26174170       1.15856483
+H        1.09336036       0.34121242      -0.41821661
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.055899309751702174 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02440828       0.08739037      -0.27655614
+H       -0.75276891       0.82332237       0.04876284
+H       -0.41235460      -0.90946813      -0.43697813
+H        1.09593122       0.21069438      -0.25774695
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.019469366195198564 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02649334       0.07219701      -0.24713398
+H       -0.69879661       0.93149381      -0.06206510
+H       -0.38262684      -0.90692487      -0.57325215
+H        1.03706640       0.28107058      -0.36104285
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.038204777270651975 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02044362       0.08186254      -0.26100056
+H       -0.74790310       0.83229576      -0.01968745
+H       -0.43925178      -0.88847272      -0.49962765
+H        1.07071224       0.24661934      -0.31190506
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.03598280269006117 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02252305       0.07273678      -0.23045653
+H       -0.74364476       0.91348268      -0.13189136
+H       -0.40864519      -0.88486627      -0.63386951
+H        1.06061409       0.27061247      -0.42922851
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.042835858095829016 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02444961       0.08495428      -0.29995019
+H       -0.71559020       0.85247154       0.14609848
+H       -0.40982925      -0.93832908      -0.35238308
+H        1.05673141       0.23940592      -0.16104823
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.01813903466621341 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02471315       0.07828011      -0.25471486
+H       -0.72017456       0.91098738      -0.02902703
+H       -0.39733614      -0.93612023      -0.54328545
+H        1.05194423       0.25827382      -0.33376732
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.07603953032296128 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01746704       0.06493527      -0.25160413
+H       -0.73384483       0.90486439      -0.05903827
+H       -0.48628659      -0.86616978      -0.54708312
+H        1.06821361       0.35347419      -0.33698336
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.05127106860959903 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03264903       0.08336046      -0.26286506
+H       -0.67988264       0.88164973       0.00134329
+H       -0.36588983      -0.94976214      -0.50829966
+H        1.07477398       0.24070281      -0.30206506
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.06329644963784026 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03054228       0.07651153      -0.24740866
+H       -0.69763634       0.91801952      -0.05865493
+H       -0.33486449      -0.89676757      -0.56719317
+H        1.03639249       0.23297173      -0.36724913
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.11151691608733633 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02064864       0.09610276      -0.29046406
+H       -0.75983059       0.76577427       0.09885652
+H       -0.43464410      -0.92649898      -0.37541074
+H        1.08048873       0.18143530      -0.20377503
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.021830352444600187 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03008289       0.08349583      -0.28435137
+H       -0.69021078       0.86730142       0.08494659
+H       -0.38312254      -0.94043424      -0.41799631
+H        1.07176515       0.24408126      -0.22006680
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.07884639640677088 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01711118       0.07711028      -0.24345431
+H       -0.75883644       0.90875530      -0.07617304
+H       -0.40803902      -0.90298377      -0.58307256
+H        1.01071930       0.24132411      -0.38094334
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.16698262605838105 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02155860       0.10325232      -0.29400947
+H       -0.77993255       0.75180500       0.11913000
+H       -0.41845235      -0.95247573      -0.36130354
+H        1.09524463       0.13617886      -0.19594123
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.11918687612304676 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03291386       0.09008427      -0.30913985
+H       -0.70987838       0.83369439       0.18629961
+H       -0.37558435      -0.94916836      -0.31242395
+H        1.11763828       0.20787739      -0.13177067
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.05021713956877591 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01867640       0.06776378      -0.24411485
+H       -0.73957981       0.92440717      -0.08041121
+H       -0.46219090      -0.89415926      -0.58333532
+H        1.06426228       0.32822492      -0.36856134
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.05570060333641762 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03147143       0.08822571      -0.27867109
+H       -0.67712263       0.84727362       0.06116960
+H       -0.36990952      -0.95448813      -0.44035220
+H        1.06200835       0.22180772      -0.24159448
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.10932315700310591 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02724909       0.06137497      -0.21466693
+H       -0.69468434       0.95312293      -0.20006085
+H       -0.41311478      -0.86367031      -0.70245363
+H        1.07243054       0.34519024      -0.48051474
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.11033390309140474 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03303398       0.09139089      -0.30682789
+H       -0.64081134       0.83275097       0.17293987
+H       -0.36747151      -0.98217731      -0.32974127
+H        1.04189152       0.22626563      -0.12863084
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.04852001388673788 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02496636       0.06379100      -0.22856252
+H       -0.70106479       0.95685074      -0.14025318
+H       -0.40339468      -0.87608288      -0.64824314
+H        1.04189741       0.32506600      -0.42903788
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.044643859923857304 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01919866       0.06951303      -0.23955047
+H       -0.71447664       0.88169960      -0.11007259
+H       -0.46538653      -0.87170960      -0.59368218
+H        1.04857555       0.32764471      -0.38291800
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.09079047208245379 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01963006       0.06408670      -0.23666936
+H       -0.72953742       0.96645495      -0.10402372
+H       -0.41118969      -0.87670054      -0.61630060
+H        1.01458186       0.31254487      -0.40065486
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.2244817423115795 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01525455       0.09783986      -0.28934741
+H       -0.76600423       0.82405393       0.11038728
+H       -0.43552140      -1.00173862      -0.39968082
+H        1.02326697       0.17769901      -0.20433551
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.12868388414369267 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.00962682       0.06582694      -0.23991504
+H       -0.77469742       0.93089059      -0.09810565
+H       -0.49537692      -0.88262430      -0.59976569
+H        1.02472921       0.33329295      -0.38444978
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.026856163656307448 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01907614       0.07775955      -0.25033347
+H       -0.73827734       0.88720768      -0.05412380
+H       -0.42045131      -0.90484779      -0.55340896
+H        1.02598888       0.25699027      -0.35072647
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.04792862696181566 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02490991       0.07559892      -0.26010748
+H       -0.72772467       0.93791777      -0.00228784
+H       -0.38685558      -0.93403540      -0.52437683
+H        1.05136103       0.26120087      -0.31518462
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.0374797129584357 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02309558       0.07914162      -0.24664519
+H       -0.75323143       0.90967982      -0.05927159
+H       -0.38818680      -0.91776836      -0.57147794
+H        1.05657334       0.23097271      -0.37144166
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.09905019042524231 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03245121       0.08429032      -0.31044337
+H       -0.63639380       0.88104566       0.19217034
+H       -0.36895478      -0.98047276      -0.32214396
+H        1.03201462       0.26087506      -0.11238659
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.03343892283101642 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02625558       0.07285612      -0.25714812
+H       -0.67022248       0.92734601      -0.02395340
+H       -0.40686000      -0.93956598      -0.53881589
+H        1.02989666       0.30999407      -0.31432208
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.016544107591230782 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02811043       0.08026281      -0.27775722
+H       -0.69915814       0.88811911       0.06018204
+H       -0.37806055      -0.92584588      -0.44530299
+H        1.05214416       0.24720971      -0.24652668
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.03874367759451877 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02733590       0.08058195      -0.29363516
+H       -0.68262562       0.88130828       0.12178421
+H       -0.41683811      -0.95845534      -0.38649733
+H        1.06516579       0.28280777      -0.17782662
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.02262655594865499 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02079948       0.07622564      -0.25404548
+H       -0.71805871       0.87381661      -0.04522108
+H       -0.42331887      -0.88896695      -0.53498689
+H        1.02917401       0.27277436      -0.33383909
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.17050776542368185 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03649659       0.06727596      -0.25190253
+H       -0.63752342       0.96024613      -0.04180979
+H       -0.38806251      -0.94453699      -0.56543341
+H        1.10042836       0.34856680      -0.33231953
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.04440933316821395 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02488996       0.07916871      -0.27254872
+H       -0.72232451       0.91893010       0.04669924
+H       -0.38228136      -0.94173771      -0.47250959
+H        1.04115489       0.24533531      -0.26786803
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.0727624584525421 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02466374       0.06743692      -0.23549146
+H       -0.68715092       0.90150086      -0.12392746
+H       -0.41085456      -0.85312721      -0.60975177
+H        1.03183952       0.31400486      -0.40133602
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.0845020169475571 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03112636       0.06963882      -0.25969133
+H       -0.68571387       0.93318180      -0.01286559
+H       -0.40010330      -0.91408079      -0.52408123
+H        1.09667035       0.31700634      -0.30985211
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.06077073336252453 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02569574       0.07834168      -0.29501529
+H       -0.69741497       0.89771883       0.12986528
+H       -0.40348785      -0.93907666      -0.37963484
+H        1.04706185       0.27371166      -0.17632869
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.14371839849194107 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03167699       0.09116901      -0.25574268
+H       -0.76168865       0.88561818      -0.01227022
+H       -0.31537459      -0.94583240      -0.53204712
+H        1.09448063       0.13976025      -0.34954467
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.04028465771219917 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.01933487       0.07341442      -0.25466413
+H       -0.74268019       0.90217352      -0.03689194
+H       -0.41580329      -0.87978535      -0.53402282
+H        1.02882804       0.26873363      -0.33575932
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.09724510459670833 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02355449       0.08492115      -0.24276502
+H       -0.74784841       0.89990905      -0.07160592
+H       -0.36472969      -0.94054428      -0.58879158
+H        1.03320204       0.19465354      -0.38801605
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.043500458533484554 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02405683       0.07160186      -0.26011453
+H       -0.68088680       0.93631326      -0.01079084
+H       -0.41564101      -0.93871181      -0.52790858
+H        1.02314287       0.31511496      -0.30305886
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.10467889475867215 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03317224       0.08051170      -0.24539935
+H       -0.65992742       0.89498910      -0.07051327
+H       -0.36136516      -0.94542667      -0.58121644
+H        1.05652164       0.25699896      -0.36530567
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.08138446946122513 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02825966       0.07843832      -0.27558830
+H       -0.67151745       0.84876508       0.03699537
+H       -0.43786004      -0.92242906      -0.45061338
+H        1.08607707       0.30489338      -0.24385854
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.062108808391018254 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02123193       0.07847759      -0.26957456
+H       -0.69778122       0.84377537       0.01103484
+H       -0.47480405      -0.92422287      -0.47493730
+H        1.06553940       0.31121795      -0.26519524
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.09746719189164384 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03597820       0.09117639      -0.28002176
+H       -0.71391131       0.87868712       0.08233784
+H       -0.31377864      -0.96451644      -0.43717751
+H        1.09637100       0.16525616      -0.24985789
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.08059155121753062 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03401881       0.08093388      -0.26249817
+H       -0.68666034       0.93721350       0.01285454
+H       -0.34362803      -0.97677666      -0.52071122
+H        1.07561351       0.24106978      -0.30553142
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.06833934333373769 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02378393       0.08381892      -0.24324185
+H       -0.73191705       0.86566211      -0.08104519
+H       -0.38211185      -0.91068711      -0.57874274
+H        1.03738535       0.21217758      -0.38294479
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.13603649979517385 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03204294       0.06915010      -0.25864287
+H       -0.62127203       0.92439335      -0.02456209
+H       -0.35651655      -0.89254344      -0.52611052
+H        0.99956643       0.31008339      -0.30861284
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.1134739625116439 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.03122357       0.08443655      -0.32215439
+H       -0.66027544       0.86158964       0.23617316
+H       -0.39551892      -0.96841386      -0.26966748
+H        1.06783478       0.26651348      -0.06938636
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.06989172819495607 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02407658       0.07903871      -0.29866487
+H       -0.71094001       0.86180986       0.13645766
+H       -0.42993093      -0.91519955      -0.35631089
+H        1.06773561       0.27743234      -0.16277849
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad3 dft_normal_mode_energy=0.038041401036738504 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.02317628       0.07622735      -0.24136215
+H       -0.71627686       0.90859252      -0.08690898
+H       -0.41742722      -0.92992226      -0.59699577
+H        1.04981779       0.27895098      -0.38120316
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.08786161642973825 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.24952036      -0.07829019       0.09675335
+H       -0.57175458       0.99639457      -0.10675729
+H       -0.26787555      -0.85218621      -0.63369044
+H        0.20117780      -0.25118071       1.04252863
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.02710017183573677 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.24554850      -0.07144873       0.09796847
+H       -0.58475806       0.91469111      -0.14243124
+H       -0.30592788      -0.82745647      -0.66274708
+H        0.20492455      -0.27573387       1.09278382
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.08418507724424133 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.20968520      -0.05924471       0.08695658
+H       -0.72694032       0.84919572      -0.10008474
+H       -0.44440574      -0.86236447      -0.62100014
+H        0.05840436      -0.32080195       1.13996471
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.07109891078742067 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.26343139      -0.07905220       0.10098930
+H       -0.49708033       0.97526265      -0.09355564
+H       -0.22509699      -0.86632617      -0.68792466
+H        0.24942797      -0.20680823       1.03306586
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.08201422785828794 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25628022      -0.08535463       0.11025330
+H       -0.53103959       0.96399726      -0.17021397
+H       -0.27528914      -0.79673664      -0.75138665
+H        0.24837272      -0.19003372       1.06279572
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.052505037459913736 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23500447      -0.06945749       0.09051558
+H       -0.62481272       0.96470202      -0.06304252
+H       -0.32488482      -0.91065083      -0.63401919
+H        0.13834807      -0.26629446       1.07349816
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.06663947327685897 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25353815      -0.06998857       0.10669674
+H       -0.56408775       0.91799720      -0.20228169
+H       -0.28313114      -0.82655428      -0.71041900
+H        0.25661993      -0.29732915       1.09628441
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.06090462257520794 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.22298109      -0.07110656       0.09209960
+H       -0.68615179       0.94399996      -0.12198865
+H       -0.39302603      -0.85599858      -0.66542279
+H        0.12459898      -0.28060617       1.14498313
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.1293714269473496 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.22244692      -0.06027683       0.08637639
+H       -0.71125649       0.97146930      -0.10821912
+H       -0.37048296      -0.92770639      -0.60055778
+H        0.12081794      -0.36542446       1.13455492
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.04399927861509504 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23807933      -0.06495774       0.10314285
+H       -0.62690602       0.92619560      -0.16727864
+H       -0.32977164      -0.87796818      -0.68914012
+H        0.18194197      -0.31408219       1.08237653
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.030116264896544027 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.22317771      -0.05979479       0.09142854
+H       -0.68298465       0.88804960      -0.12054891
+H       -0.38107973      -0.87717696      -0.61710872
+H        0.11184088      -0.33827295       1.10323018
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.04793664096741573 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25599774      -0.07494926       0.10476441
+H       -0.55739068       0.97877719      -0.17377431
+H       -0.26211060      -0.85030151      -0.70288934
+H        0.25819948      -0.27524778       1.08327088
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.05755993155351695 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23326014      -0.07328317       0.09674327
+H       -0.62054127       0.92847730      -0.09539664
+H       -0.35497977      -0.86779291      -0.69947948
+H        0.14337897      -0.22733627       1.09709942
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.057097037849676735 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25480465      -0.07498013       0.09613677
+H       -0.54818819       0.97142134      -0.10724907
+H       -0.26686586      -0.87406559      -0.68851656
+H        0.23955248      -0.24376355       1.10518703
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.04010422094768156 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23061476      -0.07165441       0.09014908
+H       -0.63077884       0.92523633      -0.06499954
+H       -0.35471897      -0.86968379      -0.64432710
+H        0.12185513      -0.24162015       1.09013414
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.0438332181814646 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.24914089      -0.07173011       0.10087742
+H       -0.56522253       0.91814227      -0.13948227
+H       -0.28294735      -0.83093848      -0.65189912
+H        0.20519743      -0.27234530       1.04431879
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.04329973734150828 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.22797739      -0.06241488       0.08981052
+H       -0.67287407       0.95665507      -0.09699990
+H       -0.34695230      -0.91769902      -0.60506938
+H        0.12477763      -0.33513149       1.08691787
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.08619238835629017 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.26703544      -0.07481163       0.10569937
+H       -0.49666408       0.96529533      -0.14508575
+H       -0.22327373      -0.87266860      -0.72982082
+H        0.29011747      -0.24102409       1.07035928
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.09049311661301011 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25765693      -0.08047135       0.11279385
+H       -0.53521026       0.96792994      -0.18927542
+H       -0.26695793      -0.82563845      -0.75999517
+H        0.26061325      -0.22325337       1.06019122
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.1354907429610543 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.19893999      -0.05240352       0.08579391
+H       -0.77205534       0.82484107      -0.09684436
+H       -0.48590350      -0.89181298      -0.62146362
+H        0.01702753      -0.34853286       1.15105936
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.10653852708542849 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23598437      -0.06960584       0.08524586
+H       -0.61464113       0.97476105      -0.01863534
+H       -0.32082726      -0.94049512      -0.63535327
+H        0.13579919      -0.24474155       1.09322145
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.07153888497102957 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23273531      -0.06279009       0.08604887
+H       -0.64797591       0.96798949      -0.06008717
+H       -0.32017462      -0.93584009      -0.58171000
+H        0.12978431      -0.32385011       1.07146642
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.06904829952706844 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.21637415      -0.06993466       0.07955172
+H       -0.69461718       0.93906713      -0.02289391
+H       -0.40509045      -0.89179764      -0.60676492
+H        0.06644602      -0.25385133       1.13676919
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.07276441034748894 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.26591302      -0.07848715       0.10878139
+H       -0.50592601       0.93158987      -0.20485190
+H       -0.23510114      -0.77812901      -0.70324774
+H        0.29782750      -0.25806068       1.06682233
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.06195476157031961 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.21537458      -0.07030015       0.09568441
+H       -0.71336157       0.92209976      -0.14004811
+H       -0.42227048      -0.83858327      -0.66537503
+H        0.09043912      -0.28573774       1.12028663
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.12007178774052575 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.26477159      -0.07747584       0.11436701
+H       -0.50706462       0.91380257      -0.22801350
+H       -0.23451723      -0.76253378      -0.69705333
+H        0.28477862      -0.26791922       1.01723078
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.21082814260526916 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.30031008      -0.09531978       0.11369438
+H       -0.35331737       1.06322652      -0.14504281
+H       -0.08097119      -0.81651798      -0.73164711
+H        0.40080839      -0.15068488       0.97682146
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.05905596017454773 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.24308004      -0.07205036       0.10533231
+H       -0.61661054       0.96952633      -0.19194158
+H       -0.30533994      -0.84227523      -0.67636494
+H        0.20677359      -0.30858318       1.06816400
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.1389004006305145 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.22875127      -0.07185631       0.08159452
+H       -0.63579989       0.89458792      -0.04640732
+H       -0.37230155      -0.83852895      -0.61831476
+H        0.12227209      -0.23972565       1.14747044
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.11063314414914299 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25434853      -0.08727654       0.10745089
+H       -0.54839498       0.97323888      -0.18287090
+H       -0.27820441      -0.76353026      -0.71047840
+H        0.24563489      -0.20958481       1.06794003
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.04762143122070201 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.24152484      -0.06484229       0.09481275
+H       -0.62427419       0.94224833      -0.15177651
+H       -0.30284288      -0.86191482      -0.60892051
+H        0.19343727      -0.34756624       1.08591544
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.035161581172143325 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23429970      -0.07039447       0.09828137
+H       -0.62409026       0.93043631      -0.11233474
+H       -0.34235575      -0.87151997      -0.67679333
+H        0.14668840      -0.25999056       1.07302239
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.10627369980132094 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.26833265      -0.07813588       0.11337543
+H       -0.49668707       0.97256576      -0.19439496
+H       -0.20138448      -0.81629974      -0.68172520
+H        0.28368981      -0.26504908       0.98009829
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.06366124322476602 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.27913539      -0.08375186       0.10546032
+H       -0.44379457       0.98971531      -0.14277175
+H       -0.17446735      -0.82482628      -0.71075290
+H        0.33256905      -0.20673895       1.05180686
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.14561053245794664 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.27287038      -0.07332813       0.10877746
+H       -0.48366779       0.96137476      -0.18430812
+H       -0.17403707      -0.82393675      -0.62953826
+H        0.29738914      -0.30350997       0.97261186
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.07871912361359171 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23216899      -0.06853285       0.09589565
+H       -0.64080617       0.89067945      -0.14724216
+H       -0.37016994      -0.83115518      -0.68606845
+H        0.16584151      -0.28278471       1.14563407
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.06334494148189657 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23561304      -0.06863676       0.09280314
+H       -0.62889223       0.93798767      -0.10649187
+H       -0.34473844      -0.88609647      -0.68150251
+H        0.16952710      -0.27391132       1.13716754
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.07239210884131561 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25461895      -0.07665423       0.10608983
+H       -0.53467344       0.93497210      -0.14087518
+H       -0.27859362      -0.84533611      -0.73899815
+H        0.23553695      -0.21608893       1.07068851
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.1674049809269735 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.22423640      -0.06342580       0.08593044
+H       -0.68805924       0.98907866      -0.06079276
+H       -0.34408394      -0.93942571      -0.56381325
+H        0.09253661      -0.33378930       1.05569813
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.03743317664705287 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.22325194      -0.05775272       0.09149192
+H       -0.68233061       0.89644667      -0.10789867
+H       -0.37387011      -0.90443040      -0.61299312
+H        0.10486384      -0.34375083       1.08571092
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.15402489994792404 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25902175      -0.08159283       0.10707148
+H       -0.51975056       0.89939656      -0.19266138
+H       -0.27231740      -0.74264989      -0.70951049
+H        0.26677734      -0.22434502       1.08127799
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.10797448964855733 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.19603566      -0.06156470       0.08086547
+H       -0.77983105       0.90612755      -0.03426085
+H       -0.48840288      -0.92655605      -0.63097754
+H       -0.00729610      -0.28591394       1.15672294
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.1132882614809694 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25225582      -0.06764403       0.10303162
+H       -0.55525814       0.88002935      -0.17098298
+H       -0.29058264      -0.82841118      -0.69847814
+H        0.23997411      -0.28544439       1.09672313
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.10450016138745878 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25678851      -0.07445310       0.09543937
+H       -0.51902204       0.94667618      -0.06501336
+H       -0.24472463      -0.87513344      -0.64622380
+H        0.21187943      -0.22422900       1.02896925
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.06212825048039602 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.24060355      -0.06049071       0.09192638
+H       -0.62463731       0.96441727      -0.10259741
+H       -0.29216650      -0.93426231      -0.60078867
+H        0.17215886      -0.34924488       1.06300564
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.03524371575781767 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.25223763      -0.07531508       0.09810367
+H       -0.56926694       0.98949680      -0.13118409
+H       -0.26483825      -0.85933396      -0.65493124
+H        0.22802213      -0.27258371       1.07210131
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.060231759683953265 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.26124708      -0.07053053       0.11157883
+H       -0.53507174       0.95754704      -0.20118369
+H       -0.22844144      -0.84800657      -0.67768832
+H        0.26473755      -0.30896030       1.00427075
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.08510854034286605 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23707377      -0.05736692       0.09876563
+H       -0.64208626       0.94344612      -0.14442225
+H       -0.30862649      -0.92833589      -0.62180748
+H        0.16401387      -0.37142540       1.04435453
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.06421122607446506 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.27281137      -0.08271689       0.10639753
+H       -0.46784425       0.99698164      -0.13390095
+H       -0.19599410      -0.84802973      -0.72192973
+H        0.30281274      -0.20314134       1.04295425
+4
+Properties=species:S:1:pos:R:3 smiles=C config_type=methane_rad4 dft_normal_mode_energy=0.08619058509898639 dft_normal_mode_temperature=300.0 pbc="F F F"
+C       -0.23169106      -0.06771202       0.09190393
+H       -0.62947433       0.94005548      -0.05807854
+H       -0.33937135      -0.91315962      -0.64145656
+H        0.11802620      -0.25994104       1.05943262

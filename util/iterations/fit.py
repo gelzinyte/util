@@ -153,7 +153,7 @@ def fit(num_cycles,
         # 
         # nm_sample_fname_for_train_with_dft = f'xyzs/{cycle_idx}.7_normal_modes_train_sample.dft.xyz'
 
-        fit_dir = cycle_dir / "potential"; fit_dir.make_dirs(exists_ok=True)
+        fit_dir = cycle_dir / "fit_dir"; fit_dir.make_dirs(exists_ok=True)
 
         if ip_type == 'gap':
             calculator = do_gap_fit(fit_dir=fit_dir, 
