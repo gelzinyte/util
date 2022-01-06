@@ -32,7 +32,8 @@ def fit(num_cycles,
         base_train_fname='train.xyz',
         fit_param_fname=None,
         additional_smiles_csv=None,
-        md_temp=500, energy_filter_threshold=0.05):
+        md_temp=500, energy_filter_threshold=0.05, 
+        wdir='runs'):
     """ iteratively fits potetnials
 
     Parameters
@@ -44,6 +45,8 @@ def fit(num_cycles,
         fname for fitting the first IP
     fit_param_fname: str, default None
         template ace_fit.jl
+    ip_type: str, default "ace"
+        "ace" or "gap"
     additional_smiles_csv: str, default None
         CSV of id and smiles to generate structures from
     md_temp: float, default 500
@@ -54,10 +57,14 @@ def fit(num_cycles,
     ref_type: str, default "dft"
         "dft" or "dft-xtb2" for the type of reference energies/forces to
         fit to.
+    wdir: wehere to base all the runs in. 
     """
 
     assert ref_type in ['dft', 'dft-xtb2']
+    assert ip_type in ['gap', 'ace']
 
+    if ref_type == 'dft-xtb2':
+        raise NotImplementedError f"haven't redone dft-xtb2 fitting"
 
     logger.info(f'Optimising structures from {additional_smiles_csv}. '
                 f'Displacing each at {num_nm_temps} different'
@@ -66,15 +73,23 @@ def fit(num_cycles,
                 f'parameters from {fit_param_fname}. Fitting to '
                 f'{ref_type} energies and forces.')
 
-
-
     cfg = Config.load()
     scratch_dir = cfg['scratch_path']
-
     logger.info(f'Using:scratch_dir: {scratch_dir}')
 
-    it.make_dirs(['fits', 'xyzs'])
+    if ip_type == 'gap':
+        fit_exec_path =  cfg['gap_fit_path']
+    elif ip_type == 'ace':
+        #TODO: do somehow differently? 
+        fit_exec_path = cfg['ace_fit_path']
+    logger.info(f'Fit exec: {fit_exec_path}')
 
+    home_dir = os.getcwd()
+    wdir = Path(wdir)
+    train_set_dir = wdir / "training_sets"
+    train_set_dir.make_dirs(parents=True, exists_ok=True)
+
+    
     # setup orca parameters
     default_kw = Config.from_yaml(os.path.join(cfg['util_root'],
                                                'default_kwargs.yml'))
@@ -93,22 +108,32 @@ def fit(num_cycles,
         calc_predicted_prop_prefix = 'gap_plus_xtb2_'
         xtb2_prop_prefix = 'xtb2_'
 
+    with open(fit_param_fname) as yaml_file:
+        fit_params_base = yaml.safe_load(yaml_file)
+    fit_params_base = it.fix_fit_params(fit_params_base, fit_to_prop_prefix)
+
 
     # prepare 0th dataset
-    initial_train_fname = 'xyzs/train_for_fit_0.xyz'
-    if not os.path.isfile(initial_train_fname):
-        logger.info('preparing initial dataset')
-        ci = ConfigSet_in(input_files=base_train_fname)
-        co = ConfigSet_out(output_files=initial_train_fname,
-                           force=True, all_or_none=True)
-        fit_inputs = it.prepare_0th_dataset(ci,cox)
-
+    initial_train_fname = train_set_dir / 'train_for_fit_0.xyz'
+    ci = ConfigSet_in(input_files=base_train_fname)
+    co = ConfigSet_out(output_files=initial_train_fname,
+                        force=True, all_or_none=True)
+    fit_inputs = it.prepare_0th_dataset(ci,cox)
 
     for cycle_idx in range(0, num_cycles+1):
 
-        train_set_fname = f'xyzs/{cycle_idx-1}.train_for_fit{cycle_idx}.xyz'
+        # Check for the final training set from this iteration and skip if found.
+        next_train_set_fname = train_set_dir / f'{cycle_idx}_train_for_{ip_type}_{cycle_idx+1}.xyz'
+        if os.path.exists(next_train_set_fname):
+            logger.info(f'Found {next_train_set_fname}, skipping iteration {cycle_idx}')
+        continue
+
+        cycle_dir = wdir / f'iteration_{cycle_idx}'; cycle_dir.make_dirs(exists_ok)
+    
+        train_set_fname = train_set_dir / f'{cycle_idx - 1}.train_for_fit{cycle_idx}.xyz'
         if cycle_idx == 0:
             train_set_fname = initial_train_fname
+
         # 
         # opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
         # opt_fname = f'xyzs/{cycle_idx}.3.0_gap_opt_mols_rads.xyz'
@@ -128,64 +153,32 @@ def fit(num_cycles,
         # 
         # nm_sample_fname_for_train_with_dft = f'xyzs/{cycle_idx}.7_normal_modes_train_sample.dft.xyz'
 
+        fit_dir = cycle_dir / "potential"; fit_dir.make_dirs(exists_ok=True)
 
-        fit_fname = f'gaps/gap_{cycle_idx}.xml'
-        gap_out_fname = f'gaps/gap_{cycle_idx}.out'
-        if ref_type == 'dft':
-            calc_predicted_prop_prefix = f'gap{cycle_idx}_'
-        elif ref_type == 'dft-xtb2':
-            calc_predicted_prop_prefix = f'gap{cycle_idx}_plus_xtb2_'
+        if ip_type == 'gap':
+            calculator = do_gap_fit(fit_dir=fit_dir, 
+                                    idx=cycle_idx, 
+                                    ref_type=ref_type, 
+                                    train_set_fname=train_set_fname, 
+                                    fit_params_base=fit_params_base, 
+                                    gap_fit_path=fit_exec_path)
 
+        elif ip_type == 'ace':
+            calculator = do_ace_fit(fit_dir=fit_dir, 
+                                    idx=cycle_idx, 
+                                    ref_type=ref_type, 
+                                    train_set_fname=train_set_fname,
+                                    fit_params_base=fit_params_base,
+                                    fit_to_prop_prefix=fit_to_prop_prefix, 
+                                    ace_fit_exec=fit_exec_path)
 
-        # Check for the final training set from this iteration and skip if
-        # found.
-        next_training_set_fname =f'xyzs/{cycle_idx}_train_for_gap' \
-                                      f'_{cycle_idx+1}.xyz'
+        raise RuntimeError("Stopping here for now")
 
-        if os.path.exists(next_training_set_fname):
-            logger.info(f'Found {next_training_set_fname}, skipping iteration '
-                        f'{cycle_idx}')
-            continue
         
-
-        # 1. fit GAP
-        if not os.path.exists(fit_fname):
-            logger.info(f'fitting gap {fit_fname} on {train_set_fname}')
-            gap_params = deepcopy(gap_fit_base_params)
-            gap_params['gap_file'] = fit_fname
-            if cycle_idx > 0:
-                fit_inputs = ConfigSet_in(input_files=train_set_fname)
-
-            if "energy_parameter_name" in gap_params and \
-                gap_params["energy_parameter_name"] != \
-                    f'{fit_to_prop_prefix}energy':
-                logger.warn(f'Overwriting '
-                            f'{gap_params["energy_parameter_name"]} found '
-                            f'in gap_params with "{fit_to_prop_prefix}energy"')
-                gap_params["energy_parameter_name"] =  \
-                                              f'{fit_to_prop_prefix}energy'
-            if "force_parameter_name" in gap_params and \
-                    gap_params["force_parameter_name"] != \
-                    f'{fit_to_prop_prefix}forces':
-                logger.warn(f'Overwriting '
-                            f'{gap_params["force_parameter_name"]} found '
-                            f'in gap_params with "'
-                            f'{fit_to_prop_prefix}forces"')
-                gap_params["force_parameter_name"] = \
-                    f'{fit_to_prop_prefix}forces'
-
-            wfl.fit.gap_simple.run_gap_fit(fitting_configs=fit_inputs,
-                                             fitting_dict=gap_params,
-                                           stdout_file=gap_out_fname,
-                                           gap_fit_exec=gap_fit_path)
-
-        full_fit_fname = str(Path(fit_fname).resolve())
         if ref_type == 'dft':
-            calculator = (Potential, [],
-                         {'param_filename':full_fit_fname})
+            calc_predicted_prop_prefix = f'{ip_type}{idx}_'
         elif ref_type == 'dft-xtb2':
-            calculator = (xtb2_plus_gap, [],
-                          {'gap_filename': full_fit_fname})
+            calc_predicted_prop_prefix = f'{ip_type}{idx}_plus_xtb2_'
 
 
         # 2. generate structures for optimisation
@@ -207,7 +200,7 @@ def fit(num_cycles,
         outputs = ConfigSet_out(output_files=opt_fname, force=True,
                                 all_or_none=True)
         inputs = opt.optimise(inputs=inputs, outputs=outputs,
-                               calculator=calculator)
+                              calculator=calculator)
 
 
         # filter out insane geometries
@@ -320,11 +313,11 @@ def fit(num_cycles,
 
 
         # 7. Combine data
-        if not os.path.exists(next_training_set_fname):
+        if not os.path.exists(next_train_set_fname):
             logger.info('combining new dataset')
             previous_dataset = read(train_set_fname, ':')
             additional_data = read(nm_sample_fname_for_train_with_dft, ':')
-            write(next_training_set_fname, previous_dataset + additional_data)
+            write(next_train_set_fname, previous_dataset + additional_data)
 
 
     logger.info('Finished iterations')

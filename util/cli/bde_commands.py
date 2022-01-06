@@ -53,10 +53,10 @@ def assign_bdes(all_evaled_atoms_fname, isolated_h_fname, prop_prefix,
     else:
         raise RuntimeError('Haven\'t found isolated_h_energy')
 
-    all_bde_ats = util.bde.table.assign_atoms_bde_info(all_atoms=all_atoms,
+    all_bde_ats = util.bde.table.assign_bde_info(all_atoms=all_atoms,
                                          h_energy=isolated_h_energy,
                                          prop_prefix=prop_prefix,
-                                         dft_prefix=dft_prefix)
+                                         dft_prop_prefix=dft_prefix)
 
     write(output_fname, all_bde_ats)
 

@@ -17,6 +17,8 @@ def hash_structures(input_fname, output_fname, prefix):
 
     write(output_fname, atoms)
 
+
+
 @click.command('assign-diff')
 @click.argument('input-fn')
 @click.option('--output-fn', '-o')
