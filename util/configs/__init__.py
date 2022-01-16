@@ -131,7 +131,7 @@ def cleanup_configs(num_tasks=8, batch_in_fname_prefix='in_',
             os.remoe(out_fname)
 
 
-def filter_insane_geometries(atoms_list, mult=1.2, bad_structures_fname=None):
+def filter_insane_geometries(atoms_list, mult=1.2):
 
     bad_atoms = []
     atoms_out = []
@@ -173,13 +173,10 @@ def filter_insane_geometries(atoms_list, mult=1.2, bad_structures_fname=None):
         else:
             atoms_out.append(atoms)
 
-    if bad_structures_fname is not None and len(bad_atoms) > 0:
-        print(type(bad_atoms))
-        write(bad_structures_fname, bad_atoms)
     logger.info(f'skipped {len(skipped_idx)} structures, because couldn\'t find '
                   f'a H whithin reasonable cutoff. Nos: {skipped_idx}')
 
-    return atoms_out
+    return {'good_geometries':atoms_out, 'bad_geometries':bad_atoms}
 
 
 def process_config_info(fname_in, fname_out):

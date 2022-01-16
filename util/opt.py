@@ -30,7 +30,7 @@ def optimise_op(atoms, calculator, prop_prefix, traj_step_interval=None):
     if traj_step_interval is None:
         opt_kwargs["traj_subselect"] = "last_converged"
     if traj_step_interval is not None:
-        opt_kwargs['traj_step_interval']:traj_step_interval
+        opt_kwargs['traj_step_interval'] = traj_step_interval
 
     all_trajs = minim.run_op(atoms=atoms, calculator=calculator,
                              keep_symmetry=False, update_config_type=False,

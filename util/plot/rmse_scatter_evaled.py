@@ -46,7 +46,8 @@ def scatter_plot(ref_energy_name,
                 output_dir, prefix, color_info_name, isolated_atoms,
                 energy_type, energy_shift=False,
                  no_legend=False,
-                 error_type='rmse'):
+                 error_type='rmse', 
+                 skip_if_prop_not_present=False):
 
     errors_to_return = {"energy": {}, "forces": {}}
 
@@ -66,7 +67,6 @@ def scatter_plot(ref_energy_name,
 
 
     if color_info_name is not None:
-        # TODO: label for no entry
         info_entries = [at.info[color_info_name] if color_info_name in
                                                     at.info.keys() else
                         'no info' for at in all_atoms]
@@ -108,13 +108,35 @@ def scatter_plot(ref_energy_name,
     ref_prefix = ref_energy_name.replace('energy', '')
     pred_prefix = pred_energy_name.replace('energy', '')
 
-    ref_energies = [energy_getter_function(at, isolated_atoms,
-                                                   ref_prefix)
-                    for at in all_atoms if len(at) != 1]
+    ref_energies = []
+    pred_energies = []
 
-    pred_energies = [energy_getter_function(at, isolated_atoms,
-                                                   pred_prefix)
-                    for at in all_atoms if len(at) != 1]
+    number_of_skipped_configs=0
+    for at in all_atoms:
+        if len(at) == 1:
+            continue
+
+        if ref_energy_name not in at.info.keys() or pred_energy_name not in at.info.keys():
+            if skip_if_prop_not_present:
+                # logger.warn("did not found property in atoms, skipping")
+                number_of_skipped_configs += 1
+                continue
+            else:
+                raise RuntimeError("did not found property in atoms")
+
+        ref_energies.append(energy_getter_function(at, isolated_atoms, ref_prefix))
+        pred_energies.append(energy_getter_function(at, isolated_atoms, pred_prefix))
+
+    logger.warn(f'skipped {number_of_skipped_configs} configs, because one of {ref_energy_name} or {pred_energy_name} was not found.')
+
+
+    # ref_energies = [energy_getter_function(at, isolated_atoms,
+    #                                                ref_prefix)
+    #                 for at in all_atoms if len(at) != 1]
+
+    # pred_energies = [energy_getter_function(at, isolated_atoms,
+    #                                                pred_prefix)
+    #                 for at in all_atoms if len(at) != 1]
 
     if energy_shift:
         ref_energies = util.shift0(ref_energies, by=np.mean(ref_energies))

@@ -108,7 +108,8 @@ def everything(calculator, dft_bde_filename,
 
     # 1. evaluate structures with calculator
     logger.info("evaluating IP on dft-optimised structures")
-    inputs = ConfigSet_in(input_files=dft_bde_filename)
+    inputs = ConfigSet_in(input_files=dft_bde_filename, 
+                          set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
     outputs = ConfigSet_out(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True)
     inputs = generic.run(inputs=inputs,
                          outputs=outputs,
@@ -125,7 +126,8 @@ def everything(calculator, dft_bde_filename,
     logger.info('IP-optimising DFT structures')
     outputs = ConfigSet_out(output_files=ip_reopt_fname,
                             force=True, all_or_none=True,
-                            set_tags={f'bde_config_type':f"{ip_prop_prefix}optimised"})
+                            set_tags={f'bde_config_type':f"{ip_prop_prefix}optimised",
+                                      'dataset_type':{f"bde_{ip_prop_prefix}reoptimised"}})
     inputs = opt.optimise(inputs=inputs,
                           outputs=outputs,
                           calculator=calculator,
@@ -190,11 +192,13 @@ def everything(calculator, dft_bde_filename,
     dft_opt_ats = ConfigSet_in(input_files=dft_opt_bde_fname)
     ip_reopt_ats = ConfigSet_in(input_files=ip_reopt_bde_fname)
     outputs = ConfigSet_out(output_files=summary_file)
-    collect_bde_results(dft_opt_ats=dft_opt_ats, 
+    inputs = collect_bde_results(dft_opt_ats=dft_opt_ats, 
                         ip_reopt_ats=ip_reopt_ats, 
                         dft_prop_prefix=dft_prop_prefix,
                         ip_prop_prefix=ip_prop_prefix, 
                         outputs=outputs)
+
+    return inputs
 
 
 

@@ -11,12 +11,11 @@ def test_filter_insane_geometries(tmp_path):
 
     all_atoms = read(os.path.join(ref_path(), 'files', 'bad_geometries.xyz'), ':')
 
-    bad_geometries_fname = os.path.join(tmp_path, 'filtered_bad_geometries.xyz')
+    all_geometries = configs.filter_insane_geometries(atoms_list=all_atoms)
 
-    good_geometries = configs.filter_insane_geometries(atoms_list=all_atoms,
-                                                       bad_structures_fname=bad_geometries_fname)
+    good_geometries = all_geometries["good_geometries"]
+    bad_geometries = all_geometries["bad_geometries"]
 
-    bad_ats = read(bad_geometries_fname, ':')
-    assert len(bad_ats) == 1
+    assert len(bad_geometries) == 1
     assert len(good_geometries) == 1
 
