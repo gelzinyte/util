@@ -16,6 +16,8 @@ import hashlib
 logger = logging.getLogger(__name__)
 
 def into_dict_of_labels(ats, info_label):
+    if info_label == None:
+        return {"no_label":ats}
     data = {}
     for at in ats:
         label = at.info[info_label]

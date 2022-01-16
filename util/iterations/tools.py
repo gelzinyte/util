@@ -5,16 +5,21 @@ from copy import deepcopy
 import pandas as pd
 import numpy as np
 
+from ase.io import read
+
 import ace
 from quippy.potential import Potential
 
-from wfl.configset import ConfigSet_in
+from wfl.configset import ConfigSet_in, ConfigSet_out
 import wfl.fit.gap_simple
 import wfl.fit.ace
+from wfl.calculators import generic
 
+import util
 from util import radicals
 from util import configs
 from util.calculators import xtb2_plus_gap
+from util.bde import generate
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +164,7 @@ def do_gap_fit(fit_dir, idx, ref_type, train_set_fname, fit_params_base, gap_fit
         return (xtb2_plus_gap, [], {"gap_filename": full_fit_fname})
 
 
-def fix_fit_params(fit_params_base, fit_to_prop_prefix):
+def update_fit_params(fit_params_base, fit_to_prop_prefix):
     # for gap only for now
 
     if (
@@ -230,3 +235,93 @@ def do_ace_fit(
     assert ace_file_base + ".json" == str(ace_fname)
 
     return (ace.ACECalculator, [], {"jsonpath": ace_fname})
+
+
+def run_tests(
+    calculator,
+    pred_prop_prefix,
+    dft_prop_prefix,
+    train_set_fname,
+    test_set_fname,
+    tests_wdir,
+    bde_test_fname,
+): 
+
+    train_evaled = tests_wdir / f"{pred_prop_prefix}on_{train_set_fname}"
+    test_evaled = tests_wdir / f"{pred_prop_prefix}on_{test_set_fname}"
+
+    # evaluate on training and test sets
+    ci = ConfigSet_in(input_files=[train_set_fname, test_set_fname])
+    co = ConfigSet_out(
+        output_files={train_set_fname: train_evaled, test_set_fname: test_evaled}
+    )
+    generic.run(
+        inputs=ci,
+        outputs=co,
+        calculator=calculator,
+        properties=["energy", "forces"],
+        output_prefix=pred_prop_prefix,
+        chunksize=20,
+    )
+
+    # check the offset is not there
+    check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
+
+    # bde test - final file of bde_test_fname.stem + ip_prop_prefix + bde.xyz
+    generate.everything(
+        calculator=calculator,
+        dft_bde_filename=bde_test_fname,
+        dft_prop_prefix=dft_prop_prefix,
+        ip_prop_prefix=pred_prop_prefix,
+        wdir=tests_wdir / "bde_wdir",
+    )
+
+    # other tests are coming sometime
+
+
+def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
+
+    ats = read(train_evaled, ":")
+    is_at = [at for at in ats if len(at) == 1]
+    ats = [at for at in ats if len(at) != 1]
+
+    ref_e = [util.get_binding_energy_per_at(at, is_at, dft_prop_prefix) for at in ats]
+    pred_e = [util.get_binding_energy_per_at(at, is_at, pred_prop_prefix) for at in ats]
+
+    errors = np.array([(ref - pred) * 1e3 for ref, pred in zip(ref_e, pred_e)])
+    mean_error = np.mean(errors)
+
+    shifted_errors = errors - mean_error
+    non_shifter_rmse = np.sqrt(np.mean(errors ** 2))
+    shifted_rmse = np.sqrt(np.mean(shifted_errors ** 2))
+
+    difference = (non_shifter_rmse - shifted_rmse) / shifted_rmse
+
+    logger.info(
+        f"non-shifted rmse: {non_shifter_rmse:.3f}, "
+        f"shifted rmse: {shifted_rmse:.3f}, difference: {difference * 100:.1f}%"
+    )
+
+    assert (
+        difference < 0.01
+    ), f"Offset in training set ({difference * 100:.1f}) 1%, smelling foul!"
+
+
+def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, chunksize=10):
+
+    df = pd.read_csv(all_extra_smiles_csv, delim_whitespace=True)
+
+    taken = df[df['has_been_used']]
+    free = df[~df['has_been_used']]
+
+    selection = free[:chunksize]
+    del selection["has_been_used"]
+
+    selection.to_csv(smiles_selection_csv, sep=' ')
+
+    for idx in selection.index:
+        df.at[idx, "has_been_used"] = True
+
+    df.to_csv(all_extra_smiles_csv, sep=" ")
+
+

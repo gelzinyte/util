@@ -2,6 +2,7 @@ import pytest
 from ase.build import molecule
 from pathlib import Path
 from quippy.potential import Potential
+import yaml
 
 
 @pytest.fixture()
@@ -56,6 +57,8 @@ def gap_params():
 
 @pytest.fixture()
 def ace_params():
-    params = {"weights": {"default": {"E": 1.0, "F": 1.0}}, "r0": 1.1}
+    ace_params_filename = Path(__file__).parent.resolve() / "files/ace_params.yml"
+    with open(ace_params_filename, 'r') as f:
+        params = yaml.safe_load(f)
     return params
 

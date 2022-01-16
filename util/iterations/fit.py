@@ -20,15 +20,55 @@ logger = logging.getLogger(__name__)
 def fit(
     num_cycles,
     base_train_fname="train.xyz",
+    base_test_fname="test.xyz",
     fit_param_fname=None,
-    additional_smiles_csv=None,
+    all_extra_smiles_csv=None,
     md_temp=500,
     energy_filter_threshold=0.05,
     wdir="runs",
     ref_type="dft",
     ip_type="ace",
+    bde_test_fname, 
 ):
     """ iteratively fits potetnials
+
+    No files are created or modified in the original directory, everything's done in "wdir"
+
+    * Each iteration is run in a directory (e.g."wdir"/"iteration_03"). 
+    * An iteration starts with a fit to a training set file from the previous iteration
+        ("02_train_for_ACE_03.xyz"). 
+    * Then run tests with this potential:
+        - Accuracy on train set and similarly generated test set
+        - BDE test on tracked configs
+        - (dimer curves)?
+        - offset in training/testing configs
+        - removal of hydrogen
+    * Generate initial (rdkit) configs
+        - slice a slice from all of the extra csv
+        - generate 3D structures
+    * Potential-optimise
+    * Select configs with high error 
+    * Run MD at a given temperature
+        - look out for unreasonable structures
+            - filter geometry
+            - (check for weird energy drifts)
+    * CUR-select new configs 
+        - BASED ON SOAP?!
+    * Accuracy summary on things that don't need extra dft evaluations 
+        - train set
+        - test set
+        - potential - optimised structures
+        - structures selected from md
+        - dft-optimised bde structures
+        - potential-reoptimised bde structures 
+    * Get dft and combine datasets. 
+
+    TODO: 
+    * Generate heuristics for fitting params. For now: 
+        - select inner cutoff where data ends
+        - Start with overly-large basis and cut down with ARD. 
+    * select configs based on ACE basis? 
+    * make sure dataset and config types are correctly assinged
 
     Parameters
     ---------
@@ -41,7 +81,7 @@ def fit(
         template ace_fit.jl
     ip_type: str, default "ace"
         "ace" or "gap"
-    additional_smiles_csv: str, default None
+    all_extra_smiles_csv: str, default None
         CSV of id and smiles to generate structures from
     md_temp: float, default 500
         temperature to run MD at
@@ -61,7 +101,7 @@ def fit(
         raise NotImplementedError("haven't redone dft-xtb2 fitting")
 
     logger.info(
-        f"Optimising structures from {additional_smiles_csv}. "
+        f"Optimising structures from {all_extra_smiles_csv}. "
         f"GAP parameters from {fit_param_fname}. Fitting to "
         f"{ref_type} energies and forces."
     )
@@ -81,6 +121,9 @@ def fit(
     train_set_dir = wdir / "training_sets"
     train_set_dir.make_dirs(parents=True, exists_ok=True)
 
+    shutil.copy(all_extra_smiles_csv, wdir / all_extra_smiles_csv)
+    all_extra_smiles_csv = wdir / all_extra_smiles_csv
+
     # setup orca parameters
     default_kw = Config.from_yaml(os.path.join(cfg["util_root"], "default_kwargs.yml"))
 
@@ -91,16 +134,16 @@ def fit(
 
     if ref_type == "dft":
         fit_to_prop_prefix = dft_prop_prefix
-        calc_predicted_prop_prefix = "ace_"
+        pred_prop_prefix = "ace_"
         # xtb2_prop_prefix = None
     if ref_type == "dft-xtb2":
         fit_to_prop_prefix = "dft_minus_xtb2_"
-        calc_predicted_prop_prefix = "gap_plus_xtb2_"
+        pred_prop_prefix = "gap_plus_xtb2_"
         # xtb2_prop_prefix = "xtb2_"
 
     with open(fit_param_fname) as yaml_file:
         fit_params_base = yaml.safe_load(yaml_file)
-    fit_params_base = it.fix_fit_params(fit_params_base, fit_to_prop_prefix)
+    fit_params_base = it.update_fit_params(fit_params_base, fit_to_prop_prefix)
 
     # prepare 0th dataset
     initial_train_fname = train_set_dir / "train_for_fit_0.xyz"
@@ -108,26 +151,35 @@ def fit(
     co = ConfigSet_out(output_files=initial_train_fname, force=True, all_or_none=True)
     it.prepare_0th_dataset(ci, co)
 
+    initial_test_fname = train_set_dir / "test_for_fit_0.xyz"
+    ci = ConfigSet_in(input_files=base_test_fname)
+    co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True)
+    it.prepare_0th_dataset(ci, co)
+
     for cycle_idx in range(0, num_cycles + 1):
 
         # Check for the final training set from this iteration and skip if found.
         next_train_set_fname = (
-            train_set_dir / f"{cycle_idx}_train_for_{ip_type}_{cycle_idx+1}.xyz"
+            train_set_dir / f"{cycle_idx:02d}_train_for_{ip_type}_{cycle_idx+1:02d}.xyz"
         )
         if os.path.exists(next_train_set_fname):
             logger.info(f"Found {next_train_set_fname}, skipping iteration {cycle_idx}")
-        continue
+            continue
 
-        cycle_dir = wdir / f"iteration_{cycle_idx}"
+        # define all the filenames
+        cycle_dir = wdir / f"iteration_{cycle_idx:02d}"
         cycle_dir.mkdir(exists_ok=True)
 
-        train_set_fname = (
-            train_set_dir / f"{cycle_idx - 1}.train_for_fit{cycle_idx}.xyz"
-        )
+        train_set_fname = train_set_dir / f"{cycle_idx - 1:02d}.train_for_fit{cycle_idx:02d}.xyz"
+        test_set_fname = train_set_dir / f"{cycle_idx - 1:02d}.test_for_fit{cycle_idx:02d}.xyz"
+        
         if cycle_idx == 0:
             train_set_fname = initial_train_fname
+            test_set_fname = initial_test_fname
 
-        #
+        smiles_selection_csv = cycle_dir / "02.extra_smiles.csv"
+        opt_starts_fname = cycle_dir / "03.non_opt_mols_rads.xyz"
+        
         # opt_starts_fname = f'xyzs/{cycle_idx}.2_non_opt_mols_rads.xyz'
         # opt_fname = f'xyzs/{cycle_idx}.3.0_gap_opt_mols_rads.xyz'
         #
@@ -170,30 +222,44 @@ def fit(
                 ace_fit_exec=fit_exec_path,
             )
 
-        raise RuntimeError("Stopping here for now")
-
         if ref_type == "dft":
-            calc_predicted_prop_prefix = f"{ip_type}{cycle_idx}_"
+            pred_prop_prefix = f"{ip_type}{cycle_idx}_"
         elif ref_type == "dft-xtb2":
-            calc_predicted_prop_prefix = f"{ip_type}{cycle_idx}_plus_xtb2_"
+            pred_prop_prefix = f"{ip_type}{cycle_idx}_plus_xtb2_"
 
-        # 2. generate structures for optimisation
-        if not os.path.isfile(opt_starts_fname):
-            logger.info("generating structures to optimise")
-            outputs = ConfigSet_out(
-                output_files=opt_starts_fname,
-                force=True,
-                all_or_none=True,
-                verbose=False,
-            )
-            inputs = it.make_structures(
-                additional_smiles_csv,
-                iter_no=cycle_idx,
-                num_smi_repeat=1,
-                outputs=outputs,
-            )
-        else:
-            inputs = ConfigSet_in(input_files=opt_starts_fname)
+
+        # 2. Run tests 
+        tests_wdir = cycle_dir / "tests"
+        it.run_tests(
+            calculator=calculator, 
+            pred_prop_prefix=pred_prop_prefix, 
+            dft_prop_prefix=dft_prop_prefix, 
+            train_set_fname=train_set_fname, 
+            test_set_fname=test_set_fname, 
+            tests_wdir=tests_wdir, 
+            bde_test_fname=bde_test_fname, 
+        )
+
+        # 3. Select some smiles from the initial smiles csv
+        if not smiles_selection_csv.exists():
+            it.select_extra_smiles(all_extra_smiles_csv=all_extra_smiles_csv,
+                               smiles_selection_csv=smiles_selection_csv,
+                               chunksize=10) 
+
+        # 4. Generate actual structures for optimisation   
+        logger.info("generating structures to optimise")
+        outputs = ConfigSet_out(
+            output_files=opt_starts_fname,
+            force=True,
+            all_or_none=True,
+            verbose=False,
+        )
+        inputs = it.make_structures(
+            all_extra_smiles_csv,
+            iter_no=cycle_idx,
+            num_smi_repeat=1,
+            outputs=outputs,
+        )
 
         # 3 optimise structures with current GAP and re-evaluate them
         # with GAP and DFT
@@ -219,7 +285,7 @@ def fit(
             outputs=outputs,
             calculator=calculator,
             properties=["energy", "forces"],
-            output_prefix=calc_predicted_prop_prefix,
+            output_prefix=pred_prop_prefix,
             chunksize=50,
         )
 
@@ -249,7 +315,7 @@ def fit(
             inputs = it.filter_configs(
                 inputs=inputs,
                 outputs=outputs,
-                gap_prefix=calc_predicted_prop_prefix,
+                gap_prefix=pred_prop_prefix,
                 e_threshold=energy_filter_threshold,
                 f_threshold=max_force_filter_threshold,
                 outputs_accurate_structures=outputs_accurate_structures,
@@ -269,7 +335,7 @@ def fit(
             inputs=inputs,
             outputs=outputs,
             calculator=calculator,
-            prop_prefix=calc_predicted_prop_prefix,
+            prop_prefix=pred_prop_prefix,
         )
 
         # 6. sample normal modes and get DFT energies and forces
@@ -301,7 +367,7 @@ def fit(
                     outputs=outputs,
                     temp=temp,
                     sample_size=num_nm_displacements_per_temp * 2,
-                    prop_prefix=calc_predicted_prop_prefix,
+                    prop_prefix=pred_prop_prefix,
                     info_to_keep=info_to_keep,
                 )
 

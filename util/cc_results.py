@@ -175,4 +175,3 @@ def make_orca_input_file(
 
 if __name__ == "__main__":
     main()
-
