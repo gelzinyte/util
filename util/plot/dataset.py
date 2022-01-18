@@ -62,7 +62,7 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
 
     fig_name = title.replace(' ', '_')
     plt.tight_layout()
-    plt.savefig(fig_name + '.png', dpi=300)
+    plt.savefig(fig_name + '.dpi')
 
 def forces_by_idx(atoms, prop_prefix='dft_', title=None,
                   group_compounds=False, info_label='config_type'):
@@ -109,7 +109,7 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
 
     fig_name = title.replace(' ', '_')
     plt.tight_layout()
-    plt.savefig(fig_name + '.png', dpi=300)
+    plt.savefig(fig_name + '.pdf')
 
 
 def group_data(data):

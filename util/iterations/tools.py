@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-from ase.io import read
+from ase.io import read, write
 
 import ace
 from quippy.potential import Potential
@@ -84,7 +84,7 @@ def make_structures(
                     smi=smi, compound=name, num_radicals=num_rads_per_mol
                 )
             except RuntimeError:
-                logger.info(f"could not generate structure from {smi}") 
+                logger.info(f"could not generate structure from {smi}")
             atoms_out += mol_and_rads
 
     logger.info(f"length of output atoms: {len(atoms_out)}")
@@ -107,7 +107,9 @@ def filter_configs_by_geometry(inputs, outputs_good, outputs_bad):
         outputs_good.write(all_configs["good_geomteries"])
         outputs_good.end_write()
     elif outputs_bad.is_done() and outputs_good.is_done():
-        logger.info("not_writing to `outputs_good` or `outputs_bad`, because they are done.")
+        logger.info(
+            "not_writing to `outputs_good` or `outputs_bad`, because they are done."
+        )
     else:
         raise RuntimeError("one output is done, but not the other. ")
 
@@ -143,12 +145,18 @@ def filter_configs(
         if e_threshold_total is not None and np.abs(e_error) > e_threshold_total:
             outputs_large_error.write(at)
             continue
-        elif e_threshold_per_atom is not None and np.abs(e_error) / len(at) > e_threshold_per_atom:
+        elif (
+            e_threshold_per_atom is not None
+            and np.abs(e_error) / len(at) > e_threshold_per_atom
+        ):
             outputs_large_error.write(at)
             continue
 
         if max_f_comp_threshold is not None:
-            f_error = (at.arrays[f"{pred_prop_prefix}forces"] - at.arrays[f"{dft_prefix}forces"])
+            f_error = (
+                at.arrays[f"{pred_prop_prefix}forces"]
+                - at.arrays[f"{dft_prefix}forces"]
+            )
             if np.max(np.abs(f_error.flatten())) > max_f_comp_threshold:
                 outputs_large_error.write(at)
                 continue
@@ -265,7 +273,7 @@ def run_tests(
     test_set_fname,
     tests_wdir,
     bde_test_fname,
-): 
+):
 
     train_evaled = tests_wdir / f"{pred_prop_prefix}on_{train_set_fname}"
     test_evaled = tests_wdir / f"{pred_prop_prefix}on_{test_set_fname}"
@@ -289,76 +297,89 @@ def run_tests(
 
     # bde test - final file of bde_test_fname.stem + ip_prop_prefix + bde.xyz
     bde_ci = generate.everything(
-                calculator=calculator,
-                dft_bde_filename=bde_test_fname,
-                dft_prop_prefix=dft_prop_prefix,
-                ip_prop_prefix=pred_prop_prefix,
-                wdir=tests_wdir / "bde_wdir",
+        calculator=calculator,
+        dft_bde_filename=bde_test_fname,
+        dft_prop_prefix=dft_prop_prefix,
+        ip_prop_prefix=pred_prop_prefix,
+        wdir=tests_wdir / "bde_wdir",
     )
 
-    # dft vs ip bde correlation 
-    rmse_scatter_evaled.scatter_plot(ref_energy_name=f"{dft_prop_prefix}opt_{dft_prop_prefix}bde_energy",
-                                     pred_energy_name=f"{pred_prop_prefix}opt_{pred_prop_prefix}bde_energy",
-                                     ref_force_name=None, 
-                                     pred_force_name=None, 
-                                     all_atoms = bde_ci, 
-                                     output_dir=tests_wdir,
-                                     prefix=f"{dft_prop_prefix}bde_vs_{pred_prop_prefix}_bde",
-                                     color_info_name="bde_type",
-                                     isolated_atoms=None, 
-                                     energy_type='rmse', 
-                                     skip_if_prop_not_present=True)
+    # dft vs ip bde correlation
+    rmse_scatter_evaled.scatter_plot(
+        ref_energy_name=f"{dft_prop_prefix}opt_{dft_prop_prefix}bde_energy",
+        pred_energy_name=f"{pred_prop_prefix}opt_{pred_prop_prefix}bde_energy",
+        ref_force_name=None,
+        pred_force_name=None,
+        all_atoms=bde_ci,
+        output_dir=tests_wdir,
+        prefix=f"{dft_prop_prefix}bde_vs_{pred_prop_prefix}_bde",
+        color_info_name="bde_type",
+        isolated_atoms=None,
+        energy_type="rmse",
+        skip_if_prop_not_present=True,
+    )
 
-    # ip bde absolute error vs ip energy absolute error 
-    co = ConfigSet_out(output_files=tests_wdir / f'{pred_prop_prefix}bde_file_with_errors.xyz', 
-                        force=True, all_or_none=True)
+    # ip bde absolute error vs ip energy absolute error
+    co = ConfigSet_out(
+        output_files=tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz",
+        force=True,
+        all_or_none=True,
+    )
     if not co.is_done():
         for at in bde_ci:
             if at.info["mol_or_rad"] == "mol":
                 continue
 
-            at.info[f"{pred_prop_prefix}bde_absolute_error"] =  np.abs(
-                at.info[f"{dft_prop_prefix}opt_{dft_prop_prefix}bde_energy"] - \
-                at.info[f"{pred_prop_prefix}opt_{pred_prop_prefix}bde_energy"] )
+            at.info[f"{pred_prop_prefix}bde_absolute_error"] = np.abs(
+                at.info[f"{dft_prop_prefix}opt_{dft_prop_prefix}bde_energy"]
+                - at.info[f"{pred_prop_prefix}opt_{pred_prop_prefix}bde_energy"]
+            )
 
-            at.info[f"{pred_prop_prefix}absolute_error_on_{pred_prop_prefix}opt"] =  np.abs(
-                at.info[f"{pred_prop_prefix}opt_{dft_prop_prefix}energy"] - \
-                at.info[f"{pred_prop_prefix}opt_{pred_prop_prefix}energy"] )
-            at.info[f"{pred_prop_prefix}absolute_error_on_{dft_prop_prefix}opt"] =  np.abs(
-                at.info[f"{dft_prop_prefix}opt_{dft_prop_prefix}energy"] - \
-                at.info[f"{dft_prop_prefix}opt_{pred_prop_prefix}energy"] )
+            at.info[
+                f"{pred_prop_prefix}absolute_error_on_{pred_prop_prefix}opt"
+            ] = np.abs(
+                at.info[f"{pred_prop_prefix}opt_{dft_prop_prefix}energy"]
+                - at.info[f"{pred_prop_prefix}opt_{pred_prop_prefix}energy"]
+            )
+            at.info[
+                f"{pred_prop_prefix}absolute_error_on_{dft_prop_prefix}opt"
+            ] = np.abs(
+                at.info[f"{dft_prop_prefix}opt_{dft_prop_prefix}energy"]
+                - at.info[f"{dft_prop_prefix}opt_{pred_prop_prefix}energy"]
+            )
 
             co.write(at)
         co.end_write()
     else:
         logger.info("Not re-assigning bde errors, because ConfigSet_out is done")
 
+    rmse_scatter_evaled.scatter_plot(
+        ref_energy_name=f"{pred_prop_prefix}absolute_error_on_{pred_prop_prefix}opt",
+        pred_energy_name=f"{pred_prop_prefix}bde_absolute_error",
+        ref_force_name=None,
+        pred_force_name=None,
+        all_atoms=co.to_ConfigSet_in(),
+        output_dir=tests_wdir,
+        prefix=f"{pred_prop_prefix}error_on_{pred_prop_prefix}opt_vs_{pred_prop_prefix}bde_error",
+        color_info_name="bde_type",
+        isolated_atoms=None,
+        energy_type="total_energy",
+        skip_if_prop_not_present=True,
+    )
 
-    rmse_scatter_evaled.scatter_plot(ref_energy_name=f"{pred_prop_prefix}absolute_error_on_{pred_prop_prefix}opt",
-                                    pred_energy_name=f"{pred_prop_prefix}bde_absolute_error",
-                                    ref_force_name=None, 
-                                    pred_force_name=None, 
-                                    all_atoms = co.to_ConfigSet_in(), 
-                                    output_dir=tests_wdir,
-                                    prefix=f"{pred_prop_prefix}error_on_{pred_prop_prefix}opt_vs_{pred_prop_prefix}bde_error",
-                                    color_info_name="bde_type",
-                                    isolated_atoms=None, 
-                                    energy_type='total_energy', 
-                                    skip_if_prop_not_present=True)
-
-    rmse_scatter_evaled.scatter_plot(ref_energy_name=f"{pred_prop_prefix}absolute_error_on_{ref_prop_prefix}opt",
-                                    pred_energy_name=f"{pred_prop_prefix}bde_absolute_error",
-                                    ref_force_name=None, 
-                                    pred_force_name=None, 
-                                    all_atoms = co.to_ConfigSet_in(), 
-                                    output_dir=tests_wdir,
-                                    prefix=f"{pred_prop_prefix}error_on_{ref_prop_prefix}opt_vs_{pred_prop_prefix}bde_error",
-                                    color_info_name="bde_type",
-                                    isolated_atoms=None, 
-                                    energy_type='total_energy', 
-                                    skip_if_prop_not_present=True)
-
-
+    rmse_scatter_evaled.scatter_plot(
+        ref_energy_name=f"{pred_prop_prefix}absolute_error_on_{dft_prop_prefix}opt",
+        pred_energy_name=f"{pred_prop_prefix}bde_absolute_error",
+        ref_force_name=None,
+        pred_force_name=None,
+        all_atoms=co.to_ConfigSet_in(),
+        output_dir=tests_wdir,
+        prefix=f"{pred_prop_prefix}error_on_{dft_prop_prefix}opt_vs_{pred_prop_prefix}bde_error",
+        color_info_name="bde_type",
+        isolated_atoms=None,
+        energy_type="total_energy",
+        skip_if_prop_not_present=True,
+    )
 
     # other tests are coming sometime
 
@@ -395,13 +416,12 @@ def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, chunksize=10
 
     df = pd.read_csv(all_extra_smiles_csv, delim_whitespace=True)
 
-    taken = df[df['has_been_used']]
-    free = df[~df['has_been_used']]
+    free = df[~df["has_been_used"]]
 
     selection = free[:chunksize]
     del selection["has_been_used"]
 
-    selection.to_csv(smiles_selection_csv, sep=' ')
+    selection.to_csv(smiles_selection_csv, sep=" ")
 
     for idx in selection.index:
         df.at[idx, "has_been_used"] = True
@@ -409,52 +429,95 @@ def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, chunksize=10
     df.to_csv(all_extra_smiles_csv, sep=" ")
 
 
-def summary_plots(cycle_idx, pred_prop_prefix, dft_prop_prefix, 
-                  train_fname, test_fname, bde_fname, ip_optimised_fname, train_extra_fname, 
-                    test_extra_fname, tests_wdir):
+def summary_plots(
+    cycle_idx,
+    pred_prop_prefix,
+    dft_prop_prefix,
+    train_fname,
+    test_fname,
+    bde_fname,
+    ip_optimised_fname,
+    train_extra_fname,
+    test_extra_fname,
+    tests_wdir,
+):
 
     # set up correct fnames
     train_fname = tests_wdir / f"{pred_prop_prefix}on_{train_fname}"
     test_fname = tests_wdir / f"{pred_prop_prefix}on_{test_fname}"
 
-    bde_dft_opt = tests_wdir / "bde_wdir" / (Path(bde_fname).stem + '.' + pred_prop_prefix[:-1] + '.xyz')
-    bde_ip_reopt = tests_wdir / "bde_wdir" / (Path(bde_fname).stem + '.' + pred_prop_prefix + '_reoptimised.dft.xyz.xyz')
+    bde_dft_opt = (
+        tests_wdir
+        / "bde_wdir"
+        / (Path(bde_fname).stem + "." + pred_prop_prefix[:-1] + ".xyz")
+    )
+    bde_ip_reopt = (
+        tests_wdir
+        / "bde_wdir"
+        / (Path(bde_fname).stem + "." + pred_prop_prefix + "_reoptimised.dft.xyz.xyz")
+    )
 
     all_outputs = tests_wdir / "all_configs_for_plot.xyz"
 
-    isolated_atoms = [at for at in read(train_fname, ':') if len(at)==1]
+    isolated_atoms = [at for at in read(train_fname, ":") if len(at) == 1]
 
     # plot the dataset summary plots
-    atoms = read(train_fname, ':') + read(train_extra_fname, ':')
-    title=f"{cycle_idx:02d}_training_set_for_{pred_prop_prefix}{cycle_idx+1:02d}"
-    dataset.energy_by_index(atoms=atoms, title=title, isolated_ats=isolated_atoms, 
-                            info_label="cycle_idx", prop_prefix=dft_prop_prefix)
-    dataset.forces_by_index(atoms=atoms, title=title,  
-                            info_label='cycle_idx', prop_prefix=dft_prop_prefix)
+    atoms = read(train_fname, ":") + read(train_extra_fname, ":")
+    title = f"{cycle_idx:02d}_training_set_for_{pred_prop_prefix}{cycle_idx+1:02d}"
+    dataset.energy_by_index(
+        atoms=atoms,
+        title=title,
+        isolated_ats=isolated_atoms,
+        info_label="cycle_idx",
+        prop_prefix=dft_prop_prefix,
+    )
+    dataset.forces_by_index(
+        atoms=atoms, title=title, info_label="cycle_idx", prop_prefix=dft_prop_prefix
+    )
 
     # combine all data together
-    expected_dataset_types = ["next_addition", "next_addition", "test", "train", f"bde_{dft_prop_prefix}optimised", f"bde_{pred_prop_prefix}reoptimised", f"next_rdkit_{pred_prop_prefix}optimised"]
-    all_fnames = [train_extra_fname, test_extra_fname, test_fname, train_fname, bde_dft_opt, bde_ip_reopt, ip_optimised_fname]
-    
+    expected_dataset_types = [
+        "next_addition",
+        "next_addition",
+        "test",
+        "train",
+        f"bde_{dft_prop_prefix}optimised",
+        f"bde_{pred_prop_prefix}reoptimised",
+        f"next_rdkit_{pred_prop_prefix}optimised",
+    ]
+    all_fnames = [
+        train_extra_fname,
+        test_extra_fname,
+        test_fname,
+        train_fname,
+        bde_dft_opt,
+        bde_ip_reopt,
+        ip_optimised_fname,
+    ]
+
     for fname, expected_dset_type in zip(all_fnames, expected_dataset_types):
-        ats = read(fname, ':')
+        ats = read(fname, ":")
         at = ats[0]
-        assert at.info["dataset_type"] == expected_dset_type 
-        assert pred_prop_prefix + 'energy' in at.info.keys() 
-        assert dft_prop_prefix + 'energy' in at.info.keys() 
+        assert at.info["dataset_type"] == expected_dset_type
+        assert pred_prop_prefix + "energy" in at.info.keys()
+        assert dft_prop_prefix + "energy" in at.info.keys()
 
         write(all_outputs, ats, append=True)
 
-    rmse_scatter_evaled.scatter_plot(ref_energy_name=dft_prop_prefix+"energy",
-                                     pred_energy_name=pred_prop_prefix+"energy",
-                                     ref_force_name=dft_prop_prefix+'forces',
-                                     pred_force_name=pred_prop_prefix+'forces',
-                                     all_atoms=read(all_outputs, ':'),
-                                     output_dir=tests_wdir,
-                                     prefix=f'{cycle_idx}_ef_correlation',
-                                     color_info_name='dataset_type',
-                                     isolated_atoms=None,
-                                     energy_type="binding_energy")
+    rmse_scatter_evaled.scatter_plot(
+        ref_energy_name=dft_prop_prefix + "energy",
+        pred_energy_name=pred_prop_prefix + "energy",
+        ref_force_name=dft_prop_prefix + "forces",
+        pred_force_name=pred_prop_prefix + "forces",
+        all_atoms=read(all_outputs, ":"),
+        output_dir=tests_wdir,
+        prefix=f"{cycle_idx}_ef_correlation",
+        color_info_name="dataset_type",
+        isolated_atoms=None,
+        energy_type="binding_energy",
+    )
+
+    
 
     # combine all plots
 
@@ -462,6 +525,4 @@ def summary_plots(cycle_idx, pred_prop_prefix, dft_prop_prefix,
     # - correlation
     # - bde correlations (x3)
     # - dataset (x2)
-    
 
-    

@@ -10,8 +10,8 @@ from ase.io import read, write
 
 from wfl.calculators import orca
 from wfl.configset import ConfigSet_in, ConfigSet_out
-from wfl.generate_configs import md 
-import wfl.calc_descriptor.calc
+from wfl.generate_configs import md
+import wfl.calc_descriptor
 
 from util import opt
 from util.util_config import Config
@@ -34,18 +34,18 @@ def fit(
     wdir="runs",
     ref_type="dft",
     ip_type="ace",
-    bde_test_fname="dft_bde.xyz", 
+    bde_test_fname="dft_bde.xyz",
     soap_params_for_cur_fname="soap_params_for_cur.xyz",
-    num_train_configs_per_cycle=10, 
+    num_train_configs_per_cycle=10,
     num_test_configs_per_cycle=10,
 ):
     """ iteratively fits potetnials
 
     No files are created or modified in the original directory, everything's done in "wdir"
 
-    * Each iteration is run in a directory (e.g."wdir"/"iteration_03"). 
+    * Each iteration is run in a directory (e.g."wdir"/"iteration_03").
     * An iteration starts with a fit to a training set file from the previous iteration
-        ("02_train_for_ACE_03.xyz"). 
+        ("02_train_for_ACE_03.xyz").
     * Then run tests with this potential:
         - Accuracy on train set and similarly generated test set
         - BDE test on tracked configs
@@ -57,38 +57,38 @@ def fit(
         - slice a slice from all of the extra csv
         - generate 3D structures
     * Potential-optimise
-    * Select configs with high error 
+    * Select configs with high error
     * Run MD at a given temperature
         - look out for unreasonable structures
             - filter geometry
             - (check for weird energy drifts)
-    * CUR-select new configs 
+    * CUR-select new configs
         - BASED ON SOAP?!
-    * Accuracy summary on things that don't need extra dft evaluations 
+    * Accuracy summary on things that don't need extra dft evaluations
         - train set
         - test set
         - potential - optimised structures
         - structures selected from md
         - dft-optimised bde structures
-        - potential-reoptimised bde structures 
-    * Get dft and combine datasets. 
+        - potential-reoptimised bde structures
+    * Get dft and combine datasets.
 
-    Info keys: 
+    Info keys:
 
     * dataset_type - train, test, next_configs_ip_optimised, next_configs_selected,
-                     bde_dft_opt, bde_ip_reopt 
+                     bde_dft_opt, bde_ip_reopt
                    - benchmarks to test the potential
     * config_type - how has the config been generated
                   - rdkit, ip-optimised, md
 
-    TODO: 
-    * Generate heuristics for fitting params. For now: 
+    TODO:
+    * Generate heuristics for fitting params. For now:
         - select inner cutoff where data ends
-        - Start with overly-large basis and cut down with ARD. 
-    * select configs based on ACE basis? 
+        - Start with overly-large basis and cut down with ARD.
+    * select configs based on ACE basis?
     * make sure dataset and config types are correctly assinged
-    * check that wherever I am using configset out, outputs are skipped if done. 
-    * will md run remotely? 
+    * check that wherever I am using configset out, outputs are skipped if done.
+    * will md run remotely?
     * what happens if ConfigSet_out is done, so action isn't performed and then I try to access co.to_ConfigSet_in()
     * do configs have unique identifier?
 
@@ -113,7 +113,7 @@ def fit(
     ref_type: str, default "dft"
         "dft" or "dft-xtb2" for the type of reference energies/forces to
         fit to.
-    wdir: wehere to base all the runs in. 
+    wdir: wehere to base all the runs in.
     """
 
     assert ref_type in ["dft", "dft-xtb2"]
@@ -156,7 +156,7 @@ def fit(
 
     if ref_type == "dft":
         fit_to_prop_prefix = dft_prop_prefix
-        pred_prop_prefix =  ip_type + '_'
+        pred_prop_prefix = ip_type + "_"
         # xtb2_prop_prefix = None
     if ref_type == "dft-xtb2":
         fit_to_prop_prefix = "dft_minus_xtb2_"
@@ -169,16 +169,16 @@ def fit(
 
     # md params
     md_params = {
-        "steps":2000,
-        'dt':0.5, #fs
-        'temperature': md_temp, # K
-        'temperature_tau': 200, # fs, somewhat quicker than recommended (???)
-        'traj_step_interval':100,
-        'results_prefix': pred_prop_prefix
+        "steps": 2000,
+        "dt": 0.5,  # fs
+        "temperature": md_temp,  # K
+        "temperature_tau": 200,  # fs, somewhat quicker than recommended (???)
+        "traj_step_interval": 100,
+        "results_prefix": pred_prop_prefix,
     }
 
     # soap descriptor for cur params
-    with open(soap_params_for_cur_fname, 'r') as f: 
+    with open(soap_params_for_cur_fname, "r") as f:
         soap_params_for_cur = yaml.safe_load(f)
 
     # prepare 0th dataset
@@ -195,9 +195,8 @@ def fit(
     for cycle_idx in range(0, num_cycles + 1):
 
         # Check for the final training set from this iteration and skip if found.
-        next_train_set_fname = (
-            train_set_dir / f"{cycle_idx:02d}_train_for_{ip_type}_{cycle_idx+1:02d}.xyz"
-        )
+        next_train_set_fname = (train_set_dir / f"{cycle_idx:02d}.train_for_{ip_type}_{cycle_idx+1:02d}.xyz")
+        next_test_set_fname = (train_set_dir / f"{cycle_idx:02d}.test_for_{ip_type}_{cycle_idx+1:02d}.xyz")
         if os.path.exists(next_train_set_fname):
             logger.info(f"Found {next_train_set_fname}, skipping iteration {cycle_idx}")
             continue
@@ -206,9 +205,9 @@ def fit(
         cycle_dir = wdir / f"iteration_{cycle_idx:02d}"
         cycle_dir.mkdir(exists_ok=True)
 
-        train_set_fname = train_set_dir / f"{cycle_idx - 1:02d}.train_for_fit{cycle_idx:02d}.xyz"
-        test_set_fname = train_set_dir / f"{cycle_idx - 1:02d}.test_for_fit{cycle_idx:02d}.xyz"
-        
+        train_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.train_for_{ip_type}_{cycle_idx:02d}.xyz")
+        test_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.test_for_{ip_type}_{cycle_idx:02d}.xyz")
+
         if cycle_idx == 0:
             train_set_fname = initial_train_fname
             test_set_fname = initial_test_fname
@@ -221,15 +220,14 @@ def fit(
         opt_fname_w_dft = cycle_dir / f"06.{pred_prop_prefix}optimised.good_geometries.dft.xyz"
         large_error_configs = cycle_dir / f"07.1.{pred_prop_prefix}optimised.good_geometries.dft.large_error.xyz"
         small_error_configs = cycle_dir / f"07.2.{pred_prop_prefix}optimised.good_geometries.dft.small_error.xyz"
-        full_md_fname = cycle_dir / f"08.large_error.md.xyz"
-        full_md_good_geometries_fname = cycle_dir / f"09.1.large_error.md.good_geometries.xyz"
-        full_md_bad_geometries_fname = cycle_dir / f"09.2.large_error.md.bad_geometries.xyz"
-        md_with_soap_fname = cycle_dir / f"10.large_error.md.good_geometries.soap.xyz"
-        test_md_selection_fname = cycle_dir / f"11.1.large_error.md.test_sample.xyz"
-        train_md_selection_fname = cycle_dir / f"11.2.large_error.md.train_sample.xyz"
-        test_extra_fname_dft = cycle_dir / f"12.1.large_error.md.test_sample.dft.xyz"
-        train_extra_fname_dft = cycle_dir / f"12.2.large_error.md.train_sample.dft.xyz"
-
+        full_md_fname = cycle_dir / "08.large_error.md.xyz"
+        full_md_good_geometries_fname = (cycle_dir / "09.1.large_error.md.good_geometries.xyz")
+        full_md_bad_geometries_fname = (cycle_dir / "09.2.large_error.md.bad_geometries.xyz")
+        md_with_soap_fname = cycle_dir / "10.large_error.md.good_geometries.soap.xyz"
+        test_md_selection_fname = cycle_dir / "11.1.large_error.md.test_sample.xyz"
+        train_md_selection_fname = cycle_dir / "11.2.large_error.md.train_sample.xyz"
+        test_extra_fname_dft = cycle_dir / "12.1.large_error.md.test_sample.dft.xyz"
+        train_extra_fname_dft = cycle_dir / "12.2.large_error.md.train_sample.dft.xyz"
 
         fit_dir = cycle_dir / "fit_dir"
         fit_dir.mkdir(exists_ok=True)
@@ -260,34 +258,34 @@ def fit(
         elif ref_type == "dft-xtb2":
             pred_prop_prefix = f"{ip_type}{cycle_idx}_plus_xtb2_"
 
-
-        # 2. Run tests 
+        # 2. Run tests
         tests_wdir = cycle_dir / "tests"
         it.run_tests(
-            calculator=calculator, 
-            pred_prop_prefix=pred_prop_prefix, 
-            dft_prop_prefix=dft_prop_prefix, 
-            train_set_fname=train_set_fname, 
-            test_set_fname=test_set_fname, 
-            tests_wdir=tests_wdir, 
-            bde_test_fname=bde_test_fname, 
+            calculator=calculator,
+            pred_prop_prefix=pred_prop_prefix,
+            dft_prop_prefix=dft_prop_prefix,
+            train_set_fname=train_set_fname,
+            test_set_fname=test_set_fname,
+            tests_wdir=tests_wdir,
+            bde_test_fname=bde_test_fname,
         )
 
         # 3. Select some smiles from the initial smiles csv
         if not extra_smiles_for_this_cycle_csv.exists():
-            it.select_extra_smiles(all_extra_smiles_csv=all_extra_smiles_csv,
-                               extra_smiles_for_this_cycle_csv=extra_smiles_for_this_cycle_csv,
-                               chunksize=10) 
+            it.select_extra_smiles(
+                all_extra_smiles_csv=all_extra_smiles_csv,
+                extra_smiles_for_this_cycle_csv=extra_smiles_for_this_cycle_csv,
+                chunksize=10,
+            )
 
-        # 4. Generate actual structures for optimisation   
+        # 4. Generate actual structures for optimisation
         logger.info("generating structures to optimise")
         outputs = ConfigSet_out(
             output_files=opt_starts_fname,
             force=True,
             all_or_none=True,
             verbose=False,
-            set_tags={"iter_no":cycle_idx, 
-                      "config_type":"rdkit"},
+            set_tags={"iter_no": cycle_idx, "config_type": "rdkit"},
         )
         inputs = it.make_structures(
             extra_smiles_for_this_cycle_csv,
@@ -298,14 +296,23 @@ def fit(
 
         # 5. optimise structures with current IP and re-evaluate them
         logger.info(f"optimising structures from {opt_starts_fname} with {ip_type}")
-        outputs = ConfigSet_out(output_files=opt_fname, force=True, all_or_none=True, 
-                                set_tags={"config_type":f"next_rdkit_{pred_prop_prefix}optimised"})
-        # traj_step_interval=None selects only last converged config. 
-        inputs = opt.optimise(inputs=inputs, outputs=outputs, calculator=calculator, 
-                              prop_prefix=pred_prop_prefix, traj_step_interval=None)
+        outputs = ConfigSet_out(
+            output_files=opt_fname,
+            force=True,
+            all_or_none=True,
+            set_tags={"config_type": f"next_rdkit_{pred_prop_prefix}optimised"},
+        )
+        # traj_step_interval=None selects only last converged config.
+        inputs = opt.optimise(
+            inputs=inputs,
+            outputs=outputs,
+            calculator=calculator,
+            prop_prefix=pred_prop_prefix,
+            traj_step_interval=None,
+        )
 
         # 6. filter out insane geometries
-        logger.info(f"filtering out bad geometries")
+        logger.info("filtering out bad geometries")
         outputs_good = ConfigSet_out(output_files=opt_filtered_fname, force=True, all_or_none=True)
         outputs_bad = ConfigSet_out(output_files=bad_structures_fname, force=True, all_or_none=True)
         inputs = it.filter_configs_by_geometry(inputs=inputs, outputs_good=outputs_good, outputs_bad=outputs_bad)
@@ -343,14 +350,19 @@ def fit(
 
         # 9. Run MD
         logger.info(f"Running {ip_type} md")
-        outputs = ConfigSet_out(output_files=full_md_fname, force=True, all_or_none=True, 
-                                set_tags={"config_type": f"{pred_prop_prefix}md"})
-        inputs = md.sample(inputs=inputs, 
-                           outputs=outputs,
-                           calculator=calculator, 
-                           verbose=True, 
-                           **md_params)
-
+        outputs = ConfigSet_out(
+            output_files=full_md_fname,
+            force=True,
+            all_or_none=True,
+            set_tags={"config_type": f"{pred_prop_prefix}md"},
+        )
+        inputs = md.sample(
+            inputs=inputs,
+            outputs=outputs,
+            calculator=calculator,
+            verbose=True,
+            **md_params,
+        )
 
         # 10. Filter/check for bad geometries
         outputs_good = ConfigSet_out(output_files=full_md_good_geometries_fname, force=True, all_or_none=True)
@@ -365,40 +377,50 @@ def fit(
         elif num_bad_configs != 0:
             logger.error(f"Some had {num_bad_configs} bad geometries from md")
 
-        # 11. Calculate soap descriptor 
+        # 11. Calculate soap descriptor
         logger.info("Calculating SOAp descriptor")
         outputs = ConfigSet_out(output_files=md_with_soap_fname, force=True, all_or_none=True)
-        inputs = wfl.calc_descriptor.calc(inputs=inputs,
-                                            outputs=outputs, 
-                                            descs=soap_params_for_cur,
-                                            key="small_soap",  # where to store the descriptor
-                                            local=True) # calculate local descriptor
+        inputs = wfl.calc_descriptor.calc(
+            inputs=inputs,
+            outputs=outputs,
+            descs=soap_params_for_cur,
+            key="small_soap",  # where to store the descriptor
+            local=True,
+        )  # calculate local descriptor
 
         # 12. do CUR
-        if not train_md_selection.exists():
+        if not train_md_selection_fname.exists():
             logger.info("Selecting configs with CUR")
-            outputs = ConfigSet_out(set_tags={"dataset_type":"next_addition", "cycle_idx":cycle_idx})
-            inputs = cur.per_environment(inputs=inputs, 
-                                        outputs=outputs,
-                                        num=num_train_configs_per_cycle+num_test_configs_per_cycle, 
-                                        at_descs_key="small_soap", 
-                                        kernel_exp=3, 
-                                        levarage_score_key="cur_leverage_score", 
-                                        write_all_configs=False)
+            outputs = ConfigSet_out(set_tags={"dataset_type": "next_addition", "cycle_idx": cycle_idx})
+            inputs = cur.per_environment(
+                inputs=inputs,
+                outputs=outputs,
+                num=num_train_configs_per_cycle + num_test_configs_per_cycle,
+                at_descs_key="small_soap",
+                kernel_exp=3,
+                levarage_score_key="cur_leverage_score",
+                write_all_configs=False,
+            )
             selected_with_cur = list(inputs)
             del selected_with_cur.info["small_soap"]
             del selected_with_cur.arrays["small_soap"]
-            random.shuffle(selected_with_cur)        
-            write(train_md_selection_fname, selected_with_cur[:num_train_configs_per_cycle])
+            random.shuffle(selected_with_cur)
+            write(train_md_selection_fname, selected_with_cur[:num_train_configs_per_cycle],)
             write(test_md_selection_fname, selected_with_cur[num_train_configs_per_cycle:])
 
         # 13. evaluate DFT
         logger.info("evaluatig dft cur-selected md structures")
-        inputs = ConfigSet_in(input_files=[test_md_selection_fname, train_md_selection_fname])
-        outputs = ConfigSet_out(output_files={test_md_selection_fname:test_extra_fname_dft,
-                                              train_md_selection_fname:train_extra_fname_dft},
-                                force=True, 
-                                all_or_none=True)
+        inputs = ConfigSet_in(
+            input_files=[test_md_selection_fname, train_md_selection_fname]
+        )
+        outputs = ConfigSet_out(
+            output_files={
+                test_md_selection_fname: test_extra_fname_dft,
+                train_md_selection_fname: train_extra_fname_dft,
+            },
+            force=True,
+            all_or_none=True,
+        )
         inputs = orca.evaluate(
             inputs=inputs,
             outputs=outputs,
@@ -409,25 +431,35 @@ def fit(
         )
 
         # 14. do summary plots
-        it.summary_plots(cycle_idx, 
-                         pred_prop_prefix=pred_prop_prefix,
-                         dft_prop_prefix=dft_prop_prefix,
-                         train_fname=train_set_fname, 
-                         test_fname=test_set_fname, 
-                         bde_fname=bde_test_fname,
-                         ip_optimised_fname=opt_fname_w_dft, 
-                         train_extra_fname=train_extra_fname_dft, 
-                         test_extra_fname=test_extra_fname_dft, 
-                         tests_wdir=tests_wdir)
+        it.summary_plots(
+            cycle_idx,
+            pred_prop_prefix=pred_prop_prefix,
+            dft_prop_prefix=dft_prop_prefix,
+            train_fname=train_set_fname,
+            test_fname=test_set_fname,
+            bde_fname=bde_test_fname,
+            ip_optimised_fname=opt_fname_w_dft,
+            train_extra_fname=train_extra_fname_dft,
+            test_extra_fname=test_extra_fname_dft,
+            tests_wdir=tests_wdir,
+        )
 
+        # 15. Combine datasets
+        if not next_train_set_fname.exists():
+            logger.info("combining old and extra data")
+            previous_train = read(train_set_fname, ":")
+            previous_test = read(test_set_fname, ":")
+            extra_train = read(train_extra_fname_dft, ":")
+            extra_test = read(test_extra_fname_dft, ":")
 
-        # set dataset_types correctly
-        # 7. Combine data
-        if not os.path.exists(next_train_set_fname):
-            logger.info("combining new dataset")
-            previous_dataset = read(train_set_fname, ":")
-            additional_data = read(nm_sample_fname_for_train_with_dft, ":")
-            write(next_train_set_fname, previous_dataset + additional_data)
+            for at in extra_train:
+                at.info["dataset_type"] = "train"
+            for at in extra_test:
+                at.info["dataset_type"] = "test"
+
+            write(next_train_set_fname, previous_train + extra_train)
+            write(next_test_set_fname, previous_test + extra_test)
+
+        logger.info(f"cycle {cycle_idx} done. ")
 
     logger.info("Finished iterations")
-
