@@ -1,3 +1,4 @@
 *.xyz.idx
 *__pycache__*
 util/util_config.yml
+util.egg-info/*
