@@ -22,11 +22,8 @@ E0_C = -1028.4321581399468
 
 Vref = OneBody(:C => E0_C, :H => E0_H)
 
-weights = Dict(
-        "nothing" => Dict("E" => 1.0, "F" => 1.0 ));                    
-
 println("Training set")
-train_set = IPFitting.Data.read_xyz("/data/eg475/heap_of_ch/train.dft.xyz", 
+train_set = IPFitting.Data.read_xyz("/home/eg475/scripts/tests/files/tiny_gap.train_set.xyz", 
                                energy_key="dft_energy", force_key="dft_forces");
 
 
@@ -112,7 +109,7 @@ fit_name = "$(dbname).json"
 solver=(:rrqr, 1e-5)
 
 IP, lsqinfo = IPFitting.Lsq.lsqfit(dB, Vref=Vref,
-		solver=solver, weights=weights)
+		solver=solver)
 
 
 save_dict(fit_name,
@@ -128,6 +125,6 @@ rmse_table(rmse_, rmserel_)
 d = load_dict(fit_name)
 println("norm(c): $(norm(d["info"]["c"]))")
 
-println("lml_score: $(d["info"]["score"])")
+# println("lml_score: $(d["info"]["score"])")
 
 println("finished execution")

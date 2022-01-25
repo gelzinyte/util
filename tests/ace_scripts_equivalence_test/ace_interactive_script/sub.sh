@@ -16,6 +16,7 @@ export JULIA_NUM_THREADS=${NSLOTS}
 start=`date +%s`
  
 python call_fit.py
+julia ../evaluate_fit.jl --param-fname ace_rundir/ACE_name.json  > evaluate_fit.out
 
 end=`date +%s`
 runtime=$((end-start))

@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate("/home/eg475/ace")
 
-using IPFitting, ArgParse, ACE, LinearAlgebra
+using IPFitting, ArgParse, ACE, LinearAlgebra, JSON3
 
 
 function parse_commandline()
@@ -27,7 +27,7 @@ function main()
     test_set = IPFitting.Data.read_xyz("/data/eg475/heap_of_ch/test.dft.xyz", 
                                 energy_key="dft_energy", force_key="dft_forces");
 
-    IP = read_dict(load_dict(ip_fname)["IP"])
+    IP = read_dict(load_dict(ip_fname)["IP"]);
 
     println("Train set")
     add_fits_serial!(IP, train_set, fitkey="IP")
@@ -41,7 +41,7 @@ function main()
 
     d = load_dict(ip_fname);
 
-	@show(d["info"])
+	JSON3.pretty(d["info"])
 
 end
 

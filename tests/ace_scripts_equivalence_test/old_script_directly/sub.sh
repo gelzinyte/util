@@ -16,6 +16,7 @@ export JULIA_NUM_THREADS=${NSLOTS}
 start=`date +%s`
 
 julia fit.jl 
+julia ../evaluate_fit.jl --param-fname ace_old_script.json  > evaluate_fit.out
 
 end=`date +%s`
 runtime=$((end-start))
