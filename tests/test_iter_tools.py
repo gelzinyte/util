@@ -15,7 +15,6 @@ def ref_path():
     return Path(__file__).parent.resolve()
 
 
-# def test_do_ace_fit(tmp_path)
 
 
 def test_do_gap_fit(tmp_path, gap_params):

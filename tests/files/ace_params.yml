@@ -11,12 +11,12 @@ cutoffs_mb:
 cutoff_pair: 5.5
 correlation_order: 3
 degree:
-  default: 20
-  1: 20 
-  2: 20
-  "(3, H)": 20
-  "(3, C)": 20
-degree_pair: 6
+  default: 10
+  1: 10 
+  2: 10
+  "(3, H)": 3 
+  "(3, C)": 3 
+degree_pair: 4
 solver: 
   - ard
   - [0.1, 100]

@@ -260,7 +260,7 @@ def do_ace_fit(
         wait_for_results=True,
     )
 
-    assert ace_file_base + ".json" == str(ace_fname)
+    assert str(ace_file_base) + ".json" == str(ace_fname)
 
     return (ace.ACECalculator, [], {"jsonpath": ace_fname})
 

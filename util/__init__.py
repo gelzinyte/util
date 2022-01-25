@@ -34,7 +34,7 @@ from os import devnull
 
 def remove_energy_force_containing_entries(at):
     "remove info keys with 'energy' in label and arrays keys with 'force' in label"
-    info_keys_to_remove = [key for key in at.info.keys() if 'energy' in key]
+    info_keys_to_remove = [key for key in at.info.keys() if 'energy' in key or "dipole" in key]
     arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key]
 
     for key in info_keys_to_remove:
@@ -42,10 +42,6 @@ def remove_energy_force_containing_entries(at):
 
     for key in arrays_keys_to_remove:
         del at.arrays[key]
-
-def ace_constructor(ace_fname):
-    import pyjulip
-    return pyjulip.ACE(ace_fname)
 
 @contextmanager
 def suppress_stdout_stderr():
@@ -96,15 +92,6 @@ def get_binding_energy_per_at(atoms, isolated_atoms, prop_prefix):
     return full_energy / len(atoms)
 
 
-
-def relax(at, calc, fmax=1e-3, steps=0):
-    """Relaxes at with given calc with PreconLBFGS"""
-    at.set_calculator(calc)
-    opt = PreconLBFGS(at, use_armijo=False)
-    opt.run(fmax=fmax, steps=steps)
-    return at
-
-
 def shift0(my_list, by=None):
     """shifts all values in list by first value or by value given"""
     if not by:
@@ -120,10 +107,6 @@ def get_counts(at):
 
 
 def get_rmse(ref_ar, pred_ar):
-    # sq_error = []
-    # for val1, val2 in zip(ref_ar, pred_ar):
-    #     sq_error.append((val1-val2)**2)
-    # return np.sqrt(np.mean(sq_error))
     return np.sqrt(np.mean((ref_ar - pred_ar)**2))
 
 def get_rmse_over_ref_std(pred_ar, ref_ar):

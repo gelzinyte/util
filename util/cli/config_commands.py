@@ -4,6 +4,18 @@ from wfl.configset import ConfigSet_out
 from ase.io import read, write
 from util import configs    
 
+@click.command("remove-calc-results")
+@click.argument("input-fname")
+@click.option('--output-fname', '-o')
+def remove_old_calc_results(input_fname, output_fname):
+    """removes entries that have "energy" or "forces" in the label"""
+    ats = read(input_fname, ':')
+    for at in ats:
+        util.remove_energy_force_containing_entries(at)
+    write(output_fname, ats)
+
+
+
 @click.command('hash')
 @click.argument('input-fname')
 @click.option('--output-fname', '-o')

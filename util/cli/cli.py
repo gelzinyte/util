@@ -84,7 +84,8 @@ def subcli_configs():
     pass
 from util.cli.config_commands import assign_differences, \
     smiles_to_molecules_and_rads, distribute_configs, \
-    gather_configs, info_to_numbers, hash_structures
+    gather_configs, info_to_numbers, hash_structures, \
+    remove_old_calc_results
 # smiles_to_molecules
 subcli_configs.add_command(assign_differences)
 subcli_configs.add_command(smiles_to_molecules_and_rads)
@@ -93,6 +94,7 @@ subcli_configs.add_command(distribute_configs)
 subcli_configs.add_command(gather_configs)
 subcli_configs.add_command(info_to_numbers)
 subcli_configs.add_command(hash_structures)
+subcli_configs.add_command(remove_old_calc_results)
 
 
 @cli.group("calc")
