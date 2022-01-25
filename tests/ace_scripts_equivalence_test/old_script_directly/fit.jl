@@ -106,7 +106,8 @@ fit_name = "$(dbname).json"
 @show fit_name
 
 #solver=(:ard, ard_tol, ard_threshold_lambda)
-solver=(:rrqr, 1e-5)
+#solver=(:rrqr, 1e-5)
+solver=(:lsqr, (5e-3, 1e-6))
 
 IP, lsqinfo = IPFitting.Lsq.lsqfit(dB, Vref=Vref,
 		solver=solver)

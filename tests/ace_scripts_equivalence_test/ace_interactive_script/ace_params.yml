@@ -20,9 +20,13 @@ degree_pair: 4
 #solver: 
 #  - ard
 #  - [0.1, 100]
+#solver:
+#  - rrqr
+#  - 1e-5
 solver:
-  - rrqr
-  - 1e-5
+  - lsqr
+#  - [[5e-3, 1e-6]]
+  - [[0.005, 0.000001]]
 key: 
   - [E, dft_energy]
   - [F, dft_forces]

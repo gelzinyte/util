@@ -1,5 +1,5 @@
 #!/bin/bash
-#$ -pe smp 8     # number of cores requested
+#$ -pe smp 16     # number of cores requested
 #$ -l h_rt=4:00:00  # time requested in HH:MM:SS format
 #$ -S /bin/bash      # shell to run the job in
 #$ -N fit_old
