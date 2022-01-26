@@ -62,7 +62,7 @@ def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
 
     outputs = ConfigSet_out(output_files=output_fname)
 
-    it.make_structures(smiles_csv, iter_no=None, num_smi_repeat=repeats,
+    it.make_structures(smiles_csv, num_smi_repeat=repeats,
                        outputs=outputs, num_rads_per_mol=num_rads_per_mol,
                        smiles_col=smiles_col, name_col=name_col)
 
