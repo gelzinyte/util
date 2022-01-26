@@ -1,7 +1,9 @@
 import os
 import logging
+import random
 from copy import deepcopy
 from pathlib import Path
+import pytest
 
 import pandas as pd
 import numpy as np
@@ -15,6 +17,7 @@ from wfl.configset import ConfigSet_in, ConfigSet_out
 import wfl.fit.gap_simple
 import wfl.fit.ace
 from wfl.calculators import generic
+from wfl.calculators import orca
 
 import util
 from util import radicals
@@ -53,7 +56,7 @@ def prepare_0th_dataset(ci, co):
 
     for at in ci:
         if "iter_no" not in at.info.keys():
-            at.info["iter_no"] = "0"
+            at.info["iter_no"] = 0
         if at.cell is None:
             at.cell = [50, 50, 50]
 
@@ -243,13 +246,15 @@ def do_ace_fit(
 
     fit_inputs = ConfigSet_in(input_files=train_set_fname)
 
+    params = update_ace_params(fit_params_base, fit_inputs)
+
     ace_name = f"ace_{idx}"
     ace_fname = fit_dir / (ace_name + ".json")
 
     ace_file_base = wfl.fit.ace.fit(
         fitting_configs=fit_inputs,
         ACE_name=ace_name,
-        params=fit_params_base,
+        params=params,
         ref_property_prefix=fit_to_prop_prefix,
         skip_if_present=True,
         run_dir=fit_dir,
@@ -265,6 +270,29 @@ def do_ace_fit(
     return (ace.ACECalculator, [], {"jsonpath": ace_fname})
 
 
+def update_ace_params(base_params, fit_inputs):
+    """ for now just select inner cutoff"""
+    params = deepcopy(base_params)
+    dists = util.distances_dict(fit_inputs)
+    cutoffs_mb = params["cutoffs_mb"]
+    for key, dists in dists.items():
+        if len(dists) == 0:
+            logger.warning(f"did not find any pairs between elements {key}")
+            continue
+        update_cutoffs(cutoffs_mb, key, np.min(dists))
+
+    return params
+
+
+def update_cutoffs(cutoffs_mb, symbols, min_dist):
+    # assumes keys are always alphabetical :/
+    logger.info(f"old cutoffs: {cutoffs_mb}")
+    key = f'(:{symbols[0]}, :{symbols[1]})'
+    vals = cutoffs_mb[key]
+    vals = [float(val) for val in vals.strip("()").split(',')]
+    cutoffs_mb[key] = f"({min_dist:.2f}, {vals[1]})"
+
+
 def run_tests(
     calculator,
     pred_prop_prefix,
@@ -273,6 +301,7 @@ def run_tests(
     test_set_fname,
     tests_wdir,
     bde_test_fname,
+    orca_kwargs,
 ):
 
     train_evaled = tests_wdir / f"{pred_prop_prefix}on_{train_set_fname}"
@@ -293,7 +322,10 @@ def run_tests(
     )
 
     # check the offset is not there
-    check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
+    check_for_offset(train_set_fname, pred_prop_prefix, dft_prop_prefix)
+
+    # re-evaluate a couple of DFTs
+    check_dft(train_evaled, dft_prop_prefix, orca_kwargs, tests_wdir)
 
     # bde test - final file of bde_test_fname.stem + ip_prop_prefix + bde.xyz
     bde_ci = generate.everything(
@@ -410,6 +442,25 @@ def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
     assert (
         difference < 0.01
     ), f"Offset in training set ({difference * 100:.1f}) 1%, smelling foul!"
+
+
+def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
+
+    all_ats = read(train_set_fname, ':')
+    initial_train_set = [at for at in all_ats if at.info["iter_no"] == 0]
+    ci = ConfigSet_in(input_configs=random.choices(initial_train_set, k=2) + random.choices(all_ats, k=4))
+    co = ConfigSet_out()
+    inputs = orca.evaluate(
+        inputs=ci,
+        outputs=co,
+        orca_kwargs=orca_kwargs,
+        output_prefix='dft_recalc_',
+        keep_files=False,
+        base_rundir=tests_wdir / "orca_wdir")
+
+    for at in inputs:
+        assert pytest.approx(at.info[f'{dft_prop_prefix}energy']) == at.info['dft_recalc_energy'], at.info
+        assert np.all(pytest.approx(at.arrays[f'{dft_prop_prefix}forces']) == at.arrays['dft_recalc_forces']), at.info
 
 
 def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, chunksize=10):

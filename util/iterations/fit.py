@@ -91,6 +91,7 @@ def fit(
     * will md run remotely?
     * what happens if ConfigSet_out is done, so action isn't performed and then I try to access co.to_ConfigSet_in()
     * do configs have unique identifier?
+    * 2b plot 
 
     Parameters
     ---------
@@ -148,11 +149,10 @@ def fit(
 
     # setup orca parameters
     default_kw = Config.from_yaml(os.path.join(cfg["util_root"], "default_kwargs.yml"))
-
     dft_prop_prefix = "dft_"
     orca_kwargs = default_kw["orca"]
+    orca_kwargs["orca_command"] = cfg["orca_path"]
     logger.info(f"orca_kwargs: {orca_kwargs}")
-    logger.info(f'orca in environment: {shutil.which("orca")}')
 
     if ref_type == "dft":
         fit_to_prop_prefix = dft_prop_prefix
@@ -268,6 +268,7 @@ def fit(
             test_set_fname=test_set_fname,
             tests_wdir=tests_wdir,
             bde_test_fname=bde_test_fname,
+            orca_kwargs=orca_kwargs,
         )
 
         # 3. Select some smiles from the initial smiles csv
@@ -347,6 +348,9 @@ def fit(
             f"of structures selected for MD and sampling for training "
             f'{len(read(large_error_configs, ":"))}'
         )
+        if len(read(large_error_configs), ':') == 0:
+            logger.info("all new config energy/force evaluations were within threshold, done with iterations?")
+            raise RuntimeError
 
         # 9. Run MD
         logger.info(f"Running {ip_type} md")

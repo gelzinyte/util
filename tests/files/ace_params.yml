@@ -1,13 +1,13 @@
-atoms_filename: assets/tiny_gap.train_set.xyz
-outfile_base: dummy
+atoms_filename: /home/eg475/scripts/tests/files/tiny_gap.train_set.xyz
+outfile_base: ace_interactive 
 outfile_format: .json
 load_dbfile:  
 save_dbfile:  
 r0: 1.1
 cutoffs_mb: 
-  "(:C, :H)": "(0.8, 4.4)"
+  "(:C, :H)": "(1.6, 4.4)"
   "(:C, :C)": "(0.8, 4.4)"
-  "(:H, :H)": "(0.6, 4.4)"
+  "(:H, :H)": "(1.0, 4.4)"
 cutoff_pair: 5.5
 correlation_order: 3
 degree:
@@ -15,7 +15,7 @@ degree:
   1: 10 
   2: 10
   "(3, H)": 3 
-  "(3, C)": 3 
+  "(3, C)": 6 
 degree_pair: 4
 solver: 
   - ard
@@ -24,4 +24,3 @@ key:
   - [E, dft_energy]
   - [F, dft_forces]
 _repeat_key: true
-dry_run: 

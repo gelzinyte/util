@@ -22,15 +22,15 @@ def cli(ctx, verbose):
 
 
 
-@cli.group('gap')
+@cli.group('ip')
 @click.pass_context
-def subcli_gap(ctx):
+def subcli_ip(ctx):
     """Stuff for making or calling gaps"""
     pass
-from util.cli.gap_commands import evaluate_gap, eval_h, fit
-subcli_gap.add_command(evaluate_gap)
-subcli_gap.add_command(eval_h)
-subcli_gap.add_command(fit)
+from util.cli.ip_commands import evaluate_ip, fit #eval_h, fit
+subcli_ip.add_command(evaluate_ip)
+# subcli_ip.add_command(eval_h)
+subcli_ip.add_command(fit)
 
 
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+import yaml
 import numpy as np
 from util.iterations import tools as it
 from quippy.potential import Potential
@@ -9,12 +10,11 @@ import pandas as pd
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from ase.build import molecule
 from copy import deepcopy
+from ase.io import read
 
 
 def ref_path():
     return Path(__file__).parent.resolve()
-
-
 
 
 def test_do_gap_fit(tmp_path, gap_params):
@@ -186,3 +186,34 @@ def test_filter_configs():
         assert at.info["test_config_type"] == "large_error"
     for at in co_small.to_ConfigSet_in():
         assert at.info["test_config_type"] == "small_error"
+
+
+def test_update_cutoffs():
+
+    cutoffs_mb = {"(:C, :H)": "(1.6, 4.4)",
+                  "(:C, :C)": "(0.8, 4.4)",
+                  "(:H, :H)": "(1.0, 4.4)"}
+
+    it.update_cutoffs(cutoffs_mb, "CH", 3.14)
+
+    expected_cutoffs_mb = {"(:C, :H)": "(3.14, 4.4)",
+                           "(:C, :C)": "(0.8, 4.4)",
+                           "(:H, :H)": "(1.0, 4.4)"}
+
+    assert cutoffs_mb == expected_cutoffs_mb
+
+
+def test_update_ace_params():
+
+    train_set_fname = ref_path() / "files/tiny_gap.train_set.xyz" 
+    params_fname = ref_path() / "files/ace_params.yml"
+    with open(params_fname) as f:
+        params = yaml.safe_load(f)
+    params_out = it.update_ace_params(params, read(train_set_fname, ':'))
+
+    expected_cutoffs_mb = {"(:C, :H)": "(1.00, 4.4)",
+                           "(:C, :C)": "(0.8, 4.4)",
+                           "(:H, :H)": "(1.66, 4.4)"}
+
+    assert params_out['cutoffs_mb'] == expected_cutoffs_mb
+
