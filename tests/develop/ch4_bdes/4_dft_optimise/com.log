@@ -1,0 +1,3 @@
+Date:  Wed 26 Jan 10:21:03 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/4_dft_optimise   com:  cp ../3_make_rads_from_mols/bde_mols_and_rads.xyz .
+Date:  Wed 26 Jan 10:21:28 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/4_dft_optimise   com:  ase convert -e 'atoms.info["bde_config_type"] = "dft_optimised"' bde_mols_and_rads.xyz bde_mols_and_rads.xyz -f
+Date:  Wed 26 Jan 10:22:04 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/4_dft_optimise   com:  cp ../2_dft_opt/main.sh .

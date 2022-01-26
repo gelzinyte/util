@@ -1,0 +1,2 @@
+Date:  Wed 26 Jan 10:01:43 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes   com:  util configs csv-to-mols-rads -o bde_mols.xyz -n 1 --num-rads-per-mol 0 --smiles-col smiles --name-col zinc_id bde_smiles.csv
+Date:  Wed 26 Jan 10:02:27 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes   com:  ase convert -e 'atoms.info["dataset_type"] = "bde_test"' bde_mols.xyz bde_mols.xyz -f

@@ -1,0 +1,14 @@
+5
+Lattice="50.0 0.0 0.0 0.0 50.0 0.0 0.0 0.0 50.0" Properties=species:S:1:pos:R:3 config_type=rdkit compound=id_bde_1 mol_or_rad=mol rad_num=mol graph_name=id_bde_1_mol dataset_type=bde_test pbc="F F F"
+C       -0.02209700       0.00321500       0.01652000
+H       -0.66900900       0.88936000      -0.10090900
+H       -0.37778800      -0.85775200      -0.58829600
+H        0.09642100      -0.31512500       1.06378100
+H        0.97247300       0.28030200      -0.39109600
+5
+Lattice="50.0 0.0 0.0 0.0 50.0 0.0 0.0 0.0 50.0" Properties=species:S:1:pos:R:3 config_type=rdkit compound=id_bde_2 mol_or_rad=mol rad_num=mol graph_name=id_bde_2_mol dataset_type=bde_test pbc="F F F"
+C        0.00145400       0.00015500       0.00344900
+H       -0.59484900      -0.21549200       0.90594100
+H        0.47156100       0.99863100       0.02833400
+H       -0.67804500      -0.03366300      -0.85878100
+H        0.79988000      -0.74963100      -0.07894300

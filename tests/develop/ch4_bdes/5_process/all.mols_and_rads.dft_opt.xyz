@@ -1,0 +1,13 @@
+5
+Lattice="50.0 0.0 0.0 0.0 50.0 0.0 0.0 0.0 50.0" Properties=species:S:1:pos:R:3:dft_forces:R:3 config_type=rdkit compound=id_bde_1 mol_or_rad=mol rad_num=mol graph_name=id_bde_1_mol dataset_type=bde_test dft_opt_mol_positions_hash=5d0c1fd744a58cae64c820c9c988cc0e bde_config_type=dft_optimised dft_energy=-1100.5335716900106 dft_dipole="0.00012708732253120542 -5.083492901248217e-05 -0.0001525047870374465" dft_opt_positions_hash=0547e2d8faf758019375232077af2b6f pbc="F F F"
+C        0.00000187       0.00009600       0.00001494      -0.00006280      -0.00228320      -0.00145000
+H       -0.68346571       0.86218590      -0.08595715       0.00130004       0.00111540       0.00066727
+H       -0.39836838      -0.84497068      -0.58734520       0.00130390       0.00077564       0.00126677
+H        0.08652018      -0.29668531       1.05936114      -0.00093284       0.00082598       0.00019300
+H        0.99531204       0.27937408      -0.38607373      -0.00129931       0.00210212      -0.00087183
+4
+Lattice="50.0 0.0 0.0 0.0 50.0 0.0 0.0 0.0 50.0" Properties=species:S:1:pos:R:3:dft_forces:R:3 config_type=rdkit compound=id_bde_1 mol_or_rad=rad rad_num=4 graph_name=id_bde_1_rad4 dataset_type=bde_test dft_opt_mol_positions_hash=5d0c1fd744a58cae64c820c9c988cc0e bde_config_type=dft_optimised dft_energy=-1081.9457639170507 dft_dipole="-0.00048293182561858064 -0.00017792225154368758 0.00045751436111233953" dft_opt_positions_hash=5867ecbc1bcca610f4b9ddddc98e3f8c pbc="F F F"
+C       -0.24876680      -0.06957795       0.09636037       0.00271386      -0.00964598       0.00190887
+H       -0.61956603       0.93539817      -0.12902540       0.00021735       0.00061930      -0.00110081
+H       -0.31854290      -0.86102711      -0.65670126      -0.00195688       0.00285985      -0.00438581
+H        0.19150785      -0.28411495       1.07539372      -0.00042315       0.00450208       0.00108495

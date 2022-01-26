@@ -8,4 +8,5 @@ util.egg-info/*
 *rundir*
 *wdir*
 *ace*.json
-*_expyre/*
+*_expyre*
+*remoteinfo.json

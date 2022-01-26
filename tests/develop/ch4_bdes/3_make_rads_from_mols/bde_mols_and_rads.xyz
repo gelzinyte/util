@@ -1,0 +1,26 @@
+5
+Lattice="50.0 0.0 0.0 0.0 50.0 0.0 0.0 0.0 50.0" Properties=species:S:1:pos:R:3 config_type=rdkit compound=id_bde_1 mol_or_rad=mol rad_num=mol graph_name=id_bde_1_mol dataset_type=bde_test dft_opt_mol_positions_hash=5d0c1fd744a58cae64c820c9c988cc0e pbc="F F F"
+C        0.00000165       0.00013372       0.00002750
+H       -0.68355183       0.86216476      -0.08598560
+H       -0.39840353      -0.84494185      -0.58737229
+H        0.08658583      -0.29667848       1.05935782
+H        0.99536789       0.27932185      -0.38602743
+4
+Lattice="50.0 0.0 0.0 0.0 50.0 0.0 0.0 0.0 50.0" Properties=species:S:1:pos:R:3 config_type=rdkit compound=id_bde_1 mol_or_rad=rad rad_num=4 graph_name=id_bde_1_rad4 dataset_type=bde_test dft_opt_mol_positions_hash=5d0c1fd744a58cae64c820c9c988cc0e pbc="F F F"
+C        0.00000165       0.00013372       0.00002750
+H       -0.68355183       0.86216476      -0.08598560
+H       -0.39840353      -0.84494185      -0.58737229
+H        0.08658583      -0.29667848       1.05935782
+5
+Lattice="50.0 0.0 0.0 0.0 50.0 0.0 0.0 0.0 50.0" Properties=species:S:1:pos:R:3 config_type=rdkit compound=id_bde_2 mol_or_rad=mol rad_num=mol graph_name=id_bde_2_mol dataset_type=bde_test dft_opt_mol_positions_hash=c658f6700519b2a3444a64bea2b166cf pbc="F F F"
+C       -0.00003013      -0.00001145       0.00009179
+H       -0.58226967      -0.19000864       0.91803508
+H        0.45797175       1.00247764       0.05567895
+H       -0.66828332      -0.05093119      -0.87660728
+H        0.79261237      -0.76152636      -0.09719854
+4
+Lattice="50.0 0.0 0.0 0.0 50.0 0.0 0.0 0.0 50.0" Properties=species:S:1:pos:R:3 config_type=rdkit compound=id_bde_2 mol_or_rad=rad rad_num=1 graph_name=id_bde_2_rad1 dataset_type=bde_test dft_opt_mol_positions_hash=c658f6700519b2a3444a64bea2b166cf pbc="F F F"
+C       -0.00003013      -0.00001145       0.00009179
+H        0.45797175       1.00247764       0.05567895
+H       -0.66828332      -0.05093119      -0.87660728
+H        0.79261237      -0.76152636      -0.09719854

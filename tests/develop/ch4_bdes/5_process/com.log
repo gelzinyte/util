@@ -1,0 +1,4 @@
+Date:  Wed 26 Jan 10:25:14 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/5_process   com:  cp ../4_dft_optimise/bde_mols_and_rads.dft_opt.xyz .
+Date:  Wed 26 Jan 10:25:51 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/5_process   com:  util configs hash -o bde_mols_and_rads.dft_opt.xyz -p "dft_opt_positions_" bde_mols_and_rads.dft_opt.xyz
+Date:  Wed 26 Jan 10:27:32 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/5_process   com:  util bde assign --isolated-h-fname ~/scripts/source_files/isolated_atoms.xyz --prop-prefix dft_ --dft-prefix dft_ --output-fname all.mols_and_rads.dft_opt.bde.xyz --all-evaled-atoms-fname bde_mols_and_rads.dft_opt.xyz
+Date:  Wed 26 Jan 10:27:56 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/5_process   com:  mv bde_mols_and_rads.dft_opt.xyz all.mols_and_rads.dft_opt.xyz

@@ -1,0 +1,3 @@
+Date:  Wed 26 Jan 10:12:46 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/3_make_rads_from_mols   com:  cp ../2_dft_opt/bde_mols.dft_opt.xyz .
+Date:  Wed 26 Jan 10:13:30 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/3_make_rads_from_mols   com:  util configs hash -p dft_opt_mol_positions_ -o bde_mols.dft_opt.xyz bde_mols.dft_opt.xyz
+Date:  Wed 26 Jan 10:19:22 GMT 2022  Location:  /home/eg475/scripts/tests/develop/ch4_bdes/3_make_rads_from_mols   com:  python generate_test_comp_rads.py
