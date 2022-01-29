@@ -173,8 +173,11 @@ def filter_insane_geometries(atoms_list, mult=1.2):
         else:
             atoms_out.append(atoms)
 
-    logger.info(f'skipped {len(skipped_idx)} structures, because couldn\'t find '
-                  f'a H whithin reasonable cutoff. Nos: {skipped_idx}')
+    if len(skipped_idx) > 0:
+        logger.warning(f'skipped {len(skipped_idx)} structures, because couldn\'t find '
+                    f'a H whithin reasonable cutoff. Nos: {skipped_idx}')
+    else: 
+        logger.info("Found no unreasonable geometries")
 
     return {'good_geometries':atoms_out, 'bad_geometries':bad_atoms}
 

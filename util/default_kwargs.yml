@@ -1,6 +1,7 @@
 # default DFT parameters, etc that are universal across machiness but may change
 orca:
-  orcablocks: "%scf maxiter 500  Convergence Tight SmearTemp 5000 end"
+  # orcablocks: "%scf maxiter 500  Convergence Tight SmearTemp 5000 end"
+  orcablocks: "%scf Convergence Tight SmearTemp 5000 end"
   scratch_path: /scratch-ssd/eg475
   orcasimpleinput: UKS B3LYP def2-SV(P) def2/J D3BJ
 

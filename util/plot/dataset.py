@@ -8,12 +8,13 @@ from ase import neighborlist
 import util
 import seaborn as sns
 from collections import Counter
+from pathlib import Path
 
 
 
 def energy_by_idx(atoms, prop_prefix='dft_', title=None,
                   group_compounds=False,
-                  isolated_atoms=None, info_label='config_type'):
+                  isolated_atoms=None, info_label='config_type', dir='.'):
     """TODO: do binding energy per atom"""
 
     if title is None:
@@ -45,7 +46,7 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
     global_idx = 0
     for cfg_type, configs in data.items():
 
-        binding_energies_per_at = np.array([util.get_binding_energy_per_at(at, isolated_atoms, prop_prefix)
+        binding_energies_per_at = np.array([util.get_binding_energy_per_at(at, isolated_atoms, prop_prefix+"energy")
                                             for at in configs if len(at) != 1])
         indices = np.array([at.info['dset_idx'] for at in configs if len(at) != 1])
 
@@ -60,12 +61,15 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
     plt.ylabel(f'{prop_prefix} binding energy / ev/atom')
     plt.grid(color='lightgrey', linestyle=':')
 
-    fig_name = title.replace(' ', '_')
     plt.tight_layout()
-    plt.savefig(fig_name + '.dpi')
+
+    fig_name = title.replace(' ', '_')
+    fig_name = Path(dir) / (fig_name + '.pdf')
+    plt.savefig(fig_name)
 
 def forces_by_idx(atoms, prop_prefix='dft_', title=None,
-                  group_compounds=False, info_label='config_type'):
+                  group_compounds=False, info_label='config_type',
+                  dir='.'):
 
     if title is None:
         title = 'force components vs index'
@@ -84,7 +88,7 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
         data = group_data(data)
         data = group_data(data)
 
-    plt.figure(figsize=(20,6))
+    plt.figure(figsize=(20, 6))
 
     for cfg_type, configs in data.items():
         xs = []
@@ -107,9 +111,11 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
     plt.ylabel(f'{prop_prefix} force component / eV/Ā')
     plt.grid(color='lightgrey', linestyle=':')
 
-    fig_name = title.replace(' ', '_')
     plt.tight_layout()
-    plt.savefig(fig_name + '.pdf')
+
+    fig_name = title.replace(' ', '_')
+    fig_name = Path(dir) / (fig_name + '.pdf')
+    plt.savefig(fig_name)
 
 
 def group_data(data):

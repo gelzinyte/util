@@ -31,6 +31,8 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, outputs,
 
     dft_h = Atoms('H', positions=[(0, 0, 0)])
     dft_h.info['bde_config_type'] = 'H'
+    # for ACE
+    dft_h.cell = [50, 50, 50]
 
     inputs = ConfigSet_in(input_configs=dft_h)
     interim_outputs = ConfigSet_out()
@@ -96,21 +98,21 @@ def everything(calculator, dft_bde_filename,
     stem = Path(dft_bde_filename).stem
     dft_bde_with_ip_fname = wdir / (stem + '.' + ip_prop_prefix[:-1] + '.xyz')
     ip_reopt_fname = wdir / (stem + '.' + ip_prop_prefix + 'reoptimised.xyz')
+    ip_reopt_fname_with_ip = wdir / (stem + '.' + ip_prop_prefix + 'reoptimised.' + ip_prop_prefix[-1] + '.xyz')
     ip_reopt_with_dft_fname = wdir / (ip_reopt_fname.stem + '.' + dft_prop_prefix[:-1] + '.xyz')
     isolated_h_fname = wdir / (ip_prop_prefix + "isolated_H.xyz")
     dft_opt_bde_fname =  wdir / (dft_bde_with_ip_fname.stem + '.bde.xyz') 
     ip_reopt_bde_fname = wdir / (ip_reopt_with_dft_fname.stem + '.bde.xyz')
     summary_file = dft_bde_filename.parent / (stem + '.' + ip_prop_prefix + "bde.xyz")
 
-    for p in [dft_bde_with_ip_fname, ip_reopt_fname, ip_reopt_with_dft_fname, isolated_h_fname,
-              dft_opt_bde_fname, ip_reopt_bde_fname, summary_file]:
-        print(p)
+    # for p in [dft_bde_with_ip_fname, ip_reopt_fname, ip_reopt_with_dft_fname, isolated_h_fname,
+    #           dft_opt_bde_fname, ip_reopt_bde_fname, summary_file]:
+    #     print(p)
 
     # 1. evaluate structures with calculator
     logger.info("evaluating IP on dft-optimised structures")
-    inputs = ConfigSet_in(input_files=dft_bde_filename, 
-                          set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
-    outputs = ConfigSet_out(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True)
+    inputs = ConfigSet_in(input_files=dft_bde_filename)
+    outputs = ConfigSet_out(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
     inputs = generic.run(inputs=inputs,
                          outputs=outputs,
                          calculator=calculator,
@@ -126,13 +128,24 @@ def everything(calculator, dft_bde_filename,
     logger.info('IP-optimising DFT structures')
     outputs = ConfigSet_out(output_files=ip_reopt_fname,
                             force=True, all_or_none=True,
-                            set_tags={f'bde_config_type':f"{ip_prop_prefix}optimised",
-                                      'dataset_type':{f"bde_{ip_prop_prefix}reoptimised"}})
+                            set_tags={'bde_config_type': f"{ip_prop_prefix}optimised",
+                                      'dataset_type': f"bde_{ip_prop_prefix}reoptimised"})
     inputs = opt.optimise(inputs=inputs,
                           outputs=outputs,
                           calculator=calculator,
                           prop_prefix=ip_prop_prefix,
                           chunksize=chunksize)
+
+
+
+    # 3.1 evaluate with interatomic potential
+    outputs = ConfigSet_out(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
+    inputs = generic.run(inputs=inputs,
+                         outputs=outputs,
+                         calculator=calculator,
+                         properties=['energy', 'forces'],
+                         output_prefix=ip_prop_prefix)
+
 
     # 4. evaluate with DFT
     logger.info('Re-evaluating ip-optimised structures with DFT')
@@ -147,7 +160,8 @@ def everything(calculator, dft_bde_filename,
                   keep_files=False)
 
     # 5. construct isolated atom 
-    outputs = ConfigSet_out(output_files=isolated_h_fname)
+    logger.info("Constructing isolated_h")
+    outputs = ConfigSet_out(output_files=isolated_h_fname, force=True, all_or_none=True)
     ip_isolated_h(calculator=calculator,
                   dft_prop_prefix=dft_prop_prefix, 
                   ip_prop_prefix=ip_prop_prefix, 
@@ -156,8 +170,8 @@ def everything(calculator, dft_bde_filename,
 
 
     # 6. assign BDEs
+    logger.info("Assigning BDEs")
     isolated_h = read(isolated_h_fname)
-
     if not dft_opt_bde_fname.exists(): 
         ## on dft-optimised structures
         all_atoms_dft_opt = read(dft_bde_with_ip_fname, ':')
@@ -189,9 +203,10 @@ def everything(calculator, dft_bde_filename,
 
 
     # 7. gather results in one file for comparison
+    logger.debug("gathering results to one file")
     dft_opt_ats = ConfigSet_in(input_files=dft_opt_bde_fname)
     ip_reopt_ats = ConfigSet_in(input_files=ip_reopt_bde_fname)
-    outputs = ConfigSet_out(output_files=summary_file)
+    outputs = ConfigSet_out(output_files=summary_file, force=True, all_or_none=True)
     inputs = collect_bde_results(dft_opt_ats=dft_opt_ats, 
                         ip_reopt_ats=ip_reopt_ats, 
                         dft_prop_prefix=dft_prop_prefix,
@@ -247,9 +262,6 @@ def collect_bde_results(dft_opt_ats, ip_reopt_ats, dft_prop_prefix, ip_prop_pref
 
     return outputs.to_ConfigSet_in() 
 
-
-
-
 def _prepare_structures(inputs, outputs):
 
     for at in inputs:
@@ -269,6 +281,8 @@ def setup_orca_kwargs():
 
     orca_kwargs = default_kw['orca']
     orca_kwargs['scratch_path'] = scratch_dir
+    orca_kwargs["orca_command"] = cfg["orca_path"]
+    logger.info(f"using orca_kwargs: {orca_kwargs}")
 
     return  orca_kwargs
 

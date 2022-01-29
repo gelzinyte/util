@@ -42,6 +42,7 @@ def remove_energy_force_containing_entries(at):
 
     for key in arrays_keys_to_remove:
         del at.arrays[key]
+    return at
 
 @contextmanager
 def suppress_stdout_stderr():
@@ -78,14 +79,14 @@ def sort_atoms_by_label(atoms, label):
 
     return dict_out
 
-def get_binding_energy_per_at(atoms, isolated_atoms, prop_prefix):
+def get_binding_energy_per_at(atoms, isolated_atoms, prop_name):
 
     isolated_at_data = {}
     for at in isolated_atoms:
-        isolated_at_data[list(at.symbols)[0]] = at.info[f'{prop_prefix}energy']
+        isolated_at_data[list(at.symbols)[0]] = at.info[prop_name]
 
     counted_ats = Counter(list(atoms.symbols))
-    full_energy = atoms.info[f'{prop_prefix}energy']
+    full_energy = atoms.info[prop_name]
     for symbol, count in counted_ats.items():
         full_energy -= count * isolated_at_data[symbol]
 

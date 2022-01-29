@@ -9,7 +9,8 @@ from wfl.configset import ConfigSet_out
 import pandas as pd
 
 
-def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, chunksize=10, precision=4):
+def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, chunksize=10, precision=4, 
+         info_key="config_type"):
     """Plots error table by config type
 
     Parameters
@@ -37,16 +38,16 @@ def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, chun
     if calculator is not None:
         data = evaluate_data(data, calculator, pred_prefix, output_fname, chunksize)
 
-    ref_data = read_energies_forces(data, ref_prefix)
-    pred_data = read_energies_forces(data, pred_prefix)
+    ref_data = read_energies_forces(data, ref_prefix, info_key)
+    pred_data = read_energies_forces(data, pred_prefix, info_key)
 
     config_types = []
     for at in data:
         if len(at) != 1:
-            if 'config_type' in at.info.keys():
-                config_types.append(at.info["config_type"])
+            if info_key in at.info.keys():
+                config_types.append(at.info[info_key])
             else:
-                config_types.append('no_config_type')
+                config_types.append(f'no_{info_key}')
 
     # prepare table by config type
     config_counts = dict(Counter(config_types))
@@ -159,7 +160,7 @@ def evaluate_data(data, calculator, pred_prefix, output_fname=None, chunksize=50
     return output.output_configs
 
 
-def read_energies_forces(atoms, prefix):
+def read_energies_forces(atoms, prefix, info_key):
     """ Reads out energies and forces into one dictionary
 
     Parameters
@@ -188,9 +189,9 @@ def read_energies_forces(atoms, prefix):
         if len(at) == 1:
             continue
 
-        config_type = 'no_config_type'
-        if 'config_type' in at.info.keys():
-            config_type = at.info['config_type']
+        config_type = f'no_{info_key}'
+        if info_key in at.info.keys():
+            config_type = at.info[info_key]
 
         try:
             data['energy'][config_type] = np.append(data['energy'][config_type],

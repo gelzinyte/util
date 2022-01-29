@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import yaml
 import numpy as np
 from util.iterations import tools as it
@@ -11,7 +12,10 @@ from wfl.configset import ConfigSet_in, ConfigSet_out
 from ase.build import molecule
 from copy import deepcopy
 from ase.io import read
+from util.util_config import Config
+import logging
 
+logger = logging.getLogger(__name__)
 
 def ref_path():
     return Path(__file__).parent.resolve()
@@ -205,7 +209,7 @@ def test_update_cutoffs():
 
 def test_update_ace_params():
 
-    train_set_fname = ref_path() / "files/tiny_gap.train_set.xyz" 
+    train_set_fname = ref_path() / "files/tiny_train_set.xyz" 
     params_fname = ref_path() / "files/ace_params.yml"
     with open(params_fname) as f:
         params = yaml.safe_load(f)
@@ -217,3 +221,16 @@ def test_update_ace_params():
 
     assert params_out['cutoffs_mb'] == expected_cutoffs_mb
 
+
+def test_check_dft(tmp_path):
+
+    train_set_fname = ref_path() / "files/tiny_train_set.xyz" 
+
+    cfg = Config.load()
+    default_kw = Config.from_yaml(os.path.join(cfg["util_root"], "default_kwargs.yml"))
+    dft_prop_prefix = "dft_"
+    orca_kwargs = default_kw["orca"]
+    orca_kwargs["orca_command"] = cfg["orca_path"]
+    logger.info(f"orca_kwargs: {orca_kwargs}") 
+
+    it.check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tmp_path / "dft_check_wdir")

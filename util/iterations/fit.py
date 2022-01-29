@@ -8,15 +8,17 @@ from pathlib import Path
 
 from ase.io import read, write
 
-from wfl.calculators import orca
+from wfl.calculators import orca, generic
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.generate_configs import md
 import wfl.calc_descriptor
 
+from util import remove_energy_force_containing_entries
 from util import opt
 from util.util_config import Config
 from util.iterations import tools as it
 from util.configs import cur
+from util import error_table
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +38,9 @@ def fit(
     ip_type="ace",
     bde_test_fname="dft_bde.xyz",
     soap_params_for_cur_fname="soap_params_for_cur.xyz",
-    num_train_configs_per_cycle=10,
-    num_test_configs_per_cycle=10,
+    num_train_environments_per_cycle=10,
+    num_test_environments_per_cycle=10,
+    num_extra_smiles_per_cycle=10,
 ):
     """ iteratively fits potetnials
 
@@ -125,7 +128,7 @@ def fit(
 
     logger.info(
         f"Optimising structures from {all_extra_smiles_csv}. "
-        f"GAP parameters from {fit_param_fname}. Fitting to "
+        f"fit parameters from {fit_param_fname}. Fitting to "
         f"{ref_type} energies and forces."
     )
 
@@ -136,16 +139,19 @@ def fit(
     if ip_type == "gap":
         fit_exec_path = cfg["gap_fit_path"]
     elif ip_type == "ace":
-        # TODO: do somehow differently?
-        fit_exec_path = cfg["ace_fit_path"]
+        fit_exec_path = Path(wfl.__file__).parent.resolve() / 'scripts/ace_fit.jl'
     logger.info(f"Fit exec: {fit_exec_path}")
 
     wdir = Path(wdir)
     train_set_dir = wdir / "training_sets"
-    train_set_dir.make_dirs(parents=True, exists_ok=True)
+    train_set_dir.mkdir(parents=True, exist_ok=True)
+    figs_dir = wdir / "figures"
+    figs_dir.mkdir(exist_ok=True)
 
-    shutil.copy(all_extra_smiles_csv, wdir / all_extra_smiles_csv)
-    all_extra_smiles_csv = wdir / all_extra_smiles_csv
+    if not (wdir / all_extra_smiles_csv.name).exists():
+        it.manipulate_smiles_csv(all_extra_smiles_csv, wdir)
+    all_extra_smiles_csv = wdir / all_extra_smiles_csv.name
+
 
     # setup orca parameters
     default_kw = Config.from_yaml(os.path.join(cfg["util_root"], "default_kwargs.yml"))
@@ -166,6 +172,7 @@ def fit(
     with open(fit_param_fname) as yaml_file:
         fit_params_base = yaml.safe_load(yaml_file)
     fit_params_base = it.update_fit_params(fit_params_base, fit_to_prop_prefix)
+    logger.info(f"fit_params_base: {fit_params_base}")
 
     # md params
     md_params = {
@@ -176,23 +183,35 @@ def fit(
         "traj_step_interval": 100,
         "results_prefix": pred_prop_prefix,
     }
+    logger.info(f"MD params: {md_params}")
+
 
     # soap descriptor for cur params
     with open(soap_params_for_cur_fname, "r") as f:
         soap_params_for_cur = yaml.safe_load(f)
 
-    # prepare 0th dataset
     initial_train_fname = train_set_dir / "train_for_fit_0.xyz"
+    if not initial_train_fname.exists():
+        it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, orca_kwargs=orca_kwargs, tests_wdir=wdir/"dft_check_wdir")
+
+    # prepare 0th dataset
     ci = ConfigSet_in(input_files=base_train_fname)
-    co = ConfigSet_out(output_files=initial_train_fname, force=True, all_or_none=True)
+    co = ConfigSet_out(output_files=initial_train_fname, force=True, all_or_none=True,
+                       set_tags={"dataset_type":"train"})
     it.prepare_0th_dataset(ci, co)
 
     initial_test_fname = train_set_dir / "test_for_fit_0.xyz"
     ci = ConfigSet_in(input_files=base_test_fname)
-    co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True)
+    co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True,
+                       set_tags={"dataset_type":"test"})
     it.prepare_0th_dataset(ci, co)
 
+
+
     for cycle_idx in range(0, num_cycles + 1):
+
+        logger.info("-"*50)
+        logger.info(f"ITERATION {cycle_idx}")
 
         # Check for the final training set from this iteration and skip if found.
         next_train_set_fname = (train_set_dir / f"{cycle_idx:02d}.train_for_{ip_type}_{cycle_idx+1:02d}.xyz")
@@ -203,7 +222,7 @@ def fit(
 
         # define all the filenames
         cycle_dir = wdir / f"iteration_{cycle_idx:02d}"
-        cycle_dir.mkdir(exists_ok=True)
+        cycle_dir.mkdir(exist_ok=True)
 
         train_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.train_for_{ip_type}_{cycle_idx:02d}.xyz")
         test_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.test_for_{ip_type}_{cycle_idx:02d}.xyz")
@@ -214,23 +233,26 @@ def fit(
 
         extra_smiles_for_this_cycle_csv = cycle_dir / "02.extra_smiles.csv"
         opt_starts_fname = cycle_dir / "03.rdkit_mols_rads.xyz"
-        opt_fname = cycle_dir / f"04.{pred_prop_prefix}optimised.xyz"
-        opt_filtered_fname = cycle_dir / f"05.1.{pred_prop_prefix}optimised.good_geometries.xyz"
-        bad_structures_fname = cycle_dir / f"05.2.{pred_prop_prefix}optimised.bad_geometries.xyz"
-        opt_fname_w_dft = cycle_dir / f"06.{pred_prop_prefix}optimised.good_geometries.dft.xyz"
-        large_error_configs = cycle_dir / f"07.1.{pred_prop_prefix}optimised.good_geometries.dft.large_error.xyz"
-        small_error_configs = cycle_dir / f"07.2.{pred_prop_prefix}optimised.good_geometries.dft.small_error.xyz"
-        full_md_fname = cycle_dir / "08.large_error.md.xyz"
-        full_md_good_geometries_fname = (cycle_dir / "09.1.large_error.md.good_geometries.xyz")
-        full_md_bad_geometries_fname = (cycle_dir / "09.2.large_error.md.bad_geometries.xyz")
-        md_with_soap_fname = cycle_dir / "10.large_error.md.good_geometries.soap.xyz"
-        test_md_selection_fname = cycle_dir / "11.1.large_error.md.test_sample.xyz"
-        train_md_selection_fname = cycle_dir / "11.2.large_error.md.train_sample.xyz"
-        test_extra_fname_dft = cycle_dir / "12.1.large_error.md.test_sample.dft.xyz"
-        train_extra_fname_dft = cycle_dir / "12.2.large_error.md.train_sample.dft.xyz"
+        opt_fname = cycle_dir / f"04.0.rdkit.{pred_prop_prefix}optimised.xyz"
+        opt_fname_evaled = cycle_dir / f"04.1.rdkit.{pred_prop_prefix}optimised.{pred_prop_prefix[:-1]}.xyz"
+        opt_filtered_fname = cycle_dir / f"05.1.rdkit.{pred_prop_prefix}optimised.good_geometries.xyz"
+        bad_structures_fname = cycle_dir / f"05.2.rdkit.{pred_prop_prefix}optimised.bad_geometries.xyz"
+        opt_fname_w_dft = cycle_dir / f"06.rdkit.{pred_prop_prefix}optimised.good_geometries.dft.xyz"
+        large_error_configs = cycle_dir / f"07.1.rdkit.{pred_prop_prefix}optimised.good_geometries.dft.large_error.xyz"
+        small_error_configs = cycle_dir / f"07.2.rdkit.{pred_prop_prefix}optimised.good_geometries.dft.small_error.xyz"
+        full_md_fname_sanitised = cycle_dir / f"08.0.{pred_prop_prefix}optimised.sanitised.xyz"
+        full_md_fname = cycle_dir / f"08.1.{pred_prop_prefix}optimised.md.xyz"
+        full_md_fname_evaled = cycle_dir / f"08.2.{pred_prop_prefix}optimised.md.{pred_prop_prefix[:-1]}.xyz"
+        full_md_good_geometries_fname = (cycle_dir / f"09.1.{pred_prop_prefix}optimised.md.good_geometries.xyz")
+        full_md_bad_geometries_fname = (cycle_dir / f"09.2.{pred_prop_prefix}optimised.md.bad_geometries.xyz")
+        md_with_soap_fname = cycle_dir / f"10.{pred_prop_prefix}optimised.md.good_geometries.soap.xyz"
+        test_md_selection_fname = cycle_dir / f"11.1.{pred_prop_prefix}optimised.md.test_sample.xyz"
+        train_md_selection_fname = cycle_dir / f"11.2.{pred_prop_prefix}optimised.md.train_sample.xyz"
+        test_extra_fname_dft = cycle_dir / f"12.1.{pred_prop_prefix}optimised.md.test_sample.dft.xyz"
+        train_extra_fname_dft = cycle_dir / f"12.2.{pred_prop_prefix}optimised.md.train_sample.dft.xyz"
 
         fit_dir = cycle_dir / "fit_dir"
-        fit_dir.mkdir(exists_ok=True)
+        fit_dir.mkdir(exist_ok=True)
 
         if ip_type == "gap":
             calculator = it.do_gap_fit(
@@ -254,29 +276,35 @@ def fit(
             )
 
         if ref_type == "dft":
-            pred_prop_prefix = f"{ip_type}{cycle_idx}_"
+            # pred_prop_prefix = f"{ip_type}{cycle_idx}_"
+            pred_prop_prefix = f"{ip_type}_"
         elif ref_type == "dft-xtb2":
-            pred_prop_prefix = f"{ip_type}{cycle_idx}_plus_xtb2_"
+            # pred_prop_prefix = f"{ip_type}{cycle_idx}_plus_xtb2_"
+            pred_prop_prefix = f"{ip_type}_plus_xtb2_"
+
+
 
         # 2. Run tests
         tests_wdir = cycle_dir / "tests"
-        it.run_tests(
-            calculator=calculator,
-            pred_prop_prefix=pred_prop_prefix,
-            dft_prop_prefix=dft_prop_prefix,
-            train_set_fname=train_set_fname,
-            test_set_fname=test_set_fname,
-            tests_wdir=tests_wdir,
-            bde_test_fname=bde_test_fname,
-            orca_kwargs=orca_kwargs,
-        )
+        if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
+            logger.info("running_tests")
+            it.run_tests(
+                calculator=calculator,
+                pred_prop_prefix=pred_prop_prefix,
+                dft_prop_prefix=dft_prop_prefix,
+                train_set_fname=train_set_fname,
+                test_set_fname=test_set_fname,
+                tests_wdir=tests_wdir,
+                bde_test_fname=bde_test_fname,
+                orca_kwargs=orca_kwargs,
+            )
 
         # 3. Select some smiles from the initial smiles csv
         if not extra_smiles_for_this_cycle_csv.exists():
             it.select_extra_smiles(
                 all_extra_smiles_csv=all_extra_smiles_csv,
-                extra_smiles_for_this_cycle_csv=extra_smiles_for_this_cycle_csv,
-                chunksize=10,
+                smiles_selection_csv=extra_smiles_for_this_cycle_csv,
+                chunksize=num_extra_smiles_per_cycle,
             )
 
         # 4. Generate actual structures for optimisation
@@ -288,11 +316,12 @@ def fit(
             verbose=False,
             set_tags={"iter_no": cycle_idx, "config_type": "rdkit"},
         )
+
         inputs = it.make_structures(
             extra_smiles_for_this_cycle_csv,
-            iter_no=cycle_idx,
             num_smi_repeat=1,
             outputs=outputs,
+            num_rads_per_mol=1,
         )
 
         # 5. optimise structures with current IP and re-evaluate them
@@ -301,7 +330,7 @@ def fit(
             output_files=opt_fname,
             force=True,
             all_or_none=True,
-            set_tags={"config_type": f"next_rdkit_{pred_prop_prefix}optimised"},
+            set_tags={"dataset_type": f"next_rdkit_{pred_prop_prefix}optimised"},
         )
         # traj_step_interval=None selects only last converged config.
         inputs = opt.optimise(
@@ -311,12 +340,24 @@ def fit(
             prop_prefix=pred_prop_prefix,
             traj_step_interval=None,
         )
+        # need to re-evaluate again, because energy is sometimes not written
+        outputs = ConfigSet_out(
+            output_files=opt_fname_evaled,
+            force=True, 
+            all_or_none=True)
+        inputs = generic.run(inputs=inputs, 
+                             outputs=outputs,
+                             calculator=calculator, 
+                             properties=["energy", "forces"], 
+                             output_prefix=pred_prop_prefix)
+
 
         # 6. filter out insane geometries
         logger.info("filtering out bad geometries")
         outputs_good = ConfigSet_out(output_files=opt_filtered_fname, force=True, all_or_none=True)
         outputs_bad = ConfigSet_out(output_files=bad_structures_fname, force=True, all_or_none=True)
         inputs = it.filter_configs_by_geometry(inputs=inputs, outputs_good=outputs_good, outputs_bad=outputs_bad)
+
 
         # 7. evaluate DFT
         logger.info("evaluatig dft on optimised structures")
@@ -327,8 +368,12 @@ def fit(
             orca_kwargs=orca_kwargs,
             output_prefix=dft_prop_prefix,
             keep_files=False,
-            base_rundir=cycle_dir / "orca_wdir_1",
+            base_rundir=cycle_dir / "orca_wdir_on_opt",
         )
+
+        # 7.1 report errors on optimised structures
+        error_table.plot(inputs, ref_prefix=dft_prop_prefix, pred_prefix=pred_prop_prefix, info_key="graph_name")
+
 
         # 8. filter by energy and force error
         logger.info("Filtering by energy and force errors")
@@ -343,14 +388,23 @@ def fit(
             e_threshold_total=energy_error_total_threshold,
             max_f_comp_threshold=max_f_comp_error_threshold,
         )
-        logger.info(
-            f'Number of optimised structures: {len(read(opt_fname, ":"))}; Number '
-            f"of structures selected for MD and sampling for training "
-            f'{len(read(large_error_configs, ":"))}'
-        )
-        if len(read(large_error_configs), ':') == 0:
+        if inputs is None:
+            logger.warning("Found no optimised geometries with large errors, stopping cycles")
+            return None
+
+        logger.info(f'{len(read(large_error_configs, ":"))/len(read(opt_fname, ":"))*100:.1f}% structures have large error; running MD on them')
+        if len(read(large_error_configs, ':')) == 0:
             logger.info("all new config energy/force evaluations were within threshold, done with iterations?")
-            raise RuntimeError
+            raise RuntimeError()
+
+
+        # 9.1 remove old energies and forces
+        if not full_md_fname_sanitised.exists():
+            logger.info("removing energy&force entries pre-md")
+            sanitised_ats = [remove_energy_force_containing_entries(at) for at in inputs]
+            write(full_md_fname_sanitised, sanitised_ats)
+        inputs = ConfigSet_in(input_files=full_md_fname_sanitised)
+
 
         # 9. Run MD
         logger.info(f"Running {ip_type} md")
@@ -364,9 +418,21 @@ def fit(
             inputs=inputs,
             outputs=outputs,
             calculator=calculator,
-            verbose=True,
+            verbose=False,
             **md_params,
         )
+        # need to re-evaluate again, because energy is sometimes not written
+        outputs = ConfigSet_out(
+            output_files=full_md_fname_evaled,
+            force=True, 
+            all_or_none=True)
+        inputs = generic.run(inputs=inputs, 
+                             outputs=outputs,
+                             calculator=calculator, 
+                             properties=["energy", "forces"], 
+                             output_prefix=pred_prop_prefix)
+
+
 
         # 10. Filter/check for bad geometries
         outputs_good = ConfigSet_out(output_files=full_md_good_geometries_fname, force=True, all_or_none=True)
@@ -374,15 +440,18 @@ def fit(
         inputs = it.filter_configs_by_geometry(inputs=inputs, outputs_good=outputs_good, outputs_bad=outputs_bad)
 
         # handle if some configs were found
-        num_bad_configs = len([at for at in outputs_bad.to_ConfigSet_in()])
-        num_good_configs = len([at for at in outputs_good.to_ConfigSet_in()])
-        if num_bad_configs / (num_bad_configs + num_good_configs) > 0.1:
-            raise RuntimeWarning("Too many bad geometries from MD")
-        elif num_bad_configs != 0:
-            logger.error(f"Some had {num_bad_configs} bad geometries from md")
+        if os.stat(full_md_bad_geometries_fname).st_size == 0:
+            logger.info("all configs from md are good")
+        else:
+            num_bad_configs = len([at for at in outputs_bad.to_ConfigSet_in()])
+            num_good_configs = len([at for at in outputs_good.to_ConfigSet_in()])
+            if num_bad_configs / (num_bad_configs + num_good_configs) > 0.1:
+                raise RuntimeWarning("Too many bad geometries from MD")
+            elif num_bad_configs != 0:
+                logger.warning(f"Some had {num_bad_configs} bad geometries from md")
 
         # 11. Calculate soap descriptor
-        logger.info("Calculating SOAp descriptor")
+        logger.info("Calculating SOAP descriptor")
         outputs = ConfigSet_out(output_files=md_with_soap_fname, force=True, all_or_none=True)
         inputs = wfl.calc_descriptor.calc(
             inputs=inputs,
@@ -395,22 +464,23 @@ def fit(
         # 12. do CUR
         if not train_md_selection_fname.exists():
             logger.info("Selecting configs with CUR")
-            outputs = ConfigSet_out(set_tags={"dataset_type": "next_addition", "cycle_idx": cycle_idx})
+            outputs = ConfigSet_out(set_tags={"dataset_type": "next_addition_from_md"})
             inputs = cur.per_environment(
                 inputs=inputs,
                 outputs=outputs,
-                num=num_train_configs_per_cycle + num_test_configs_per_cycle,
+                num=num_train_environments_per_cycle + num_test_environments_per_cycle,
                 at_descs_key="small_soap",
                 kernel_exp=3,
-                levarage_score_key="cur_leverage_score",
+                leverage_score_key="cur_leverage_score",
                 write_all_configs=False,
             )
             selected_with_cur = list(inputs)
-            del selected_with_cur.info["small_soap"]
-            del selected_with_cur.arrays["small_soap"]
+            for at in selected_with_cur:
+                del at.arrays["small_soap"]
             random.shuffle(selected_with_cur)
-            write(train_md_selection_fname, selected_with_cur[:num_train_configs_per_cycle],)
-            write(test_md_selection_fname, selected_with_cur[num_train_configs_per_cycle:])
+            write(train_md_selection_fname, selected_with_cur[0::2],)
+            write(test_md_selection_fname, selected_with_cur[1::2])
+        
 
         # 13. evaluate DFT
         logger.info("evaluatig dft cur-selected md structures")
@@ -431,7 +501,7 @@ def fit(
             orca_kwargs=orca_kwargs,
             output_prefix=dft_prop_prefix,
             keep_files=False,
-            base_rundir=cycle_dir / "orca_wdir_2",
+            base_rundir=cycle_dir / "orca_wdir_on_md",
         )
 
         # 14. do summary plots
@@ -448,6 +518,8 @@ def fit(
             tests_wdir=tests_wdir,
         )
 
+        it.combine_plots(pred_prop_prefix=pred_prop_prefix, dft_prop_prefix=dft_prop_prefix, tests_wdir=tests_wdir, cycle_idx=cycle_idx, figs_dir=figs_dir, wdir=wdir)
+
         # 15. Combine datasets
         if not next_train_set_fname.exists():
             logger.info("combining old and extra data")
@@ -458,12 +530,16 @@ def fit(
 
             for at in extra_train:
                 at.info["dataset_type"] = "train"
+                at.info["iter_no"] = cycle_idx + 1
             for at in extra_test:
                 at.info["dataset_type"] = "test"
+                at.info["iter_no"] = cycle_idx + 1
 
             write(next_train_set_fname, previous_train + extra_train)
             write(next_test_set_fname, previous_test + extra_test)
 
         logger.info(f"cycle {cycle_idx} done. ")
+
+
 
     logger.info("Finished iterations")

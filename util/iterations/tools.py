@@ -8,6 +8,8 @@ import pytest
 import pandas as pd
 import numpy as np
 
+from PyPDF4 import PdfFileMerger
+
 from ase.io import read, write
 
 import ace
@@ -25,7 +27,7 @@ from util import configs
 from util.calculators import xtb2_plus_gap
 from util.bde import generate
 from util.plot import dataset
-from util.plot import rmse_scatter_evaled
+from util.plot import rmse_scatter_evaled, multiple_error_files
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +51,10 @@ def make_dirs(dir_names):
 def prepare_0th_dataset(ci, co):
 
     if co.is_done():
-        logger.info("initial dataset is prepared")
+        logger.info(f"initial dataset is preapared {co.output_files[0].name}")
         return co.to_ConfigSet_in()
 
-    logger.info("preparing initial dataset")
+    logger.info(f"preparing initial dataset {co.output_files[0].name}")
 
     for at in ci:
         if "iter_no" not in at.info.keys():
@@ -74,9 +76,12 @@ def make_structures(
     name_col="zinc_id",
 ):
 
-    atoms_out = []
+    if outputs.is_done():
+        logger.info(f"outputs ({outputs} from {smiles_csv.name}) are done, returning")
+        return outputs.to_ConfigSet_in()
 
-    logger.info(f"writing to {outputs.output_files}")
+    atoms_out = []
+    logger.info(f"writing new structures from {smiles_csv} to {outputs.output_files}")
 
     # generate molecules
     df = pd.read_csv(smiles_csv, delim_whitespace=True)
@@ -101,13 +106,14 @@ def make_structures(
 
 
 def filter_configs_by_geometry(inputs, outputs_good, outputs_bad):
-    all_configs = configs.filter_insane_geometries(inputs, mult=1)
 
     if not outputs_bad.is_done() and not outputs_good.is_done():
+
+        all_configs = configs.filter_insane_geometries(inputs, mult=1)
         outputs_bad.write(all_configs["bad_geometries"])
         outputs_bad.end_write()
 
-        outputs_good.write(all_configs["good_geomteries"])
+        outputs_good.write(all_configs["good_geometries"])
         outputs_good.end_write()
     elif outputs_bad.is_done() and outputs_good.is_done():
         logger.info(
@@ -129,10 +135,13 @@ def filter_configs(
     max_f_comp_threshold=None,
     dft_prefix="dft_",
 ):
+    have_small_errors = False
+    have_large_errors = False
 
     if outputs_large_error.is_done() and outputs_small_error.is_done():
-        logger.info("both outputs are done, not doing anything")
+        logger.info("both outputs are done, not filtering configs by energy/force error")
         return outputs_large_error.to_ConfigSet_in()
+
     elif not outputs_large_error.is_done() and not outputs_small_error.is_done():
         pass
     else:
@@ -147,12 +156,14 @@ def filter_configs(
 
         if e_threshold_total is not None and np.abs(e_error) > e_threshold_total:
             outputs_large_error.write(at)
+            have_large_errors = True
             continue
         elif (
             e_threshold_per_atom is not None
             and np.abs(e_error) / len(at) > e_threshold_per_atom
         ):
             outputs_large_error.write(at)
+            have_large_errors = True
             continue
 
         if max_f_comp_threshold is not None:
@@ -162,13 +173,24 @@ def filter_configs(
             )
             if np.max(np.abs(f_error.flatten())) > max_f_comp_threshold:
                 outputs_large_error.write(at)
+                have_large_errors = True
                 continue
 
+        have_small_errors = True
         outputs_small_error.write(at)
+
+    if not have_small_errors:
+        outputs_small_error.write([])
+    if not have_large_errors:
+        outputs_large_error.write([])
 
     outputs_small_error.end_write()
     outputs_large_error.end_write()
-    return outputs_large_error.to_ConfigSet_in()
+
+    if not have_large_errors:
+        return None
+    else:
+        return outputs_large_error.to_ConfigSet_in()
 
 
 def do_gap_fit(fit_dir, idx, ref_type, train_set_fname, fit_params_base, gap_fit_path):
@@ -224,7 +246,7 @@ def update_fit_params(fit_params_base, fit_to_prop_prefix):
         )
         fit_params_base["force_parameter_name"] = f"{fit_to_prop_prefix}forces"
 
-        return fit_params_base
+    return fit_params_base
 
 
 def do_ace_fit(
@@ -265,9 +287,11 @@ def do_ace_fit(
         wait_for_results=True,
     )
 
-    assert str(ace_file_base) + ".json" == str(ace_fname)
+    ace_fname = str(ace_fname)
 
-    return (ace.ACECalculator, [], {"jsonpath": ace_fname})
+    assert str(ace_file_base) + ".json" == ace_fname
+
+    return (ace.ACECalculator, [], {"jsonpath": ace_fname, 'ACE_version':2})
 
 
 def update_ace_params(base_params, fit_inputs):
@@ -304,14 +328,16 @@ def run_tests(
     orca_kwargs,
 ):
 
-    train_evaled = tests_wdir / f"{pred_prop_prefix}on_{train_set_fname}"
-    test_evaled = tests_wdir / f"{pred_prop_prefix}on_{test_set_fname}"
+    tests_wdir.mkdir(exist_ok=True)
+
+    train_evaled = tests_wdir / f"{pred_prop_prefix}on_{train_set_fname.name}"
+    test_evaled = tests_wdir / f"{pred_prop_prefix}on_{test_set_fname.name}"
 
     # evaluate on training and test sets
     ci = ConfigSet_in(input_files=[train_set_fname, test_set_fname])
-    co = ConfigSet_out(
-        output_files={train_set_fname: train_evaled, test_set_fname: test_evaled}
-    )
+    co = ConfigSet_out(output_files={train_set_fname: train_evaled, test_set_fname: test_evaled},
+                       force=True, all_or_none=True)
+
     generic.run(
         inputs=ci,
         outputs=co,
@@ -322,7 +348,7 @@ def run_tests(
     )
 
     # check the offset is not there
-    check_for_offset(train_set_fname, pred_prop_prefix, dft_prop_prefix)
+    check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
 
     # re-evaluate a couple of DFTs
     check_dft(train_evaled, dft_prop_prefix, orca_kwargs, tests_wdir)
@@ -344,10 +370,11 @@ def run_tests(
         pred_force_name=None,
         all_atoms=bde_ci,
         output_dir=tests_wdir,
-        prefix=f"{dft_prop_prefix}bde_vs_{pred_prop_prefix}_bde",
+        prefix=f"{dft_prop_prefix}bde_vs_{pred_prop_prefix}bde",
         color_info_name="bde_type",
         isolated_atoms=None,
-        energy_type="rmse",
+        energy_type="total_energy",
+        error_type='rmse',
         skip_if_prop_not_present=True,
     )
 
@@ -414,6 +441,8 @@ def run_tests(
     )
 
     # other tests are coming sometime
+    # CH dissociation curve
+    # dimer curves (2b, total)
 
 
 def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
@@ -422,8 +451,8 @@ def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
     is_at = [at for at in ats if len(at) == 1]
     ats = [at for at in ats if len(at) != 1]
 
-    ref_e = [util.get_binding_energy_per_at(at, is_at, dft_prop_prefix) for at in ats]
-    pred_e = [util.get_binding_energy_per_at(at, is_at, pred_prop_prefix) for at in ats]
+    ref_e = [util.get_binding_energy_per_at(at, is_at, f'{dft_prop_prefix}energy') for at in ats]
+    pred_e = [util.get_binding_energy_per_at(at, is_at, f'{pred_prop_prefix}energy') for at in ats]
 
     errors = np.array([(ref - pred) * 1e3 for ref, pred in zip(ref_e, pred_e)])
     mean_error = np.mean(errors)
@@ -446,21 +475,27 @@ def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
 
 def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
 
+    tests_wdir.mkdir(exist_ok=True)
+
     all_ats = read(train_set_fname, ':')
-    initial_train_set = [at for at in all_ats if at.info["iter_no"] == 0]
-    ci = ConfigSet_in(input_configs=random.choices(initial_train_set, k=2) + random.choices(all_ats, k=4))
+    ci = ConfigSet_in(input_configs=random.choices(all_ats, k=2))
     co = ConfigSet_out()
     inputs = orca.evaluate(
         inputs=ci,
         outputs=co,
         orca_kwargs=orca_kwargs,
         output_prefix='dft_recalc_',
-        keep_files=False,
+        keep_files='default',
         base_rundir=tests_wdir / "orca_wdir")
 
     for at in inputs:
-        assert pytest.approx(at.info[f'{dft_prop_prefix}energy']) == at.info['dft_recalc_energy'], at.info
-        assert np.all(pytest.approx(at.arrays[f'{dft_prop_prefix}forces']) == at.arrays['dft_recalc_forces']), at.info
+        energy_ok =  pytest.approx(at.info[f'{dft_prop_prefix}energy']) == at.info['dft_recalc_energy']
+        forces_ok = np.all(pytest.approx(at.arrays[f'{dft_prop_prefix}forces']) == at.arrays['dft_recalc_forces'])
+        if not (energy_ok and forces_ok):
+            print(f'energy ok: {energy_ok}, forces_ok: {forces_ok}')
+            write(tests_wdir/'failed_dft_check.xyz', at)
+            raise RuntimeError("failed dft check")
+    logger.info("dft cyeck is ok")
 
 
 def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, chunksize=10):
@@ -480,6 +515,15 @@ def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, chunksize=10
     df.to_csv(all_extra_smiles_csv, sep=" ")
 
 
+def manipulate_smiles_csv(all_extra_smiles, wdir):
+
+    df = pd.read_csv(all_extra_smiles, delim_whitespace=True)
+    if "has_been_used" not in df.columns:
+        df["has_been_used"] = [False] * len(df)
+
+    df.to_csv(wdir / all_extra_smiles.name, sep=" ")
+    
+
 def summary_plots(
     cycle_idx,
     pred_prop_prefix,
@@ -494,19 +538,12 @@ def summary_plots(
 ):
 
     # set up correct fnames
-    train_fname = tests_wdir / f"{pred_prop_prefix}on_{train_fname}"
-    test_fname = tests_wdir / f"{pred_prop_prefix}on_{test_fname}"
+    train_fname = tests_wdir / f"{pred_prop_prefix}on_{train_fname.name}"
+    test_fname = tests_wdir / f"{pred_prop_prefix}on_{test_fname.name}"
 
-    bde_dft_opt = (
-        tests_wdir
-        / "bde_wdir"
-        / (Path(bde_fname).stem + "." + pred_prop_prefix[:-1] + ".xyz")
-    )
-    bde_ip_reopt = (
-        tests_wdir
-        / "bde_wdir"
-        / (Path(bde_fname).stem + "." + pred_prop_prefix + "_reoptimised.dft.xyz.xyz")
-    )
+    bde_dft_opt = tests_wdir / "bde_wdir" / (Path(bde_fname).stem + "." + pred_prop_prefix[:-1] + ".xyz")
+    
+    bde_ip_reopt = tests_wdir / "bde_wdir" / (Path(bde_fname).stem + "." + pred_prop_prefix + "reoptimised.dft.xyz")
 
     all_outputs = tests_wdir / "all_configs_for_plot.xyz"
 
@@ -515,21 +552,23 @@ def summary_plots(
     # plot the dataset summary plots
     atoms = read(train_fname, ":") + read(train_extra_fname, ":")
     title = f"{cycle_idx:02d}_training_set_for_{pred_prop_prefix}{cycle_idx+1:02d}"
-    dataset.energy_by_index(
+    dataset.energy_by_idx(
         atoms=atoms,
-        title=title,
-        isolated_ats=isolated_atoms,
-        info_label="cycle_idx",
+        title=title + '_energy',
+        isolated_atoms=isolated_atoms,
+        info_label="iter_no",
         prop_prefix=dft_prop_prefix,
+        dir=tests_wdir,
     )
-    dataset.forces_by_index(
-        atoms=atoms, title=title, info_label="cycle_idx", prop_prefix=dft_prop_prefix
+    dataset.forces_by_idx(
+        atoms=atoms, title=title + '_forces', info_label="iter_no", prop_prefix=dft_prop_prefix,
+        dir=tests_wdir
     )
 
     # combine all data together
     expected_dataset_types = [
-        "next_addition",
-        "next_addition",
+        "next_addition_from_md",
+        "next_addition_from_md",
         "test",
         "train",
         f"bde_{dft_prop_prefix}optimised",
@@ -562,18 +601,70 @@ def summary_plots(
         pred_force_name=pred_prop_prefix + "forces",
         all_atoms=read(all_outputs, ":"),
         output_dir=tests_wdir,
-        prefix=f"{cycle_idx}_ef_correlation",
+        prefix=f"{cycle_idx:02d}_ef_correlation",
         color_info_name="dataset_type",
         isolated_atoms=None,
         energy_type="binding_energy",
     )
 
-    
+def combine_plots(pred_prop_prefix, dft_prop_prefix, tests_wdir, cycle_idx, figs_dir, wdir):
+    """
+    binding_energies
+    dft_bde_vs_ace_bde
+    energy_training_set
+    forces_training_set
+    ace_error_on_dft_opt_vs_bde_error
+    ace_error_on_ace_opt_vs_bde_error 
+    """
 
-    # combine all plots
+    combined_out = figs_dir / f"{cycle_idx:02d}_summary.pdf"
 
-    # combine all plots together
-    # - correlation
-    # - bde correlations (x3)
-    # - dataset (x2)
+    fnames = [
+        f"{cycle_idx:02d}_ef_correlation_by_dataset_type_scatter.pdf",
+        f"{dft_prop_prefix}bde_vs_{pred_prop_prefix}bde_by_bde_type_scatter.pdf",
+        f"{cycle_idx:02d}_training_set_for_{pred_prop_prefix}{cycle_idx+1:02d}_energy.pdf",
+        f"{cycle_idx:02d}_training_set_for_{pred_prop_prefix}{cycle_idx+1:02d}_forces.pdf",
+        f"{pred_prop_prefix}error_on_{dft_prop_prefix}opt_vs_{pred_prop_prefix}bde_error_by_bde_type_scatter.pdf",
+        f"{pred_prop_prefix}error_on_{pred_prop_prefix}opt_vs_{pred_prop_prefix}bde_error_by_bde_type_scatter.pdf",
+    ]
+
+
+    merger = PdfFileMerger(strict=False)
+    for fn in fnames:
+        merger.append(fileobj=open(tests_wdir / fn, 'rb'), pages=(0,1))        
+
+    merger.write(fileobj=open(combined_out, 'wb'))
+    merger.close()
+
+
+    update_tracker_plot(pred_prop_prefix=pred_prop_prefix,
+                        dft_prop_prefix=dft_prop_prefix,
+                        cycle_idx=cycle_idx, 
+                        figs_dir=figs_dir,
+                        wdir=wdir)
+
+def update_tracker_plot(pred_prop_prefix, dft_prop_prefix, cycle_idx, figs_dir, wdir):
+
+
+    atoms_filenames = [wdir / f"iteration_{idx:02d}/tests/all_configs_for_plot.xyz" \
+        for idx in range(cycle_idx+1)]
+
+    multiple_error_files.main(ref_energy_name=f'{dft_prop_prefix}energy',
+                              pred_energy_name=f'{pred_prop_prefix}energy',
+                              ref_force_name=f'{dft_prop_prefix}forces',
+                              pred_force_name=f'{pred_prop_prefix}forces',
+                              atoms_filenames=atoms_filenames,
+                              output_dir=figs_dir,
+                              prefix=f"up_to_{cycle_idx}",
+                              color_info_name="dataset_type",
+                              xlabel="iteration")
+
+
+
+
+
+
+
+
+
 

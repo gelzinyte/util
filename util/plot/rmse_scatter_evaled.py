@@ -1,4 +1,5 @@
 import warnings
+import logging
 from ase.io import read
 import util
 from util import ugap
@@ -10,6 +11,7 @@ from collections import OrderedDict
 import numpy as np
 import matplotlib as mpl
 
+logger = logging.getLogger(__name__)
 
 def prepare_data(ref_values, pred_values, labels):
 
@@ -36,8 +38,8 @@ def prepare_data(ref_values, pred_values, labels):
 
     return data
 
-def read_energy(at, isolated_atoms, ref_prefix):
-    return at.info[f'{ref_prefix}energy']
+def read_energy(at, isolated_atoms, ref_prop_name):
+    return at.info[ref_prop_name]
 
 def scatter_plot(ref_energy_name,
                 pred_energy_name,
@@ -63,7 +65,6 @@ def scatter_plot(ref_energy_name,
     elif error_type == 'mae':
         error_function = util.get_mae
         error_label = "MAE"
-
 
 
     if color_info_name is not None:
@@ -105,8 +106,8 @@ def scatter_plot(ref_energy_name,
                          f'"total_energy" or "mean_shifted_energy", '
                          f'not "{energy_type}". ')
 
-    ref_prefix = ref_energy_name.replace('energy', '')
-    pred_prefix = pred_energy_name.replace('energy', '')
+    # ref_prefix = ref_energy_name.replace('energy', '')
+    # pred_prefix = pred_energy_name.replace('energy', 'pred_prefix')
 
     ref_energies = []
     pred_energies = []
@@ -124,19 +125,11 @@ def scatter_plot(ref_energy_name,
             else:
                 raise RuntimeError("did not found property in atoms")
 
-        ref_energies.append(energy_getter_function(at, isolated_atoms, ref_prefix))
-        pred_energies.append(energy_getter_function(at, isolated_atoms, pred_prefix))
+        ref_energies.append(energy_getter_function(at, isolated_atoms, ref_energy_name))
+        pred_energies.append(energy_getter_function(at, isolated_atoms, pred_energy_name))
 
-    logger.warn(f'skipped {number_of_skipped_configs} configs, because one of {ref_energy_name} or {pred_energy_name} was not found.')
-
-
-    # ref_energies = [energy_getter_function(at, isolated_atoms,
-    #                                                ref_prefix)
-    #                 for at in all_atoms if len(at) != 1]
-
-    # pred_energies = [energy_getter_function(at, isolated_atoms,
-    #                                                pred_prefix)
-    #                 for at in all_atoms if len(at) != 1]
+    if number_of_skipped_configs > 0: 
+        logger.warn(f'skipped {number_of_skipped_configs} configs, because one of {ref_energy_name} or {pred_energy_name} was not found.')
 
     if energy_shift:
         ref_energies = util.shift0(ref_energies, by=np.mean(ref_energies))

@@ -130,7 +130,7 @@ def clean_and_write_selected(inputs, outputs, selected,
     selected_parents = np.asarray(list(set(selected_parents)))
 
     logger.info(f'Selected {len(selected)} environments from '
-                f'{len(selected_parents)} structures.')
+                f'{len(selected_parents)} structures ({len(selected_parents) / len(list(inputs))*100:.0f}% of all structures from md).')
 
     # make a list of leverage scores for each of individual environments
     # and subdivide into list of lists to be assigned to atoms.
