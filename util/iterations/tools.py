@@ -657,6 +657,7 @@ def update_tracker_plot(pred_prop_prefix, dft_prop_prefix, cycle_idx, figs_dir, 
                               output_dir=figs_dir,
                               prefix=f"up_to_{cycle_idx}",
                               color_info_name="dataset_type",
+                              xvals=range(cycle_idx+1)
                               xlabel="iteration")
 
 
