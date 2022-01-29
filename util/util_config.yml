@@ -11,6 +11,7 @@ glue_fname: /home/eg475/scripts/source_files/glue_repulsive_fitted.xml
 isolated_atoms_fname: /home/eg475/scripts/source_files/isolated_atoms.xyz
 
 util_root: /home/eg475/scripts/util/
+julia_2b_script: /home/eg475/scripts/julia_scripts/2b.jl
 
 
 

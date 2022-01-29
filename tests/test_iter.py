@@ -44,7 +44,7 @@ def test_iterfit(tmp_path):
     soap_params_for_cur = ref_path() / 'files/soap_params_for_cur.yml'
 
     util.iterations.fit.fit(
-        num_cycles=3,
+        num_cycles=1,
         base_train_fname=train_fname,
         base_test_fname=test_fname, 
         fit_param_fname=fit_param_fname,

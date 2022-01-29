@@ -4,7 +4,7 @@ import yaml
 
 
 
-configs = read("/home/eg475/scripts/tests/files/tiny_gap.train_set.xyz", ':')
+configs = read("/home/eg475/scripts/tests/files/tiny_train_set.xyz", ':')
 with open("ace_params.yml", 'r') as f:
     params = yaml.safe_load(f)
 

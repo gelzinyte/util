@@ -1,6 +1,9 @@
 from ase.calculators.calculator import Calculator, all_changes
 from quippy.potential import Potential
-from xtb.ase.calculator import XTB
+try:
+    from xtb.ase.calculator import XTB
+except ModuleNotFoundError:
+    pass
 
 
 class xtb2_plus_gap(Calculator):

@@ -23,7 +23,7 @@ E0_C = -1028.4321581399468
 Vref = OneBody(:C => E0_C, :H => E0_H)
 
 println("Training set")
-train_set = IPFitting.Data.read_xyz("/home/eg475/scripts/tests/files/tiny_gap.train_set.xyz", 
+train_set = IPFitting.Data.read_xyz("/home/eg475/scripts/tests/files/tiny_train_set.xyz", 
                                energy_key="dft_energy", force_key="dft_forces");
 
 

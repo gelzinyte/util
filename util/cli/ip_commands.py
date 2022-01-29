@@ -68,14 +68,14 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 @click.option('--ip-type', type=click.Choice(["ace"]), help='fit ACE only for now.')
 @click.option('--bde-test-fname', help='xyz with configs to test bdes on')
 @click.option('--soap-params-for-cur-fname', help='soap param filename')
-@click.option('--num-train-configs-per-cycle', default=10, type=click.INT, show_default=True)
-@click.option('--num-test-configs-per-cycle', default=10, type=click.INT, show_default=True)
+@click.option('--num-train-env-per-cycle', default=10, type=click.INT, show_default=True)
+@click.option('--num-test-env-per-cycle', default=10, type=click.INT, show_default=True)
 @click.option('--num-extra-smiles-per-cycle', default=10, type=click.INT, show_default=True, 
               help="How many structures to generate each cycle")
 def fit(num_cycles, train_fname, test_fname, fit_param_fname, all_smiles_csv,
         md_temp, energy_error_per_atom_threshold, energy_error_total_threshold, max_f_comp_error_threshold,
         wdir, ref_type, ip_type, bde_test_fname, soap_params_for_cur_fname,
-        num_train_configs_per_cycle, num_test_configs_per_cycle, num_extra_smiles_per_cycle):
+        num_train_env_per_cycle, num_test_env_per_cycle, num_extra_smiles_per_cycle):
 
     import util.iterations.fit
 
@@ -93,6 +93,6 @@ def fit(num_cycles, train_fname, test_fname, fit_param_fname, all_smiles_csv,
                             ip_type=ip_type,
                             bde_test_fname=bde_test_fname,
                             soap_params_for_cur_fname=soap_params_for_cur_fname,
-                            num_train_configs_per_cycle=num_train_configs_per_cycle,
-                            num_test_configs_per_cycle=num_test_configs_per_cycle,
+                            num_train_environments_per_cycle=num_train_env_per_cycle,
+                            num_test_environments_per_cycle=num_test_env_per_cycle,
                             num_extra_smiles_per_cycle=num_extra_smiles_per_cycle)

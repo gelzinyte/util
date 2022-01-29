@@ -19,7 +19,7 @@ function main()
 	ip_fname = parse_commandline()["param-fname"]
 
     println("proper training set")
-    actual_train_set = IPFitting.Data.read_xyz("/home/eg475/scripts/tests/files/tiny_gap.train_set.xyz", 
+    actual_train_set = IPFitting.Data.read_xyz("/home/eg475/scripts/tests/files/tiny_train_set.xyz", 
                                 energy_key="dft_energy", force_key="dft_forces");
 
 

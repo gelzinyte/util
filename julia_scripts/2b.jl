@@ -6,13 +6,18 @@ function parse_commandline()
     @add_arg_table s begin 
         "--param-fname", "-p"
             help="ace.json filename"
+        "--fname", "-t"
+            help="fname for plot"
     end
 	return parse_args(s)
 end
 
 function main()
-	ip_fname = parse_commandline()["param-fname"]
-    title = replace(ip_fname, ".json"=>"")
+    args = parse_commandline()
+	ip_fname = args["param-fname"]
+    fname = args["fname"]
+    # fname = replace(ip_fname, ".json"=>"")
+
 
     IP = read_dict(load_dict(ip_fname)["IP"])
 
@@ -37,8 +42,8 @@ function main()
     ylims!(p, (-10.0, 10.0))
     ylabel!(p, "ev/atom")
     xlabel!(p, "separation, Å")
-    title!(title, titlefontsize=8)
-    savefig(title*".2b.pdf")
+    title!("2b", titlefontsize=8)
+    savefig(fname)
 
 
 end

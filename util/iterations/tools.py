@@ -1,6 +1,7 @@
 import os
 import logging
 import random
+import subprocess
 from copy import deepcopy
 from pathlib import Path
 import pytest
@@ -28,6 +29,7 @@ from util.calculators import xtb2_plus_gap
 from util.bde import generate
 from util.plot import dataset
 from util.plot import rmse_scatter_evaled, multiple_error_files
+from util.util_config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -440,9 +442,23 @@ def run_tests(
         skip_if_prop_not_present=True,
     )
 
+    dimer_2b(calculator, tests_wdir)
+
     # other tests are coming sometime
     # CH dissociation curve
     # dimer curves (2b, total)
+
+
+
+def dimer_2b(calculator, tests_wdir):
+
+    ace_fname = calculator[2]["jsonpath"]
+    fname = tests_wdir / "ace_2b.pdf"
+
+    cfg = Config.load()
+    ace_2b_script_path = cfg["julia_2b_script"] 
+
+    subprocess.run(f"julia {ace_2b_script_path} --param-fname {ace_fname} --fname {fname}", shell=True)
 
 
 def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
@@ -621,6 +637,7 @@ def combine_plots(pred_prop_prefix, dft_prop_prefix, tests_wdir, cycle_idx, figs
 
     fnames = [
         f"{cycle_idx:02d}_ef_correlation_by_dataset_type_scatter.pdf",
+        f"ace_2b.pdf",
         f"{dft_prop_prefix}bde_vs_{pred_prop_prefix}bde_by_bde_type_scatter.pdf",
         f"{cycle_idx:02d}_training_set_for_{pred_prop_prefix}{cycle_idx+1:02d}_energy.pdf",
         f"{cycle_idx:02d}_training_set_for_{pred_prop_prefix}{cycle_idx+1:02d}_forces.pdf",
@@ -657,7 +674,7 @@ def update_tracker_plot(pred_prop_prefix, dft_prop_prefix, cycle_idx, figs_dir, 
                               output_dir=figs_dir,
                               prefix=f"up_to_{cycle_idx}",
                               color_info_name="dataset_type",
-                              xvals=range(cycle_idx+1)
+                              xvals=range(cycle_idx+1),
                               xlabel="iteration")
 
 
