@@ -1,3 +1,5 @@
+ENV["GKSwstype"]="nul"     
+
 using IPFitting, ACE, Plots, ArgParse 
 
 

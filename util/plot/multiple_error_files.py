@@ -30,7 +30,7 @@ def main(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name,
                                   ref_force_name=ref_force_name,
                                   pred_force_name=pred_force_name,
                                   all_atoms=all_atoms,
-                                  output_dir=output_dir,
+                                  output_dir = None,
                                   prefix=single_prefix,
                                   color_info_name=color_info_name,
                                   isolated_atoms=None,
@@ -42,6 +42,10 @@ def main(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name,
 
     if xvals is None:
         xvals = np.arange(1, len(all_plot_info)+1)
+    else:
+        original_prefixes = xvals
+
+    print("HI!")
 
     cmap = plt.get_cmap('tab10')
     colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
@@ -64,11 +68,11 @@ def main(ref_energy_name, pred_energy_name, ref_force_name, pred_force_name,
             ax.set_ylabel("Froce component RMSE, meV/Å")
 
         ax.legend(title=color_info_name)
-        ax.grid(color='lightgrey', ls=':')
+        ax.grid(color='lightgrey', ls=':', which='both')
         ax.set_yscale('log')
         ax.xaxis.set_major_locator(ticker.FixedLocator(xvals))
         ax.xaxis.set_major_formatter(ticker.FixedFormatter(original_prefixes))
-        ax.tick_params(axis='x', labelrotation=90)
+        # ax.tick_params(axis='x', labelrotation=90)
         if xlabel is not None:
             ax.set_xlabel(xlabel)
 

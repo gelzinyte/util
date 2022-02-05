@@ -46,7 +46,8 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, outputs,
     generic.run(inputs=inputs,
                 outputs=outputs,
                 calculator=calculator, properties=['energy'],
-                output_prefix=ip_prop_prefix)
+                output_prefix=ip_prop_prefix,
+                npool=0)
 
     return outputs.to_ConfigSet_in() 
 
@@ -54,7 +55,7 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, outputs,
 
 def everything(calculator, dft_bde_filename,
                dft_prop_prefix, ip_prop_prefix, wdir='ip_bde_wdir',
-               chunksize=10):
+               chunksize=10, output_dir='.'):
     """
 
      1. evaluate dft structures with ip
@@ -84,6 +85,7 @@ def everything(calculator, dft_bde_filename,
     calculator - (calculator, calc_args, calc_kwargs) construct for wfl
 
     """
+    dft_bde_filename = Path(dft_bde_filename)
     # check that expected info labels are there
     random_at = random.choice(read(dft_bde_filename, ':50'))
     assert f'{dft_prop_prefix}opt_mol_positions_hash' in random_at.info.keys()
@@ -103,7 +105,7 @@ def everything(calculator, dft_bde_filename,
     isolated_h_fname = wdir / (ip_prop_prefix + "isolated_H.xyz")
     dft_opt_bde_fname =  wdir / (dft_bde_with_ip_fname.stem + '.bde.xyz') 
     ip_reopt_bde_fname = wdir / (ip_reopt_with_dft_fname.stem + '.bde.xyz')
-    summary_file = dft_bde_filename.parent / (stem + '.' + ip_prop_prefix + "bde.xyz")
+    summary_file = Path(output_dir) / dft_bde_filename.parent / (stem + '.' + ip_prop_prefix + "bde.xyz")
 
     # for p in [dft_bde_with_ip_fname, ip_reopt_fname, ip_reopt_with_dft_fname, isolated_h_fname,
     #           dft_opt_bde_fname, ip_reopt_bde_fname, summary_file]:
@@ -117,7 +119,8 @@ def everything(calculator, dft_bde_filename,
                          outputs=outputs,
                          calculator=calculator,
                          properties=['energy', 'forces'],
-                         output_prefix=ip_prop_prefix)
+                         output_prefix=ip_prop_prefix,
+                         npool=0)
 
 
     # 2. Duplicate and relabel structures in-memory
@@ -134,7 +137,8 @@ def everything(calculator, dft_bde_filename,
                           outputs=outputs,
                           calculator=calculator,
                           prop_prefix=ip_prop_prefix,
-                          chunksize=chunksize)
+                          chunksize=chunksize,
+                          npool=0)
 
 
 
@@ -144,7 +148,8 @@ def everything(calculator, dft_bde_filename,
                          outputs=outputs,
                          calculator=calculator,
                          properties=['energy', 'forces'],
-                         output_prefix=ip_prop_prefix)
+                         output_prefix=ip_prop_prefix,
+                         npool=0)
 
 
     # 4. evaluate with DFT

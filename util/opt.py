@@ -10,12 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 def optimise(inputs, outputs, calculator, prop_prefix,  chunksize=1,
-             traj_step_interval=None):
+             traj_step_interval=None,npool=None):
     return iterable_loop(iterable=inputs, configset_out=outputs,
                          calculator=calculator, op=optimise_op,
                          chunksize=chunksize,
                          traj_step_interval=traj_step_interval,
-                         prop_prefix=prop_prefix)
+                         prop_prefix=prop_prefix, npool=npool)
 
 
 def optimise_op(atoms, calculator, prop_prefix, traj_step_interval=None):

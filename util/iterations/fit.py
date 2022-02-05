@@ -148,10 +148,10 @@ def fit(
     figs_dir = wdir / "figures"
     figs_dir.mkdir(exist_ok=True)
 
+    all_extra_smiles_csv = Path(all_extra_smiles_csv)
     if not (wdir / all_extra_smiles_csv.name).exists():
         it.manipulate_smiles_csv(all_extra_smiles_csv, wdir)
     all_extra_smiles_csv = wdir / all_extra_smiles_csv.name
-
 
     # setup orca parameters
     default_kw = Config.from_yaml(os.path.join(cfg["util_root"], "default_kwargs.yml"))
@@ -184,7 +184,6 @@ def fit(
         "results_prefix": pred_prop_prefix,
     }
     logger.info(f"MD params: {md_params}")
-
 
     # soap descriptor for cur params
     with open(soap_params_for_cur_fname, "r") as f:
@@ -297,6 +296,7 @@ def fit(
                 tests_wdir=tests_wdir,
                 bde_test_fname=bde_test_fname,
                 orca_kwargs=orca_kwargs,
+                output_dir = cycle_dir,
             )
 
         # 3. Select some smiles from the initial smiles csv
@@ -339,6 +339,7 @@ def fit(
             calculator=calculator,
             prop_prefix=pred_prop_prefix,
             traj_step_interval=None,
+            npool=0
         )
         # need to re-evaluate again, because energy is sometimes not written
         outputs = ConfigSet_out(
@@ -349,7 +350,8 @@ def fit(
                              outputs=outputs,
                              calculator=calculator, 
                              properties=["energy", "forces"], 
-                             output_prefix=pred_prop_prefix)
+                             output_prefix=pred_prop_prefix, 
+                             npool=0)
 
 
         # 6. filter out insane geometries
@@ -395,7 +397,7 @@ def fit(
         logger.info(f'{len(read(large_error_configs, ":"))/len(read(opt_fname, ":"))*100:.1f}% structures have large error; running MD on them')
         if len(read(large_error_configs, ':')) == 0:
             logger.info("all new config energy/force evaluations were within threshold, done with iterations?")
-            raise RuntimeError()
+            break
 
 
         # 9.1 remove old energies and forces
@@ -419,6 +421,7 @@ def fit(
             outputs=outputs,
             calculator=calculator,
             verbose=False,
+            npool=0,
             **md_params,
         )
         # need to re-evaluate again, because energy is sometimes not written
@@ -430,7 +433,8 @@ def fit(
                              outputs=outputs,
                              calculator=calculator, 
                              properties=["energy", "forces"], 
-                             output_prefix=pred_prop_prefix)
+                             output_prefix=pred_prop_prefix,
+                             npool=0)
 
 
 
@@ -446,7 +450,8 @@ def fit(
             num_bad_configs = len([at for at in outputs_bad.to_ConfigSet_in()])
             num_good_configs = len([at for at in outputs_good.to_ConfigSet_in()])
             if num_bad_configs / (num_bad_configs + num_good_configs) > 0.1:
-                raise RuntimeWarning("Too many bad geometries from MD")
+                # raise RuntimeWarning("Too many bad geometries from MD")
+                logger.warning("Many bad geometries from MD!!!!")
             elif num_bad_configs != 0:
                 logger.warning(f"Some had {num_bad_configs} bad geometries from md")
 
@@ -541,5 +546,16 @@ def fit(
         logger.info(f"cycle {cycle_idx} done. ")
 
 
-
     logger.info("Finished iterations")
+
+    it.summary_plots(
+        cycle_idx,
+        pred_prop_prefix=pred_prop_prefix,
+        dft_prop_prefix=dft_prop_prefix,
+        train_fname=train_set_fname,
+        test_fname=test_set_fname,
+        bde_fname=bde_test_fname,
+        ip_optimised_fname=opt_fname_w_dft,
+        train_extra_fname=train_extra_fname_dft,
+        test_extra_fname=test_extra_fname_dft,
+        tests_wdir=tests_wdir)

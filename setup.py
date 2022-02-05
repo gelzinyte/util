@@ -4,7 +4,7 @@ setuptools.setup(
     name='util',
     install_requires=[
         'click>=7.0', 'numpy', 'ase', 'pandas', 'pyyaml', 'tqdm', 'lxml',
-        'tabulate', 'seaborn', 'quippy-ase', 'pytest', 'PyPDF4'
+        'tabulate', 'seaborn', 'quippy-ase', 'pytest', 'PyPDF4', 'quippy-ase'
     ],
     entry_points="""
     [console_scripts]
