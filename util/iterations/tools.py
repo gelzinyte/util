@@ -613,9 +613,9 @@ def summary_plots(
         "train",
         f"bde_{dft_prop_prefix}optimised",
         f"bde_{pred_prop_prefix}reoptimised",
-        f"next_rdkit_{pred_prop_prefix}optimised",
-        "next_addition_from_md",
-        "next_addition_from_md",
+        f"next_rdkit_{pred_prop_prefix}opt",
+        "next train",
+        "next_train",
     ]
 
     for fname, expected_dset_type in zip(all_fnames, expected_dataset_types):
@@ -700,5 +700,69 @@ def update_tracker_plot(pred_prop_prefix, dft_prop_prefix, cycle_idx, figs_dir, 
                               color_info_name="dataset_type",
                               xvals=xvals,
                               xlabel="training_set_size")
+
+
+
+def process_opt_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_good_cfg_co, traj_sample_rule):
+    """
+    traj_sample_rule - how many/which configs to return from the good trajectory
+    "last" - only last is returned
+    otherwise that's the interval to sample at
+
+    """
+
+    doneness = sum([good_traj_configs_co.is_done(), bad_traj_bad_cfg_co.is_done(), bad_traj_good_cfg_co.is_done])
+    if doneness == 3:
+        logger.info("outputs_are_done, not re-processing the trajectories ")
+        return
+    elif doneness != 0:
+        raise RuntimeError("some outputs done, but not all!")
+
+    # divide into graphs 
+    trajs = configs.into_dict_of_labels(traj_ci, "graph_name")
+    
+    for graph_name, traj in trajs.items():
+
+        co_good = ConfigSet_out() 
+        co_bad = ConfigSet_in()
+        filter_configs_by_geometry(inputs=traj, outputs_good=co_good, outputs_bad=co_bad)
+        if len(cotl(co_bad)) == 0:
+            #  trajectory is reasonable, only need to return part of it
+            cfgs_good = cotl(co_good)
+            if traj_sample_rule == "last":
+                good_traj_configs_co.write(cfgs_good[-1])
+            else:
+                good_traj_configs_co.write(cfgs_good[::traj_sample_rule])
+        else:
+            # some of the trajectory is unreasonable
+            bad_traj_bad_cfg_co.write(co_bad.to_ConfigSet_in())
+            bad_traj_good_cfg_co.write(co_good.to_ConfigSet_in())
+    
+    good_traj_configs_co.end_write()
+    bad_traj_bad_cfg_co.end_write()
+    bad_traj_good_cfg_co.end_write()
+
+
+def cotl(co):
+    """configset_out to configset in to list"""
+    return [at for at in co.to_ConfigSet_out()]
+
+
+def sample_failed_trajectory(ci, co):
+
+    if co.is_done():
+        logger.info("Sub-sample is already done, returning")
+        return co.to_ConfigSet_in()
+
+    ci = [at for at in ci]
+    sample = ci[::20]
+    if len(sample) > 5:
+        co.write(sample)
+    else:
+        co.write(sample[:-5])
+
+    co.end_write()
+
+    return co.to_ConfigSet_in()
 
 

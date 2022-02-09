@@ -39,3 +39,4 @@ def optimise_op(atoms, calculator, prop_prefix, traj_step_interval=None):
 
     return all_trajs
 
+
