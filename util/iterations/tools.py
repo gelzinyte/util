@@ -773,12 +773,14 @@ def sample_failed_trajectory(ci, co):
         logger.info("Sub-sample is already done, returning")
         return co.to_ConfigSet_in()
 
+    # import pdb; pdb.set_trace()
+
     ci = [at for at in ci]
-    sample = ci[::20]
-    if len(sample) > 5:
+    sample = ci[::2]
+    if len(sample) < 5:
         co.write(sample)
     else:
-        co.write(sample[:-5])
+        co.write(sample[-4:-2])
 
     co.end_write()
 

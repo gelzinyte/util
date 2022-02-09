@@ -259,7 +259,7 @@ def fit(
         test_md_selection_fname = cycle_dir / f"14.1.{pred_prop_prefix}optimised.md.test_sample.xyz"
         train_md_selection_fname = cycle_dir / f"14.2.{pred_prop_prefix}optimised.md.train_sample.xyz"
         test_extra_fname_dft = cycle_dir / f"15.1.{pred_prop_prefix}optimised.md.test_sample.dft.xyz"
-        train_extra_fname_dft = cycle_dir / f"15.2.{pred_prop_prefix}optimised.md.train_sample.dft.xyz"
+        train_extra_fname_dft = cycle_dir / f"15.2.{pred_prop_prefix}optimised.md.extra_train_configs.dft.xyz"
 
         fit_dir = cycle_dir / "fit_dir"
         fit_dir.mkdir(exist_ok=True)
@@ -296,19 +296,19 @@ def fit(
 
         # 2. Run tests
         tests_wdir = cycle_dir / "tests"
-        if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
-            logger.info("running_tests")
-            it.run_tests(
-                calculator=calculator,
-                pred_prop_prefix=pred_prop_prefix,
-                dft_prop_prefix=dft_prop_prefix,
-                train_set_fname=train_set_fname,
-                test_set_fname=test_set_fname,
-                tests_wdir=tests_wdir,
-                bde_test_fname=bde_test_fname,
-                orca_kwargs=orca_kwargs,
-                output_dir = cycle_dir,
-            )
+        # if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
+        logger.info("running_tests")
+        it.run_tests(
+            calculator=calculator,
+            pred_prop_prefix=pred_prop_prefix,
+            dft_prop_prefix=dft_prop_prefix,
+            train_set_fname=train_set_fname,
+            test_set_fname=test_set_fname,
+            tests_wdir=tests_wdir,
+            bde_test_fname=bde_test_fname,
+            orca_kwargs=orca_kwargs,
+            output_dir = cycle_dir,
+        )
 
         # 3. Select some smiles from the initial smiles csv
         if not extra_smiles_for_this_cycle_csv.exists():
