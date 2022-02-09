@@ -180,7 +180,7 @@ def fit(
         "dt": 0.5,  # fs
         "temperature": md_temp,  # K
         "temperature_tau": 200,  # fs, somewhat quicker than recommended (???)
-        "traj_step_interval": 1,
+        "traj_step_interval": 2,
         "results_prefix": pred_prop_prefix,
     }
     logger.info(f"MD params: {md_params}")
@@ -232,8 +232,8 @@ def fit(
 
         extra_smiles_for_this_cycle_csv = cycle_dir / "02.extra_smiles.csv"
         opt_starts_fname = cycle_dir / "03.rdkit_mols_rads.xyz"
-        opt_traj_fn = cycle_dir / f"04.0.rdkit.{pred_prop_prefix}.opt_traj.xyz"
-        opt_traj_evaled_fname = cycle_dir / f"04.1.rdkit.{pred_prop_prefix}.opt_traj.{pred_prop_prefix[:-1]}.xyz"
+        opt_traj_fn = cycle_dir / f"04.0.rdkit.{pred_prop_prefix}opt_traj.xyz"
+        opt_traj_evaled_fname = cycle_dir / f"04.1.rdkit.{pred_prop_prefix}opt_traj.{pred_prop_prefix[:-1]}.xyz"
         good_opt_for_md_fname = cycle_dir / f"05.0.rdkit.{pred_prop_prefix}optimised.xyz"
         bad_opt_traj_bad_configs_fname = cycle_dir / f"05.1.rdkit.{pred_prop_prefix}bad_opt_traj_bad_configs.xyz"
         bad_opt_traj_good_configs_fn = cycle_dir / f"05.2.rdkit.{pred_prop_prefix}bad_opt_traj_good_configs.xyz"
@@ -366,16 +366,16 @@ def fit(
                              npool=None)
 
         # 6. process optimisation trajectories: check for bad geometry and process accordingly
-        good_traj_configs_co = ConfigSet_in(output_files=good_opt_for_md_fname,
+        good_traj_configs_co = ConfigSet_out(output_files=good_opt_for_md_fname,
                                    force=True, all_or_none=True,
-                                   set_tags={"datset_type": f"next_rdkit_{pred_prop_prefix}opt", "config_type": "optimised"})
-        bad_traj_bad_cfg_co = ConfigSet_in(output_files=bad_opt_traj_bad_configs_fname,
+                                   set_tags={"dataset_type": f"next_rdkit_{pred_prop_prefix}opt", "config_type": "optimised"})
+        bad_traj_bad_cfg_co = ConfigSet_out (output_files=bad_opt_traj_bad_configs_fname,
                                           force=True, all_or_none=True,
                                           set_tags={"config_type": "bad_opt_bad_config"})
-        bad_traj_good_cfg_co = ConfigSet_in(output_files=bad_opt_traj_good_configs_fn,
+        bad_traj_good_cfg_co = ConfigSet_out(output_files=bad_opt_traj_good_configs_fn,
                                           force=True, all_or_none=True,
                                           set_tags={"config_type": "bad_opt_good_config"})
-        it.process_opt_trajs(
+        it.process_trajs(
             traj_ci=inputs, 
             good_traj_configs_co=good_traj_configs_co,
             bad_traj_bad_cfg_co=bad_traj_bad_cfg_co,
@@ -383,16 +383,17 @@ def fit(
             traj_sample_rule="last") 
 
         # 7. slight digression - sub-sample the good geometries from geometry-failed trajectory
-        bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_opt_traj_good_configs_fn)
-        sample_co = ConfigSet_in(output_files=bad_opt_traj_good_configs_sample_for_train,
-                                          force=True, all_or_none=True)
-        it.sample_failed_trajectory(bad_traj_good_cfgs_ci=bad_traj_good_cfgs_ci, sample_co = sample_co)
+        if os.stat(bad_opt_traj_good_configs_fn).st_size != 0:
+            bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_opt_traj_good_configs_fn)
+            sample_co = ConfigSet_out(output_files=bad_opt_traj_good_configs_sample_for_train,
+                                            force=True, all_or_none=True)
+            it.sample_failed_trajectory(ci=bad_traj_good_cfgs_ci, co=sample_co)
 
 
         # 8. evaluate DFT
         logger.info("evaluatig dft on optimised structures")
         outputs = ConfigSet_out(output_files=good_opt_for_md_w_dft_fn, force=True, all_or_none=True)
-        inputs = ConfigSet_in(input_files=good_traj_configs_co)
+        inputs = ConfigSet_in(input_files=good_opt_for_md_fname)
         inputs = orca.evaluate(
             inputs=inputs,
             outputs=outputs,
@@ -504,16 +505,16 @@ def fit(
         #         logger.warning(f"Some had {num_bad_configs} bad geometries from md")
 
         # 11. process optimisation trajectories: check for bad geometry and process accordingly
-        good_traj_configs_co = ConfigSet_in(output_files=good_md_to_sample_fn,
+        good_traj_configs_co = ConfigSet_out(output_files=good_md_to_sample_fn,
                                    force=True, all_or_none=True,
-                                   set_tags={"datset_type": f"next_rdkit_{pred_prop_prefix}_md", "config_type": "md"})
-        bad_traj_bad_cfg_co = ConfigSet_in(output_files=bad_md_bad_configs_fn,
+                                   set_tags={"dataset_type": f"next_rdkit_{pred_prop_prefix}_md", "config_type": "md"})
+        bad_traj_bad_cfg_co = ConfigSet_out(output_files=bad_md_bad_configs_fn,
                                           force=True, all_or_none=True,
                                           set_tags={"config_type": "bad_opt_bad_config"})
-        bad_traj_good_cfg_co = ConfigSet_in(output_files=bad_md_good_configs_fn,
+        bad_traj_good_cfg_co = ConfigSet_out(output_files=bad_md_good_configs_fn,
                                           force=True, all_or_none=True,
                                           set_tags={"config_type": "bad_md_good_config"})
-        it.process_opt_trajs(
+        it.process_trajs(
             traj_ci=inputs, 
             good_traj_configs_co=good_traj_configs_co,
             bad_traj_bad_cfg_co=bad_traj_bad_cfg_co,
@@ -522,9 +523,9 @@ def fit(
 
         # 12. slight digression - sub-sample the good geometries from geometry-failed trajectory
         bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_md_good_configs_fn)
-        sample_co = ConfigSet_in(output_files=bad_md_good_configs_sample_train_fn,
+        sample_co = ConfigSet_out(output_files=bad_md_good_configs_sample_train_fn,
                                           force=True, all_or_none=True)
-        it.sample_failed_trajectory(bad_traj_good_cfgs_ci=bad_traj_good_cfgs_ci, sample_co=sample_co)
+        it.sample_failed_trajectory(ci=bad_traj_good_cfgs_ci, co=sample_co)
 
 
         # 13. Calculate soap descriptor

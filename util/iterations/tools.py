@@ -614,13 +614,16 @@ def summary_plots(
         f"bde_{dft_prop_prefix}optimised",
         f"bde_{pred_prop_prefix}reoptimised",
         f"next_rdkit_{pred_prop_prefix}opt",
-        "next train",
         "next_train",
+        "next_test",
     ]
 
+    # import pytest; pytest.set_trace()
     for fname, expected_dset_type in zip(all_fnames, expected_dataset_types):
         ats = read(fname, ":")
         at = ats[0]
+        print(at.info["dataset_type"]) 
+        print(expected_dset_type)
         assert at.info["dataset_type"] == expected_dset_type
         assert pred_prop_prefix + "energy" in at.info.keys()
         assert dft_prop_prefix + "energy" in at.info.keys()
@@ -703,7 +706,7 @@ def update_tracker_plot(pred_prop_prefix, dft_prop_prefix, cycle_idx, figs_dir, 
 
 
 
-def process_opt_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_good_cfg_co, traj_sample_rule):
+def process_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_good_cfg_co, traj_sample_rule):
     """
     traj_sample_rule - how many/which configs to return from the good trajectory
     "last" - only last is returned
@@ -711,7 +714,7 @@ def process_opt_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_tr
 
     """
 
-    doneness = sum([good_traj_configs_co.is_done(), bad_traj_bad_cfg_co.is_done(), bad_traj_good_cfg_co.is_done])
+    doneness = sum([good_traj_configs_co.is_done(), bad_traj_bad_cfg_co.is_done(), bad_traj_good_cfg_co.is_done()])
     if doneness == 3:
         logger.info("outputs_are_done, not re-processing the trajectories ")
         return
@@ -721,10 +724,14 @@ def process_opt_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_tr
     # divide into graphs 
     trajs = configs.into_dict_of_labels(traj_ci, "graph_name")
     
+    count_good_traj = 0
+    count_bad_traj_good_cfg = 0
+    count_bad_traj_bad_cfg = 0
+
     for graph_name, traj in trajs.items():
 
         co_good = ConfigSet_out() 
-        co_bad = ConfigSet_in()
+        co_bad = ConfigSet_out()
         filter_configs_by_geometry(inputs=traj, outputs_good=co_good, outputs_bad=co_bad)
         if len(cotl(co_bad)) == 0:
             #  trajectory is reasonable, only need to return part of it
@@ -733,10 +740,22 @@ def process_opt_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_tr
                 good_traj_configs_co.write(cfgs_good[-1])
             else:
                 good_traj_configs_co.write(cfgs_good[::traj_sample_rule])
+            count_good_traj += 1
         else:
             # some of the trajectory is unreasonable
-            bad_traj_bad_cfg_co.write(co_bad.to_ConfigSet_in())
-            bad_traj_good_cfg_co.write(co_good.to_ConfigSet_in())
+            good_cfgs = [at for at in co_good.to_ConfigSet_in()]
+            bad_cfgs = [at for at in co_bad.to_ConfigSet_in()]
+            bad_traj_bad_cfg_co.write(bad_cfgs)
+            bad_traj_good_cfg_co.write(good_cfgs)
+            count_bad_traj_good_cfg += len(good_cfgs)
+            count_bad_traj_bad_cfg += len(bad_cfgs)
+
+    if count_good_traj == 0:
+        good_traj_configs_co.write([])
+    if count_bad_traj_good_cfg == 0:
+        bad_traj_good_cfg_co.write([])
+    if count_bad_traj_bad_cfg == 0:
+        bad_traj_bad_cfg_co.write([])
     
     good_traj_configs_co.end_write()
     bad_traj_bad_cfg_co.end_write()
@@ -745,7 +764,7 @@ def process_opt_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_tr
 
 def cotl(co):
     """configset_out to configset in to list"""
-    return [at for at in co.to_ConfigSet_out()]
+    return [at for at in co.to_ConfigSet_in()]
 
 
 def sample_failed_trajectory(ci, co):

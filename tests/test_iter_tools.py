@@ -234,3 +234,65 @@ def test_check_dft(tmp_path):
     logger.info(f"orca_kwargs: {orca_kwargs}") 
 
     it.check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tmp_path / "dft_check_wdir")
+
+
+def test_process_trajs():
+
+    at0 = molecule("CH4")
+
+    # check just that everything gets picked up as it should
+    traj_1 = [at0.copy() for _ in range(4)]
+    for at in traj_1:
+        at.info["graph_name"] = "good_traj"
+    traj_1[-1].info["config_type"] = "last"
+
+    traj_2 = [at0.copy() for _ in range(4)]
+    for at in traj_2:
+        at.info["graph_name"] = "bad_traj"
+
+    traj_2[2].set_distance(0, 1, 5)
+    traj_2[3].set_distance(0, 1, 5)
+
+    ci = ConfigSet_in(input_configs=traj_1 + traj_2)
+    co_good_traj = ConfigSet_out()
+    co_bad_traj_good_cfg = ConfigSet_out()
+    co_bad_traj_bad_cfg = ConfigSet_out()
+
+    it.process_trajs(ci, co_good_traj, co_bad_traj_bad_cfg, co_bad_traj_good_cfg, "last")
+
+    assert [at for at in co_good_traj.to_ConfigSet_in()][0].info["config_type"] == "last"
+    assert [at for at in co_good_traj.to_ConfigSet_in()][0].info["graph_name"] == "good_traj"
+
+    assert len([at for at in co_bad_traj_bad_cfg.to_ConfigSet_in()]) == 2
+    assert len([at for at in co_bad_traj_good_cfg.to_ConfigSet_in()]) == 2
+
+    # ~check that can get empty files~
+    # actually I'm not writing to files...
+    traj_1 = [at0.copy() for _ in range(4)]
+    for at in traj_1:
+        at.info["graph_name"] = "good_traj"
+    traj_1[-1].info["config_type"] = "last"
+
+    traj_2 = [at0.copy() for _ in range(4)]
+    for at in traj_2:
+        at.info["graph_name"] = "bad_traj"
+
+    ci = ConfigSet_in(input_configs=traj_1 + traj_2)
+    co_good_traj = ConfigSet_out()
+    co_bad_traj_good_cfg = ConfigSet_out()
+    co_bad_traj_bad_cfg = ConfigSet_out()
+
+    it.process_trajs(ci, co_good_traj, co_bad_traj_bad_cfg, co_bad_traj_good_cfg, "last")
+    assert len([at for at in co_good_traj.to_ConfigSet_in()]) == 2
+    assert len([at for at in co_bad_traj_good_cfg.to_ConfigSet_in()]) == 0
+
+
+
+
+
+
+
+
+
+
+
