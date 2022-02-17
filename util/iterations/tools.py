@@ -716,7 +716,7 @@ def process_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_g
 
     doneness = sum([good_traj_configs_co.is_done(), bad_traj_bad_cfg_co.is_done(), bad_traj_good_cfg_co.is_done()])
     if doneness == 3:
-        logger.info("outputs_are_done, not re-processing the trajectories ")
+        logger.info("outputs_are_done, not re-splitting the full trajectories ")
         return
     elif doneness != 0:
         raise RuntimeError("some outputs done, but not all!")
@@ -767,23 +767,52 @@ def cotl(co):
     return [at for at in co.to_ConfigSet_in()]
 
 
-def sample_failed_trajectory(ci, co):
+def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pred_prop_prefix):
 
     if co.is_done():
-        logger.info("Sub-sample is already done, returning")
+        logger.info("Sub-sampling is already done, returning")
         return co.to_ConfigSet_in()
 
-    # import pdb; pdb.set_trace()
+    dft_dir = cycle_dir / "sample_failed_traj_DFT"
+    dft_dir.mkdir(exist_ok=True)
 
-    ci = [at for at in ci]
-    sample = ci[::2]
-    if len(sample) < 5:
-        co.write(sample)
-    else:
-        co.write(sample[-4:-2])
+    from util import configs
 
+    trajs = configs.into_dict_of_labels(ci, "graph_name")
+
+    did_sth = False
+    for label, traj in trajs.items():
+        # check first 5 with DFT
+        dft_sample_ci = ConfigSet_in(input_configs=[at.copy() for at in traj[0:10]])
+        dft_sample_co = ConfigSet_out(output_files= dft_dir / f"{label}.dft.xyz")
+        orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
+                      orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
+                      keep_files=False, base_rundir=dft_dir/"orca_wdir")        
+
+        configs = [at for at in dft_sample_co.to_ConfigSet_in()]
+        for idx, at in enumerate(configs):
+            max_fmag = np.max(f_mag(at.arrays[f"{dft_prop_prefix}forces"]))
+            if max_fmag > 25:  # eV/A
+                logger.info(f"{label}: found large max DFT forces: {max_fmag:.3f} eV, picking everything up to here")
+                co.write(configs[:idx])
+                break
+
+        initial_ace_forces = np.max(f_mag(traj[0].arrays[f"{pred_prop_prefix}forces"]))
+        logger.info(f"Initial ace max at force mag: {initial_ace_forces:.3f}eV")
+        for idx, at in enumerate(traj):
+            max_pred_fcomp = np.max(f_mag(at.arrays[f"{pred_prop_prefix}forces"]))
+            if max_pred_fcomp > initial_ace_forces:
+                logger.info(f"{label}: found {pred_prop_prefix} forces ({max_pred_fcomp:.3f}) > initial ({initial_ace_forces:.3f})")
+                co.write(traj[idx-10:idx:2])
+                break
+
+        co.write(traj[-6::2])
+    
     co.end_write()
 
     return co.to_ConfigSet_in()
+
+def f_mag(forces):
+    return np.array([np.linalg.norm(forces[idx,:]) for idx in range(len(forces))])
 
 

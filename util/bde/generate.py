@@ -111,45 +111,59 @@ def everything(calculator, dft_bde_filename,
     #           dft_opt_bde_fname, ip_reopt_bde_fname, summary_file]:
     #     print(p)
 
-    # 1. evaluate structures with calculator
-    logger.info("evaluating IP on dft-optimised structures")
-    inputs = ConfigSet_in(input_files=dft_bde_filename)
-    outputs = ConfigSet_out(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
-    inputs = generic.run(inputs=inputs,
-                         outputs=outputs,
-                         calculator=calculator,
-                         properties=['energy', 'forces'],
-                         output_prefix=ip_prop_prefix,
-                         npool=0)
+    for _ in range(30):
+        try:
+            # 1. evaluate structures with calculator
+            logger.info("evaluating IP on dft-optimised structures")
+            inputs = ConfigSet_in(input_files=dft_bde_filename)
+            outputs = ConfigSet_out(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
+            inputs = generic.run(inputs=inputs,
+                                outputs=outputs,
+                                calculator=calculator,
+                                properties=['energy', 'forces'],
+                                output_prefix=ip_prop_prefix,
+                                npool=0)
+        except:
+            continue
+        break
 
 
     # 2. Duplicate and relabel structures in-memory
     outputs = ConfigSet_out()
     inputs = _prepare_structures(inputs, outputs)
 
-    # 3. Optimise with interatomic potential
-    logger.info('IP-optimising DFT structures')
-    outputs = ConfigSet_out(output_files=ip_reopt_fname,
-                            force=True, all_or_none=True,
-                            set_tags={'bde_config_type': f"{ip_prop_prefix}optimised",
-                                      'dataset_type': f"bde_{ip_prop_prefix}reoptimised"})
-    inputs = opt.optimise(inputs=inputs,
-                          outputs=outputs,
-                          calculator=calculator,
-                          prop_prefix=ip_prop_prefix,
-                          chunksize=chunksize,
-                          npool=0)
+    for _ in range(30):
+        try:
+            # 3. Optimise with interatomic potential
+            logger.info('IP-optimising DFT structures')
+            outputs = ConfigSet_out(output_files=ip_reopt_fname,
+                                    force=True, all_or_none=True,
+                                    set_tags={'bde_config_type': f"{ip_prop_prefix}optimised",
+                                            'dataset_type': f"bde_{ip_prop_prefix}reoptimised"})
+            inputs = opt.optimise(inputs=inputs,
+                                outputs=outputs,
+                                calculator=calculator,
+                                prop_prefix=ip_prop_prefix,
+                                chunksize=chunksize,
+                                npool=0)
+        except:
+            continue
+        break
 
 
-
-    # 3.1 evaluate with interatomic potential
-    outputs = ConfigSet_out(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
-    inputs = generic.run(inputs=inputs,
-                         outputs=outputs,
-                         calculator=calculator,
-                         properties=['energy', 'forces'],
-                         output_prefix=ip_prop_prefix,
-                         npool=0)
+    for _ in range(30):
+        try:
+            # 3.1 evaluate with interatomic potential
+            outputs = ConfigSet_out(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
+            inputs = generic.run(inputs=inputs,
+                                outputs=outputs,
+                                calculator=calculator,
+                                properties=['energy', 'forces'],
+                                output_prefix=ip_prop_prefix,
+                                npool=0)
+        except:
+            continue
+        break
 
 
     # 4. evaluate with DFT
