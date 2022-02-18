@@ -806,7 +806,7 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
                 co.write(traj[idx-10:idx:2])
                 break
 
-        co.write(traj[-6::2])
+        co.write(traj[-10::5])
     
     co.end_write()
 
