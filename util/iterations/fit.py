@@ -298,17 +298,17 @@ def fit(
         tests_wdir = cycle_dir / "tests"
         if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
             logger.info("running_tests")
-            it.run_tests(
-                calculator=calculator,
-                pred_prop_prefix=pred_prop_prefix,
-                dft_prop_prefix=dft_prop_prefix,
-                train_set_fname=train_set_fname,
-                test_set_fname=test_set_fname,
-                tests_wdir=tests_wdir,
-                bde_test_fname=bde_test_fname,
-                orca_kwargs=orca_kwargs,
-                output_dir = cycle_dir,
-            )
+            # it.run_tests(
+            #     calculator=calculator,
+            #     pred_prop_prefix=pred_prop_prefix,
+            #     dft_prop_prefix=dft_prop_prefix,
+            #     train_set_fname=train_set_fname,
+            #     test_set_fname=test_set_fname,
+            #     tests_wdir=tests_wdir,
+            #     bde_test_fname=bde_test_fname,
+            #     orca_kwargs=orca_kwargs,
+            #     output_dir = cycle_dir,
+            # )
 
         # 3. Select some smiles from the initial smiles csv
         if not extra_smiles_for_this_cycle_csv.exists():
@@ -544,11 +544,12 @@ def fit(
             traj_sample_rule=100) 
 
         # 12. slight digression - sub-sample the good geometries from geometry-failed trajectory
-        bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_md_good_configs_fn)
-        sample_co = ConfigSet_out(output_files=bad_md_good_configs_sample_train_fn,
-                                          force=True, all_or_none=True)
-        it.sample_failed_trajectory(ci=bad_traj_good_cfgs_ci, co=sample_co, orca_kwargs=orca_kwargs, 
-                                    dft_prop_prefix=dft_prop_prefix, cycle_dir=cycle_dir, pred_prop_prefix=pred_prop_prefix)
+        if os.stat(bad_md_good_configs_fn).st_size !=0: 
+            bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_md_good_configs_fn)
+            sample_co = ConfigSet_out(output_files=bad_md_good_configs_sample_train_fn,
+                                            force=True, all_or_none=True)
+            it.sample_failed_trajectory(ci=bad_traj_good_cfgs_ci, co=sample_co, orca_kwargs=orca_kwargs, 
+                                        dft_prop_prefix=dft_prop_prefix, cycle_dir=cycle_dir, pred_prop_prefix=pred_prop_prefix)
 
 
         # 13. Calculate soap descriptor
@@ -600,10 +601,17 @@ def fit(
             base_rundir=cycle_dir / "orca_wdir_on_extra_test")
 
         # next: all extra for training set
-        inputs = ConfigSet_in(
-            input_files=[train_md_selection_fname,
-                         bad_opt_traj_good_configs_sample_for_train,
-                         bad_md_good_configs_sample_train_fn])
+        input_files = [train_md_selection_fname]
+
+        if bad_opt_traj_good_configs_sample_for_train.exists() and \
+            os.stat(bad_opt_traj_good_configs_sample_for_train).st_size != 0:
+            input_files.append(bad_opt_traj_good_configs_sample_for_train)
+
+        if bad_md_good_configs_sample_train_fn.exists() and \
+            os.stat(bad_md_good_configs_sample_train_fn).st_size != 0:
+            input_files.append(bad_md_good_configs_sample_train_fn)
+
+        inputs = ConfigSet_in(input_files=input_files)
         outputs = ConfigSet_out(output_files=train_extra_fname_dft,
             force=True, all_or_none=True, set_tags={"dataset_type": "next_train"})
 
@@ -617,20 +625,20 @@ def fit(
         )
 
         # 14. do summary plots
-        it.summary_plots(
-            cycle_idx,
-            pred_prop_prefix=pred_prop_prefix,
-            dft_prop_prefix=dft_prop_prefix,
-            train_fname=train_set_fname,
-            test_fname=test_set_fname,
-            bde_fname=bde_test_fname,
-            ip_optimised_fname=good_opt_for_md_w_dft_fn,
-            train_extra_fname=train_extra_fname_dft,
-            test_extra_fname=test_extra_fname_dft,
-            tests_wdir=tests_wdir,
-        )
+        # it.summary_plots(
+        #     cycle_idx,
+        #     pred_prop_prefix=pred_prop_prefix,
+        #     dft_prop_prefix=dft_prop_prefix,
+        #     train_fname=train_set_fname,
+        #     test_fname=test_set_fname,
+        #     bde_fname=bde_test_fname,
+        #     ip_optimised_fname=good_opt_for_md_w_dft_fn,
+        #     train_extra_fname=train_extra_fname_dft,
+        #     test_extra_fname=test_extra_fname_dft,
+        #     tests_wdir=tests_wdir,
+        # )
 
-        it.combine_plots(pred_prop_prefix=pred_prop_prefix, dft_prop_prefix=dft_prop_prefix, tests_wdir=tests_wdir, cycle_idx=cycle_idx, figs_dir=figs_dir, wdir=wdir)
+        # it.combine_plots(pred_prop_prefix=pred_prop_prefix, dft_prop_prefix=dft_prop_prefix, tests_wdir=tests_wdir, cycle_idx=cycle_idx, figs_dir=figs_dir, wdir=wdir)
 
         # 15. Combine datasets
         if not next_train_set_fname.exists():

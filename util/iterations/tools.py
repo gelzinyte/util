@@ -780,37 +780,98 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
 
     trajs = configs.into_dict_of_labels(ci, "graph_name")
 
-    did_sth = False
+    logger.info(f"Number of failed trajectories: {len(trajs)}")
+
     for label, traj in trajs.items():
-        # check first 5 with DFT
+        found_good = False
+        logger.info(f"{label}: checking first couple of configs from trajectory")
         dft_sample_ci = ConfigSet_in(input_configs=[at.copy() for at in traj[0:10]])
         dft_sample_co = ConfigSet_out(output_files= dft_dir / f"{label}.dft.xyz")
         orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
                       orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
                       keep_files=False, base_rundir=dft_dir/"orca_wdir")        
 
-        configs = [at for at in dft_sample_co.to_ConfigSet_in()]
-        for idx, at in enumerate(configs):
-            max_fmag = np.max(f_mag(at.arrays[f"{dft_prop_prefix}forces"]))
-            if max_fmag > 25:  # eV/A
-                logger.info(f"{label}: found large max DFT forces: {max_fmag:.3f} eV, picking everything up to here")
-                co.write(configs[:idx])
+        cfgs = [at for at in dft_sample_co.to_ConfigSet_in()]
+        for idx, at in enumerate(cfgs):
+            if found_good:
+                break
+            is_accurate = check_accuracy(at, dft_prop_prefix, pred_prop_prefix)
+            if not is_accurate:
+                found_good = True
+                logger.info(f"Picked this one!: {cfgs[idx-1].info}")
+                co.write(cfgs[idx-1])
                 break
 
-        initial_ace_forces = np.max(f_mag(traj[0].arrays[f"{pred_prop_prefix}forces"]))
-        logger.info(f"Initial ace max at force mag: {initial_ace_forces:.3f}eV")
-        for idx, at in enumerate(traj):
-            max_pred_fcomp = np.max(f_mag(at.arrays[f"{pred_prop_prefix}forces"]))
-            if max_pred_fcomp > initial_ace_forces:
-                logger.info(f"{label}: found {pred_prop_prefix} forces ({max_pred_fcomp:.3f}) > initial ({initial_ace_forces:.3f})")
-                co.write(traj[idx-10:idx:2])
+        if not found_good:
+            logger.info(f"{label}: going through the trajectory in reverse")
+        # iterate in reverse until found first good one
+        for group_idx, at_group in enumerate(util.grouper(reversed(traj), 8)):
+            if found_good:
                 break
-
-        co.write(traj[-10::5])
+            at_group = [at for at in at_group if at is not None]
+            dft_sample_ci = ConfigSet_in(input_configs=at_group)
+            dft_sample_co = ConfigSet_out(output_files= dft_dir / f"{label}.{group_idx}.dft.xyz")
+            orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
+                        orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
+                        keep_files=False, base_rundir=dft_dir/"orca_wdir")        
+                
+            for at in dft_sample_co.to_ConfigSet_in():
+                is_accurate = check_accuracy(at, dft_prop_prefix, pred_prop_prefix)
+                if is_accurate:
+                    logger.info(f"Picked this one!: {at.info}")
+                    found_good = True
+                    co.write(at)
+                    break
     
     co.end_write()
 
     return co.to_ConfigSet_in()
+
+def check_accuracy(at, dft_prop_prefix, pred_prop_prefix):
+    dft_forces = at.arrays[f'{dft_prop_prefix}forces']
+    pred_forces = at.arrays[f'{pred_prop_prefix}forces']
+
+    dft_f_mags =  f_mag(dft_forces)
+    pred_f_mags = f_mag(pred_forces)
+    max_dft_f_mag = np.max(dft_f_mags)
+    max_pred_f_mag = np.max(pred_f_mags)
+    ratio = max_dft_f_mag / max_pred_f_mag
+
+    if max_pred_f_mag > 15 or max_dft_f_mag > 15:
+        logger.info("atom force magnitude more than 15 eV/A")
+        return False
+
+    if max_pred_f_mag < 1:
+        # logger.info("max per atom force mag below 1 eV/A")
+        return True
+
+    if ratio > 4 or ratio < 0.25:
+        logger.info(f"Forces raio more than 4, graph_name {at.info}")
+        return False 
+
+    angles = get_angles(dft_forces, pred_forces)
+    idx = np.argmax(angles)
+    max_angle = np.max(angles)
+
+    if dft_f_mags[idx] < 1 and pred_f_mags[idx] < 1:
+        # logger.info(f"largest angle force magnitude below 1 eV/A (at {idx}. {dft_f_mags[idx]:.3f} or {pred_f_mags[idx]:.3f})")
+        return True
+    
+    if max_angle > 45:
+        logger.info(f"angle more than 45 degrees, at no {idx} {at.info}")
+        return False
+
+    # logger.info("Count this config okay")
+    return True
+    
+
+def angle(x, y):
+    """x, y: 3-element vectors"""
+    return np.rad2deg(np.arccos(np.dot(x, y) / (np.linalg.norm(x) * np.linalg.norm(y))))
+
+def get_angles(forces1, forces2):
+    return np.array([angle(forces1[idx,:], forces2[idx,:]) for idx in range(len(forces1))])
+
 
 def f_mag(forces):
     return np.array([np.linalg.norm(forces[idx,:]) for idx in range(len(forces))])
