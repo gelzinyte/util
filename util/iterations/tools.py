@@ -798,8 +798,9 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
             is_accurate = check_accuracy(at, dft_prop_prefix, pred_prop_prefix)
             if not is_accurate:
                 found_good = True
-                logger.info(f"Picked this one!: {cfgs[idx-1].info}")
-                co.write(cfgs[idx-1])
+                picked_at = cfgs[idx-1]
+                logger.info(f"Picked this one!: {picked_at.info}")
+                co.write(picked_at)
                 break
 
         if not found_good:
@@ -837,31 +838,29 @@ def check_accuracy(at, dft_prop_prefix, pred_prop_prefix):
     max_pred_f_mag = np.max(pred_f_mags)
     ratio = max_dft_f_mag / max_pred_f_mag
 
-    if max_pred_f_mag > 15 or max_dft_f_mag > 15:
-        logger.info("atom force magnitude more than 15 eV/A")
-        return False
-
-    if max_pred_f_mag < 1:
+    if max_pred_f_mag < 1 and max_dft_f_mag < 1:
         # logger.info("max per atom force mag below 1 eV/A")
         return True
 
+    if max_pred_f_mag > 10 or max_dft_f_mag > 10:
+        logger.info("atom force magnitude more than 10 eV/A")
+        return False
+
+    
     if ratio > 4 or ratio < 0.25:
         logger.info(f"Forces raio more than 4, graph_name {at.info}")
         return False 
 
     angles = get_angles(dft_forces, pred_forces)
-    idx = np.argmax(angles)
-    max_angle = np.max(angles)
+    large_angles_idc = np.where(angles > 45)[0]
 
-    if dft_f_mags[idx] < 1 and pred_f_mags[idx] < 1:
-        # logger.info(f"largest angle force magnitude below 1 eV/A (at {idx}. {dft_f_mags[idx]:.3f} or {pred_f_mags[idx]:.3f})")
-        return True
-    
-    if max_angle > 45:
-        logger.info(f"angle more than 45 degrees, at no {idx} {at.info}")
-        return False
+    for idx in large_angles_idc:
+        if dft_f_mags[idx] < 1 and pred_f_mags[idx] < 1:
+            return True
+        else:
+            logger.info(f"angle more than 45 degrees, at no {idx} {at.info}")
+            return False
 
-    # logger.info("Count this config okay")
     return True
     
 
