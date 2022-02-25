@@ -22,6 +22,8 @@ def read_orca_stuff(output_xyz, orca_label, input_xyz):
 @click.option('--output-dir', show_default=True,
               default='/data/eg475/carbyne/calculate/outputs' )
 @click.option('--task' )#, type=click.Choice(['calculate, density_plots']) )
+@click.option('--method', help='"uks_cc-pvdz" or "dlpno-ccsd_cc-pvdz", to speed things up')
+@click.option("--spin", help="'singlet' or 'triplet, to speed things up")
 @click.option('--submit', is_flag=True)
 def calculate(structures_dir,
         uks_orca_template_fname,
@@ -29,6 +31,8 @@ def calculate(structures_dir,
          sub_template_fname,
          output_dir,
             task,
+        method, 
+        spin,
          submit=False):
 
     from util import cc_results
@@ -39,7 +43,9 @@ def calculate(structures_dir,
                          sub_template_fname=sub_template_fname,
                          output_dir=output_dir,
                          task=task,
-                         submit=submit)
+                         submit=submit,
+                         method=method, 
+                         spin=spin)
 
 
 

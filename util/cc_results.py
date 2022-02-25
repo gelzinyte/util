@@ -29,14 +29,37 @@ def main(
     output_dir,
     task,
     submit=False,
+    method=None,
+    spin=None
 ):
 
     print(task)
 
-    multiplicities = [1, 3]
-    multiplicities_names = ["singlet", "triplet"]
-    methods = ["uks_cc-pvdz", "dlpno-ccsd_cc-pvdz"]
-    template_fnames = [uks_orca_template_fname, cc_orca_template_fname]
+    if spin is None:
+        multiplicities = [1, 3]
+        multiplicities_names = ["singlet", "triplet"]
+    elif spin=="singlet":
+        multiplicities = [1]
+        multiplicities_names = ["singlet"]
+    elif spin=="triplet":
+        multiplicities = [3]
+        multiplicities_names = ["triplet"]
+    else:
+        raise RuntimeError("wrong multiplicity")
+
+
+    if method is None:
+        methods = ["uks_cc-pvdz", "dlpno-ccsd_cc-pvdz"]
+        template_fnames = [uks_orca_template_fname, cc_orca_template_fname]
+    elif method == "uks_cc-pvdz":
+        methods = [method]
+        template_fnames = [uks_orca_template_fname]
+    elif method == "dlpno-ccsd_cc-pvdz":
+        methods = [method]
+        template_fnames = [cc_orca_template_fname]
+    else:
+        raise RuntimeError("wrong method")
+
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -82,14 +105,16 @@ def main(
 
 def plot_densities(calculation_stem, method):
 
+    grid = (5000, 50, 50)
+
     plot_scf = (
-        f'printf "5\n7\n4\n200\n1\n2\ny\n10\n1\n3\ny\n10\n11" | '
+        f'printf "5\n7\n4\n{grid[0]} {grid[1]} {grid[2]}\n1\n2\ny\n10\n1\n3\ny\n10\n11" | '
         f"orca_plot "
         f"{calculation_stem}.gbw -i"
     )
 
     plot_mdci = (
-        f'printf "5\n7\n4\n200\n1\n7\ny\n10\n1\n8\ny\n10\n11" | '
+        f'printf "5\n7\n4\n{grid[0]} {grid[1]} {grid[2]}\n1\n7\ny\n10\n1\n8\ny\n10\n11" | '
         f"orca_plot "
         f"{calculation_stem}.gbw -i"
     )
@@ -98,31 +123,31 @@ def plot_densities(calculation_stem, method):
 
     if method == "uks_cc-pvdz":
         shutil.move(
-            f"{calculation_stem}.eldens.cube", f"{calculation_stem}.uks_scf.eldens.cube"
+            f"{calculation_stem}.eldens.cube", f"{calculation_stem}.uks_scf.eldens.{grid[0]}x{grid[1]}x{grid[2]}.cube"
         )
         shutil.move(
             f"{calculation_stem}.spindens.cube",
-            f"{calculation_stem}.uks_scf.spindens.cube",
+            f"{calculation_stem}.uks_scf.spindens.{grid[0]}x{grid[1]}x{grid[2]}.cube",
         )
 
     elif method == "dlpno-ccsd_cc-pvdz":
 
         shutil.move(
-            f"{calculation_stem}.eldens.cube", f"{calculation_stem}.uhf_scf.eldens.cube"
+            f"{calculation_stem}.eldens.cube", f"{calculation_stem}.uhf_scf.eldens.{grid[0]}x{grid[1]}x{grid[2]}.cube"
         )
         shutil.move(
             f"{calculation_stem}.spindens.cube",
-            f"{calculation_stem}.uhf_scf.spindens.cube",
+            f"{calculation_stem}.uhf_scf.spindens.{grid[0]}x{grid[1]}x{grid[2]}.cube",
         )
 
         subprocess.run(plot_mdci, shell=True)
 
         shutil.move(
-            f"{calculation_stem}.eldens.cube", f"{calculation_stem}.mdci.eldens.cube"
+            f"{calculation_stem}.eldens.cube", f"{calculation_stem}.cc_unrelaxed.eldens.{grid[0]}x{grid[1]}x{grid[2]}.cube"
         )
         shutil.move(
             f"{calculation_stem}.spindens.cube",
-            f"{calculation_stem}.mdci.spindens.cube",
+            f"{calculation_stem}.cc_unrelaxed.spindens.{grid[0]}x{grid[1]}x{grid[2]}.cube",
         )
 
 
