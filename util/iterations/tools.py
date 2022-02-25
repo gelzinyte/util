@@ -806,7 +806,11 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
         if not found_good:
             logger.info(f"{label}: going through the trajectory in reverse")
         # iterate in reverse until found first good one
-        for group_idx, at_group in enumerate(util.grouper(reversed(traj), 8)):
+        if "NSLOTS" in os.environ:
+            chunksize = int(os.environ["NSLOTS"])
+        else:
+            chunksize=8
+        for group_idx, at_group in enumerate(util.grouper(reversed(traj), chunksize)):
             if found_good:
                 break
             at_group = [at for at in at_group if at is not None]
@@ -823,6 +827,8 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
                     found_good = True
                     co.write(at)
                     break
+        else:
+            logger.info(f"found no suitable configs for {at.info}")
     
     co.end_write()
 
@@ -858,7 +864,7 @@ def check_accuracy(at, dft_prop_prefix, pred_prop_prefix):
         if dft_f_mags[idx] < 1 and pred_f_mags[idx] < 1:
             return True
         else:
-            logger.info(f"angle more than 45 degrees, at no {idx} {at.info}")
+            logger.info(f"angle more than 45 degrees, at no {idx}")
             return False
 
     return True
