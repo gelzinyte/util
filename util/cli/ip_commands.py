@@ -57,12 +57,12 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 @click.option('--all-smiles-csv', help='csv with ALL smiles to be added')
 @click.option('--md-temp', type=click.FLOAT, default=500, show_default=True,
               help='temperature to run md at')
-@click.option('--energy-error-per-atom-threshold', type=click.FLOAT,
-              help='Threshold to accept predictions as accurate')
-@click.option("--energy-error-total-threshold", type=click.FLOAT,
-              help='Threshold to accept predictions as accurate')
-@click.option('--max-f-comp-error-threshold', type=click.FLOAT,
-              help='Threshold to accept predictions as accurate')
+# @click.option('--energy-error-per-atom-threshold', type=click.FLOAT,
+#               help='Threshold to accept predictions as accurate')
+# @click.option("--energy-error-total-threshold", type=click.FLOAT,
+#               help='Threshold to accept predictions as accurate')
+# @click.option('--max-f-comp-error-threshold', type=click.FLOAT,
+#               help='Threshold to accept predictions as accurate')
 @click.option('--wdir', default='runs', show_default=True)
 @click.option('--ref-type', default='dft', help='fit to dft data only for now')
 @click.option('--ip-type', type=click.Choice(["ace"]), help='fit ACE only for now.')
@@ -72,8 +72,8 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 @click.option('--num-test-env-per-cycle', default=10, type=click.INT, show_default=True)
 @click.option('--num-extra-smiles-per-cycle', default=10, type=click.INT, show_default=True, 
               help="How many structures to generate each cycle")
-def fit(num_cycles, train_fname, test_fname, fit_param_fname, all_smiles_csv,
-        md_temp, energy_error_per_atom_threshold, energy_error_total_threshold, max_f_comp_error_threshold,
+def fit(num_cycles, train_fname, test_fname, fit_param_fname, all_smiles_csv, md_temp, 
+        # energy_error_per_atom_threshold, energy_error_total_threshold, max_f_comp_error_threshold,
         wdir, ref_type, ip_type, bde_test_fname, soap_params_for_cur_fname,
         num_train_env_per_cycle, num_test_env_per_cycle, num_extra_smiles_per_cycle):
 
@@ -85,9 +85,9 @@ def fit(num_cycles, train_fname, test_fname, fit_param_fname, all_smiles_csv,
                             fit_param_fname=fit_param_fname,
                             all_extra_smiles_csv=all_smiles_csv,
                             md_temp=md_temp,
-                            energy_error_per_atom_threshold=energy_error_per_atom_threshold,
-                            energy_error_total_threshold=energy_error_total_threshold,
-                            max_f_comp_error_threshold=max_f_comp_error_threshold,
+                            # energy_error_per_atom_threshold=energy_error_per_atom_threshold,
+                            # energy_error_total_threshold=energy_error_total_threshold,
+                            # max_f_comp_error_threshold=max_f_comp_error_threshold,
                             wdir=wdir,
                             ref_type=ref_type,
                             ip_type=ip_type,
