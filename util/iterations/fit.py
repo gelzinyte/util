@@ -41,6 +41,7 @@ def fit(
     num_train_environments_per_cycle=10,
     num_test_environments_per_cycle=10,
     num_extra_smiles_per_cycle=10,
+    num_rads_per_mol=0
 ):
     """ iteratively fits potetnials
 
@@ -199,11 +200,14 @@ def fit(
                        set_tags={"dataset_type":"train"})
     it.prepare_0th_dataset(ci, co)
 
-    initial_test_fname = train_set_dir / "test_for_fit_0.xyz"
-    ci = ConfigSet_in(input_files=base_test_fname)
-    co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True,
-                       set_tags={"dataset_type":"test"})
-    it.prepare_0th_dataset(ci, co)
+    if base_test_fname is not None:
+        initial_test_fname = train_set_dir / "test_for_fit_0.xyz"
+        ci = ConfigSet_in(input_files=base_test_fname)
+        co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True,
+                        set_tags={"dataset_type":"test"})
+        it.prepare_0th_dataset(ci, co)
+    else:
+        initial_test_fname = None
 
 
 
@@ -334,7 +338,7 @@ def fit(
             extra_smiles_for_this_cycle_csv,
             num_smi_repeat=1,
             outputs=outputs,
-            num_rads_per_mol=1,
+            num_rads_per_mol=num_rads_per_mol,
         )
 
         # for _ in range(30):
@@ -608,8 +612,13 @@ def fit(
         # 15. Combine datasets
         if not next_train_set_fname.exists():
             logger.info("combining old and extra data")
+
             previous_train = read(train_set_fname, ":")
-            previous_test = read(test_set_fname, ":")
+            if test_set_fname is not None:
+                previous_test = read(test_set_fname, ":")
+            else: 
+                previous_test = []
+
             extra_train = read(train_extra_fname_dft, ":")
             extra_test = read(test_extra_fname_dft, ":")
 

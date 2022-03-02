@@ -520,7 +520,7 @@ def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
         forces_ok = np.all(pytest.approx(at.arrays[f'{dft_prop_prefix}forces']) == at.arrays['dft_recalc_forces'])
         logger.info(f"forces_ok: {forces_ok}")
         if not (energy_ok and forces_ok):
-            print(f'energy ok: {energy_ok}, forces_ok: {forces_ok}')
+            logger.info(f'energy ok: {energy_ok}, forces_ok: {forces_ok}')
             fname = tests_wdir/'failed_dft_check.xyz' 
             if not fname.exists():
                 write(fname, at)
@@ -528,7 +528,7 @@ def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
                 pass
                 # raise RuntimeError("Failed fname esists, not overwriting!")
             logger.warn("failed dft check")
-    logger.info("dft cyeck is ok")
+    # logger.info("dft cyeck is done")
 
 
 def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, chunksize=10):
