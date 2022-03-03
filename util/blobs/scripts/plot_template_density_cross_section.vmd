@@ -1,0 +1,10 @@
+mol new <cube_filename>
+scale by 8
+mol delrep top 0 
+mol rep cpk 0.2 0.1 30 30
+mol addrep top 
+mol modcolor 0 top element
+mol rep VolumeSlice 0.5 0 2 1
+mol addrep top
+render Tachyon <label>.dat "/Users/elena/programs/tachyon_MACOSXX86_64" -aasamples 12 <label>.dat -format TARGA -res 2286 512 -o <label>.tga
+quit

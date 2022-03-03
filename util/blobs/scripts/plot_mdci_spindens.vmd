@@ -1,0 +1,16 @@
+cd /Users/elena/code/carbyne_comulene
+mol new HC30H.singlet_opt.uks_def2-svp_opt.dlpno-ccsd_cc-pvdz.3-let.mdci.spindens.cube
+scale by 8
+mol delrep top 0 
+mol rep cpk 1 0.5 30 30
+mol addrep top 
+mol modcolor 0 top element
+#mol material Transparent
+mol rep isosurface 0.002 0 0 1
+mol addrep top 
+mol modcolor 1 top ColorID 0 
+mol rep isosurface -0.002 0 0 1
+mol addrep top 
+mol modcolor 2 top ColorID 1 
+render Tachyon mdci.spindens.dat "/Users/elena/programs/tachyon_MACOSXX86_64" -aasamples 12 mdci.spindens.dat -format TARGA -res 2286 512 -o mdci.spindens.dat.tga
+quit
