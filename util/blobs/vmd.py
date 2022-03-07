@@ -1,25 +1,20 @@
 import os
+from pathlib import Path
 import time	
 import shutil 
 import subprocess
 import click
 
-#@click.command()
-#@click.option('--vmd_template_fname', show_default=True,
-#			  default='/Users/elena/code/carbyne_comulene/plot_template.vmd')
-#@click.option('--plot-dir', show_default=True,
-#			  default='/Users/elena/code/carbyne_comulene/vmd_plots')
-#@click.option('--density-dir', show_default=True,
-#			  default='/Users/elena/code/carbyne_comulene/all_200x200x200_densities')
-#def main(vmd_template_fname, plot_dir, density_dir):
-def main():
+def main(density_dir):
 
-	template_fnames = ["/Users/elena/code/carbyne_comulene/plot_template_isosurfaces.vmd",
-						"/Users/elena/code/carbyne_comulene/plot_template_density_cross_section.vmd"]
+	root_dir = Path(__file__).parent
+
+	template_fnames = [root_dir / "scripts/plot_template_isosurfaces.vmd",
+					   root_dir / "scripts/plot_template_density_cross_section.vmd"]
+
 	plot_dirs = ["vmd_plots_isosurface", "vmd_plots_crossection"]
 
-	density_dir = '/Users/elena/code/carbyne_comulene/all_200x200x200_densities'
-
+	density_dir = Path(density_dir).resolve()
 
 	homedir = os.getcwd()
 
@@ -43,9 +38,9 @@ def main():
 			else:
 				print(f'---making {target_fname}')
 
-			if 'eldens' in fname:
+			if 'eldens' in fname or 'electron_density' in fname:
 				isosurface = 0.35
-			elif 'spindens' in fname:
+			elif 'spindens' in fname or "spin_density" in fname:
 				isosurface = 0.001
 
 			with open(vmd_template_fname, 'r') as f:
@@ -66,6 +61,8 @@ def main():
 			subprocess.run(exec, shell=True)
 
 			os.remove(stem + '.dat')
+
+			# time.sleep(10)
 
 		os.chdir(homedir)
 
