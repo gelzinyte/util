@@ -21,6 +21,20 @@ def cli(ctx, verbose):
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
 
+@cli.group("blobs")
+@click.pass_context
+def subcli_blob(ctx):
+    """density plotting and the like"""
+    pass
+from util.cli.blob_commands import vmd_plots, integrate_densities, combine_sidewise, \
+    add_titles, combine_all, combine_int_dens
+subcli_blob.add_command(vmd_plots)
+subcli_blob.add_command(integrate_densities)
+subcli_blob.add_command(combine_sidewise)
+subcli_blob.add_command(add_titles)
+subcli_blob.add_command(combine_all)
+subcli_blob.add_command(combine_int_dens)
+
 
 @cli.group('ip')
 @click.pass_context
@@ -129,3 +143,7 @@ from util.cli.qm_commands import read_orca_stuff, calculate, \
 subcli_qm.add_command(read_orca_stuff)
 subcli_qm.add_command(calculate)
 subcli_qm.add_command(plot_scf_convergence_graph)
+
+
+if __name__=="__main__":
+    cli()
