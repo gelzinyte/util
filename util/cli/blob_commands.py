@@ -50,3 +50,14 @@ def combine_int_dens(input_dir, output_dir):
 
 
 
+@click.command("single-per-config")
+@click.option("--xyz-dir")
+@click.option("--orca-template")
+@click.option("--sub-template")
+@click.option("--output-dir")
+@click.option("--submit", is_flag=True)
+def symmetrise(xyz_dir, orca_template, sub_template, output_dir, submit):
+    from util import cc_results    
+
+    cc_results.inp_and_template_per_geometry(xyz_dir, orca_template, sub_template, output_dir, submit)
+

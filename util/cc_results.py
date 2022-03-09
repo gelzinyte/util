@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
 
 def calculate(
@@ -66,11 +67,7 @@ def main(
 
     home_dir = os.getcwd()
 
-    xyz_filenames = [
-        os.path.join(structures_dir, dir_name)
-        for dir_name in os.listdir(structures_dir)
-        if "xyz" in dir_name
-    ]
+    xyz_filenames = get_xyz_files_from_dir(structures_dir)
 
     for fname in xyz_filenames:
 
@@ -163,10 +160,12 @@ def make_move_calc_files(
 ):
 
     input_xyz_fname = calculation_stem + ".xyz"
+    # print(f'xyz_fname: {xyz_fname}')
+    # print(f'input_xyz_fname: {input_xyz_fname}')
     shutil.copy(xyz_fname, input_xyz_fname)
 
     make_orca_input_file(
-        orca_template_fname, multiplicity, input_xyz_fname, calculation_stem
+        orca_template_fname, multiplicity, calculation_stem
     )
 
     make_sub_file(sub_template_fname, calculation_stem)
@@ -184,19 +183,59 @@ def make_sub_file(sub_template_fname, calculation_stem):
 
 
 def make_orca_input_file(
-    orca_template_fname, multiplicity, input_xyz_fname, calculation_stem
+    orca_template_fname, multiplicity, calculation_stem
 ):
 
     with open(orca_template_fname, "r") as f:
         orca_text = f.read()
 
     orca_text = orca_text.replace("<multiplicity>", str(multiplicity))
-    orca_text = orca_text.replace("<input_filename>", input_xyz_fname)
+    # orca_text = orca_text.replace("<input_filename>", input_xyz_fname)
+    orca_text = orca_text.replace("<orca_label>", calculation_stem)
 
     input_orca_fname = calculation_stem + ".inp"
     with open(input_orca_fname, "w") as f:
         f.write(orca_text)
 
 
-if __name__ == "__main__":
-    main()
+def inp_and_template_per_geometry(xyz_dir, orca_template, sub_template, output_dir, submit=False):
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(exist_ok=True)
+
+    orca_template = Path(orca_template).resolve()
+    sub_template = Path(sub_template).resolve()
+
+    xyz_filenames = get_xyz_files_from_dir(Path(xyz_dir).resolve())
+
+    homedir = os.getcwd()
+
+    for fname in xyz_filenames:
+        fname = Path(fname)
+        compound_stem = fname.stem
+        handle_dirs(compound_stem, output_dir)        
+
+        if "singlet" in compound_stem:
+            multiplicity=1
+        elif "triplet" in compound_stem:
+            multiplicity=3
+
+        make_move_calc_files(
+            calculation_stem=compound_stem, 
+            orca_template_fname=orca_template, 
+            sub_template_fname=sub_template,
+            multiplicity=multiplicity,
+            xyz_fname=fname
+        )
+
+        if submit:
+            subprocess.run("qsub sub.sh", shell=True)
+
+        os.chdir(homedir)
+
+
+def get_xyz_files_from_dir(dir_fname):
+    return [os.path.join(dir_fname, dir_name) \
+        for dir_name in os.listdir(dir_fname) \
+        if "xyz" in dir_name]
+

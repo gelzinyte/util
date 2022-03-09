@@ -27,13 +27,14 @@ def subcli_blob(ctx):
     """density plotting and the like"""
     pass
 from util.cli.blob_commands import vmd_plots, integrate_densities, combine_sidewise, \
-    add_titles, combine_all, combine_int_dens
+    add_titles, combine_all, combine_int_dens, symmetrise
 subcli_blob.add_command(vmd_plots)
 subcli_blob.add_command(integrate_densities)
 subcli_blob.add_command(combine_sidewise)
 subcli_blob.add_command(add_titles)
 subcli_blob.add_command(combine_all)
 subcli_blob.add_command(combine_int_dens)
+subcli_blob.add_command(symmetrise)
 
 
 @cli.group('ip')
