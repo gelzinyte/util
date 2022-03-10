@@ -9,7 +9,8 @@ import util
 @click.command("vmd-plots")
 @click.option("--density-dir", help="directory with all the density files")
 def vmd_plots(density_dir):
-    blobs.vmd.main(density_dir)
+    from util.blobs import vmd
+    vmd.main(density_dir)
 
 
 @click.command("integrate")

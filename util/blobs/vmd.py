@@ -56,7 +56,7 @@ def main(density_dir):
 
 			exec = '/Applications/VMD\ ' \
 				   '1.9.4a51-x86_64-Rev9.app/Contents/vmd/vmd_MACOSXX86_64 -e ' \
-				   'tmp.vmd'
+				   'tmp.vmd '
 
 			subprocess.run(exec, shell=True)
 

@@ -1,4 +1,8 @@
+color Display Background white
+axes location Off
+display projection Orthographic
 mol new <cube_filename> 
+rotate y by 90
 scale by 8
 mol delrep top 0 
 mol rep cpk 0.2 0.1 30 30
