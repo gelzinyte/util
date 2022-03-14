@@ -102,7 +102,8 @@ def main(
 
 def plot_densities(calculation_stem, method):
 
-    grid = (5000, 50, 50)
+    # grid = (5000, 50, 50)
+    grid = (50, 50, 5000)
 
     plot_scf = (
         f'printf "5\n7\n4\n{grid[0]} {grid[1]} {grid[2]}\n1\n2\ny\n10\n1\n3\ny\n10\n11" | '
@@ -115,6 +116,11 @@ def plot_densities(calculation_stem, method):
         f"orca_plot "
         f"{calculation_stem}.gbw -i"
     )
+
+    # print("_"*50)
+    # print(plot_scf)
+    # print("^"*50)
+    # print(os.getcwd())
 
     subprocess.run(plot_scf, shell=True)
 

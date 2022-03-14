@@ -4,6 +4,14 @@ from wfl.configset import ConfigSet_out
 from ase.io import read, write
 from util import configs    
 
+@click.command("check-geometry")
+@click.option("--inputs", "-i")
+@click.option("--outputs", "-o")
+def check_geometry(inputs, outputs):
+    ats = read(inputs, ":")
+    results = configs.filter_insane_geometries(ats, mark_elements=True)
+    write(outputs, results["bad_geometries"])
+
 @click.command("remove-calc-results")
 @click.argument("input-fname")
 @click.option('--output-fname', '-o')

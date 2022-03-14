@@ -135,7 +135,7 @@ def cleanup_configs(num_tasks=8, batch_in_fname_prefix='in_',
             os.remoe(out_fname)
 
 
-def filter_insane_geometries(atoms_list, mult=1.2):
+def filter_insane_geometries(atoms_list, mult=1.2, mark_elements=False):
 
     bad_atoms = []
     atoms_out = []
@@ -149,28 +149,52 @@ def filter_insane_geometries(atoms_list, mult=1.2):
                                                        mult=mult)
         neighbor_list = neighborlist.NeighborList(natural_cutoffs,
                                                   self_interaction=False,
+                                                  skin=0,
                                                   bothways=True)
         _ = neighbor_list.update(atoms)
 
-        
-
-        for at in atoms:
+        for at_idx, at in enumerate(atoms):
 
             indices, offsets = neighbor_list.get_neighbors(at.index)
             if at.symbol == 'H':
                 if len(indices) != 1:
                     skipped_idx.append(idx)
+                    if mark_elements:
+                        at.symbol = "He"
+                        atoms.info["bad_atom_id"] = at_idx
+                        atoms.info["bad_atom_neighbrous"] = indices
+                        for bad_idx in indices:
+                            if atoms[bad_idx].symbol == "C":
+                                atoms[bad_idx].symbol = "Co"
+                            if atoms[bad_idx].symbol == "H":
+                                atoms[bad_idx].symbol = "Hg"
+
+                        print(atoms.info["graph_name"], at_idx)
+                        print(indices)
                     bad_atoms.append(atoms)
                     break
 
             elif at.symbol == 'C':
                 if len(indices) < 2:
                     skipped_idx.append(idx)
+                    if mark_elements:
+                        for bad_idx in indices:
+                            if atoms[bad_idx].symbol == "C":
+                                atoms[bad_idx].symbol = "Co"
+                            if atoms[bad_idx].symbol == "H":
+                                atoms[bad_idx].symbol = "Hg"
+                        atoms.info["bad_atom_id"] = at_idx
+                        atoms.info["bad_atom_neighbrous"] = indices
+                        print(atoms.info["graph_name"], at_idx)
+                        print(indices)
+                        at.symbol = "Ca"
                     bad_atoms.append(atoms)
                     break
             elif at.symbol == 'O':
                 if len(indices) == 0:
                     skipped_idx.append(idx)
+                    if mark_elements:
+                        atoms.symbol = "Os"
                     bad_atoms.append(atoms)
                     break
 
@@ -180,7 +204,7 @@ def filter_insane_geometries(atoms_list, mult=1.2):
     num_skipped = len(skipped_idx)
     if num_skipped > 0:
         logger.warning(f'skipped {num_skipped} structures ({num_skipped/len([at for at in atoms_list])*100:.1f}%), because couldn\'t find '
-                    f'a H whithin reasonable cutoff. Nos: {skipped_idx}')
+                    f'enough neighbours for some atoms. Nos: {skipped_idx}')
     else: 
         logger.info("Found no unreasonable geometries")
 
