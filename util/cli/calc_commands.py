@@ -150,7 +150,7 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
     #             properties=['energy', 'forces'], output_prefix=prop_prefix)
 
 
-    calc = ace.ACECalculator(jsonpath=ace_fname, ACE_version=2)
+    calc = ace.ACECalculator(jsonpath=ace_fname, ACE_version=1)
     logger.info('loaded up ace calculator')
     for at in tqdm(inputs):
         calc.reset()

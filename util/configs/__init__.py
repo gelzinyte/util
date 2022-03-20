@@ -135,7 +135,7 @@ def cleanup_configs(num_tasks=8, batch_in_fname_prefix='in_',
             os.remoe(out_fname)
 
 
-def filter_insane_geometries(atoms_list, mult=1.2, mark_elements=False):
+def filter_insane_geometries(atoms_list, mult=1.2, mark_elements=False, skin=0):
 
     bad_atoms = []
     atoms_out = []
@@ -144,12 +144,11 @@ def filter_insane_geometries(atoms_list, mult=1.2, mark_elements=False):
         if len(atoms) == 1:
             atoms_out.append(atoms)
 
-
         natural_cutoffs = neighborlist.natural_cutoffs(atoms,
                                                        mult=mult)
         neighbor_list = neighborlist.NeighborList(natural_cutoffs,
                                                   self_interaction=False,
-                                                  skin=0,
+                                                  skin=skin,
                                                   bothways=True)
         _ = neighbor_list.update(atoms)
 

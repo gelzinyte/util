@@ -64,7 +64,7 @@ def main(sub_template, input_fname, aces_dir, output_dir, temps):
                 os.chdir(home_dir)
 
 
-def plot_mol_graph(mol_id, extra_info, runs, temps, aces_nos, home_dir):
+def plot_mol_graph(mol_id, extra_info, runs, temps, aces_nos, home_dir, run_dir):
     """ analyses the long md trajectories"""
 
     home_dir = Path(home_dir)
@@ -74,14 +74,17 @@ def plot_mol_graph(mol_id, extra_info, runs, temps, aces_nos, home_dir):
     num_columns = int(len(aces_nos)/2)
     if num_columns%2 == 0:
         num_columns += 1
-    gs = gridspec.GridSpec(num_columns, 1)
+    # gs = gridspec.GridSpec(num_columns, 1)
+    gs = gridspec.GridSpec(num_columns, 2)
+
     axes = [plt.subplot(g) for g in gs]
 
     for ax, ace_no in zip(axes, aces_nos):
+        # print(ace_no)
 
-        plot_ace_graph(ax, ace_no, extra_info, runs, temps, mol_id, home_dir)
+        plot_ace_graph(ax, ace_no, extra_info, runs, temps, mol_id, home_dir, run_dir)
 
-        ax.legend()
+        # ax.legend()
         ax.grid(color="lightgrey")
         ax.set_xlabel("time, fs")
         ax.set_title(f"ACE {ace_no}")
@@ -94,11 +97,12 @@ def plot_mol_graph(mol_id, extra_info, runs, temps, aces_nos, home_dir):
     # return fig
 
 
-def plot_ace_graph(ax, ace_no, extra_info, runs, temps, mol_id, home_dir):
+def plot_ace_graph(ax, ace_no, extra_info, runs, temps, mol_id, home_dir, run_dir):
 
     main_y_vals = np.arange(len(temps))
     for main_y_val, temp in zip(main_y_vals, temps):
-        plot_temp_graph(ax, main_y_val, temp, extra_info, runs, mol_id, ace_no, home_dir)
+        # print(main_y_val, temp)
+        plot_temp_graph(ax, main_y_val, temp, extra_info, runs, mol_id, ace_no, home_dir, run_dir)
 
     ax.set_yticks(main_y_vals)
     ax.set_yticklabels([str(t) for t in temps])
@@ -106,11 +110,13 @@ def plot_ace_graph(ax, ace_no, extra_info, runs, temps, mol_id, home_dir):
 
 
 
-def plot_temp_graph(ax, main_y_val, temp, extra_info, runs, mol_id, ace_no, home_dir):
+def plot_temp_graph(ax, main_y_val, temp, extra_info, runs, mol_id, ace_no, home_dir, run_dir):
 
     dels = (np.linspace(0, 1, len(runs)) - 0.5) / 3
     
     for del_y, run in zip(dels, runs):
+
+        # print(run)
         # print(run)
 
         y_val = main_y_val + del_y
@@ -118,14 +124,16 @@ def plot_temp_graph(ax, main_y_val, temp, extra_info, runs, mol_id, ace_no, home
         ace_name = f'ace_{ace_no}.json'
         # print(ace_name)
         all_ace_names = extra_info[run]["aces"]
+        # print(all_ace_names)
         if ace_name not in all_ace_names:
+            # print("naaaay")
             continue
 
         # traj_fname = home_dir / f"{run}/md_stuff/md_runs/md_trajs/{mol_id}/{temp}/ace_{ace_no}/{mol_id}.traj.xyz" 
-        traj_fname = home_dir / f"{run}/md_stuff/re_run_failed_trajectories/md_trajs/{mol_id}/{temp}/ace_{ace_no}/{mol_id}.traj.xyz" 
-        print(traj_fname)
+        # traj_fname = home_dir / f"{run}/md_stuff/re_run_failed_trajectories/md_trajs/{mol_id}/{temp}/ace_{ace_no}/{mol_id}.traj.xyz" 
+        traj_fname = home_dir / f"{run}/md_stuff/{run_dir}/md_trajs/{mol_id}/{temp}/ace_{ace_no}/{mol_id}.traj.xyz" 
 
-        # print(traj_fname)
+        print(traj_fname)
 
         times, kwargs = process_traj(traj_fname, extra_info[run]["plot_kwargs"])
 
@@ -137,7 +145,7 @@ def plot_temp_graph(ax, main_y_val, temp, extra_info, runs, mol_id, ace_no, home
 
 def process_traj(traj_fname, plot_kwargs):
     ats = read(traj_fname, ":") 
-    results = configs.filter_insane_geometries(ats, mult=1)
+    results = configs.filter_insane_geometries(ats, mult=1.2)
     good = results["good_geometries"]
     bad = results["bad_geometries"]
 

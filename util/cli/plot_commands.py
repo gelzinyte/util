@@ -1,4 +1,6 @@
 import click
+import subprocess 
+import util
 from pathlib import Path
 import os
 import glob
@@ -9,6 +11,25 @@ from pathlib import Path
 from ase.io import read, write
 
 logger = logging.getLogger(__name__)
+
+@click.command("ace-2b")
+@click.argument("ace_fname")
+@click.option('--type', '-t', help="2b or full")
+@click.option('--cc-in')
+@click.option('--ch-in')
+@click.option('--hh-in')
+def ace_2b(ace_fname, type, cc_in, ch_in, hh_in):
+    script_path = Path(util.__file__).parent / "scripts/2b.jl"
+    command = f"julia {script_path} -p {ace_fname} -t {type}"
+    if cc_in is not None:
+        command += f" --cc-in {cc_in}"
+    if ch_in is not None:
+        command += f" --ch-in {ch_in}"
+    if hh_in is not None:
+        command += f" --hh-in {hh_in}"
+
+    subprocess.run(command, shell=True)
+
 
 @click.command("dissociate-h")
 @click.argument("fname")
