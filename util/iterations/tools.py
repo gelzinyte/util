@@ -333,6 +333,8 @@ def run_tests(
     bde_test_fname,
     orca_kwargs,
     output_dir,
+    validation_fname,
+    quick = True
 ):
 
     tests_wdir.mkdir(exist_ok=True)
@@ -357,6 +359,17 @@ def run_tests(
 
     # check the offset is not there
     check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
+
+    dimer_2b(calculator, tests_wdir)
+
+    # training & validation set scatter plots
+
+    # rmse_scatter_plot(
+    #     ref_energy_name=f"{dft_prop_prefix}"
+    # )
+
+    if quick:
+        return
 
     # re-evaluate a couple of DFTs
     check_dft(train_evaled, dft_prop_prefix, orca_kwargs, tests_wdir)
@@ -449,7 +462,6 @@ def run_tests(
         skip_if_prop_not_present=True,
     )
 
-    dimer_2b(calculator, tests_wdir)
 
     # other tests are coming sometime
     # CH dissociation curve
@@ -459,16 +471,16 @@ def run_tests(
 
 def dimer_2b(calculator, tests_wdir):
 
-    ace_fname = calculator[2]["jsonpath"]
-    fname = tests_wdir / "ace_2b.pdf"
+    # ace_fname = calculator[2]["jsonpath"]
+    # fname = tests_wdir / "ace_2b.pdf"
 
-    cfg = Config.load()
-    ace_2b_script_path = cfg["julia_2b_script"] 
+    # cfg = Config.load()
+    # ace_2b_script_path = cfg["julia_2b_script"] 
 
-    command = f"julia {ace_2b_script_path} --param-fname {ace_fname} --fname {fname}"
-    print(command)
-    # assert False
-    subprocess.run(command, shell=True)
+    # command = f"julia {ace_2b_script_path} --param-fname {ace_fname} --fname {fname}"
+    # print(command)
+    # # assert False
+    # subprocess.run(command, shell=True)
 
 
 def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):

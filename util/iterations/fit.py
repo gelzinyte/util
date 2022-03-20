@@ -30,9 +30,6 @@ def fit(
     fit_param_fname=None,
     all_extra_smiles_csv=None,
     md_temp=500,
-    # energy_error_per_atom_threshold=0.05,
-    # energy_error_total_threshold=None,
-    # max_f_comp_error_threshold=None,
     wdir="runs",
     ref_type="dft",
     ip_type="ace",
@@ -176,6 +173,7 @@ def fit(
     logger.info(f"fit_params_base: {fit_params_base}")
 
     # md params
+    # TODO revisit
     md_params = {
         "steps": 2000,
         "dt": 0.5,  # fs
@@ -187,38 +185,36 @@ def fit(
     logger.info(f"MD params: {md_params}")
 
     # soap descriptor for cur params
-    with open(soap_params_for_cur_fname, "r") as f:
-        soap_params_for_cur = yaml.safe_load(f)
+    # with open(soap_params_for_cur_fname, "r") as f:
+    #     soap_params_for_cur = yaml.safe_load(f)
 
     initial_train_fname = train_set_dir / "train_for_fit_0.xyz"
-    if not initial_train_fname.exists():
-        it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, orca_kwargs=orca_kwargs, tests_wdir=wdir/"dft_check_wdir")
+    # if not initial_train_fname.exists():
+    #     it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, orca_kwargs=orca_kwargs, tests_wdir=wdir/"dft_check_wdir")
 
     # prepare 0th dataset
     ci = ConfigSet_in(input_files=base_train_fname)
     co = ConfigSet_out(output_files=initial_train_fname, force=True, all_or_none=True,
-                       set_tags={"dataset_type":"train"})
+                       set_tags={"dataset_type": "train"})
     it.prepare_0th_dataset(ci, co)
 
-    if base_test_fname is not None:
-        initial_test_fname = train_set_dir / "test_for_fit_0.xyz"
-        ci = ConfigSet_in(input_files=base_test_fname)
-        co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True,
-                        set_tags={"dataset_type":"test"})
-        it.prepare_0th_dataset(ci, co)
-    else:
-        initial_test_fname = None
-
-
+    # if base_test_fname is not None:
+    #     initial_test_fname = train_set_dir / "test_for_fit_0.xyz"
+    #     ci = ConfigSet_in(input_files=base_test_fname)
+    #     co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True,
+    #                        set_tags={"dataset_type": "test"})
+    #     it.prepare_0th_dataset(ci, co)
+    # else:
+    #     initial_test_fname = None
 
     for cycle_idx in range(0, num_cycles + 1):
 
-        logger.info("-"*50)
+        logger.info("-" * 50)
         logger.info(f"ITERATION {cycle_idx}")
 
         # Check for the final training set from this iteration and skip if found.
         next_train_set_fname = (train_set_dir / f"{cycle_idx:02d}.train_for_{ip_type}_{cycle_idx+1:02d}.xyz")
-        next_test_set_fname = (train_set_dir / f"{cycle_idx:02d}.test_for_{ip_type}_{cycle_idx+1:02d}.xyz")
+        # next_test_set_fname = (train_set_dir / f"{cycle_idx:02d}.test_for_{ip_type}_{cycle_idx+1:02d}.xyz")
         if os.path.exists(next_train_set_fname):
             logger.info(f"Found {next_train_set_fname}, skipping iteration {cycle_idx}")
             continue
@@ -228,37 +224,20 @@ def fit(
         cycle_dir.mkdir(exist_ok=True)
 
         train_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.train_for_{ip_type}_{cycle_idx:02d}.xyz")
-        test_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.test_for_{ip_type}_{cycle_idx:02d}.xyz")
+        # test_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.test_for_{ip_type}_{cycle_idx:02d}.xyz")
 
         if cycle_idx == 0:
             train_set_fname = initial_train_fname
-            test_set_fname = initial_test_fname
+            # test_set_fname = initial_test_fname
 
         extra_smiles_for_this_cycle_csv = cycle_dir / "01.extra_smiles.csv"
         md_starts_fname = cycle_dir / "02.rdkit_mols_rads.xyz"
-        # opt_traj_fn = cycle_dir / f"04.0.rdkit.{pred_prop_prefix}opt_traj.xyz"
-        # opt_traj_evaled_fname = cycle_dir / f"04.1.rdkit.{pred_prop_prefix}opt_traj.{pred_prop_prefix[:-1]}.xyz"
-        # good_opt_for_md_fname = cycle_dir / f"05.0.rdkit.{pred_prop_prefix}optimised.xyz"
-        # bad_opt_traj_bad_configs_fname = cycle_dir / f"05.1.rdkit.{pred_prop_prefix}bad_opt_traj_bad_configs.xyz"
-        # bad_opt_traj_good_configs_fn = cycle_dir / f"05.2.rdkit.{pred_prop_prefix}bad_opt_traj_good_configs.xyz"
-        # bad_opt_traj_good_configs_sample_for_train = cycle_dir / f"06.0.rdkit.{pred_prop_prefix}bad_opt_traj_good_configs.sample_for_train.xyz"
-        # bad_opt_traj_good_configs_sample_for_train_dft = cycle_dir / f"06.1.rdkit.{pred_prop_prefix}bad_opt_traj_good_configs.sample_for_train.dft.xyz"
-        # opt_filtered_fname = cycle_dir / f"05.1.rdkit.{pred_prop_prefix}optimised.good_geometries.xyz"
-        # bad_structures_fname = cycle_dir / f"05.2.rdkit.{pred_prop_prefix}optimised.bad_geometries.xyz"
-        # good_opt_for_md_w_dft_fn = cycle_dir / f"07.rdkit.{pred_prop_prefix}optimised.good_geometries.dft.xyz"
-        # large_error_configs = cycle_dir / f"08.1.rdkit.{pred_prop_prefix}optimised.good_geometries.dft.large_error.xyz"
-        # small_error_configs = cycle_dir / f"08.2.rdkit.{pred_prop_prefix}optimised.good_geometries.dft.small_error.xyz"
-        # full_md_fname_sanitised = cycle_dir / f"09.{pred_prop_prefix}optimised.sanitised.xyz"
         md_traj_fn = cycle_dir / f"03.0.{pred_prop_prefix}optimised.md_traj.xyz"
         md_traj_evaled_fn = cycle_dir / f"03.1.{pred_prop_prefix}optimised.md_traj.{pred_prop_prefix[:-1]}.xyz"
         good_md_to_sample_fn = cycle_dir / f"04.0.{pred_prop_prefix}optimised.md.xyz"
         bad_md_bad_configs_fn = cycle_dir / f"04.1.{pred_prop_prefix}bad_md_traj_bad_configs.xyz"
         bad_md_good_configs_fn = cycle_dir / f"04.2.{pred_prop_prefix}bad_md_traj_good_configs.xyz"
         bad_md_good_configs_sample_train_fn = cycle_dir / f"05.0.{pred_prop_prefix}bad_md_traj_good_configs.sample_for_train.xyz"
-        # bad_md_good_configs_sample_train_dft_fn = cycle_dir / f"12.1.{pred_prop_prefix}bad_md_traj_good_configs.sample_for_train.dft.xyz"
-        # full_md_fname = cycle_dir / f"08.3.{pred_prop_prefix}optimised.md.{pred_prop_prefix[:-1]}.xyz"
-        # full_md_good_geometries_fname = (cycle_dir / f"09.1.{pred_prop_prefix}optimised.md.good_geometries.xyz")
-        # full_md_bad_geometries_fname = (cycle_dir / f"09.2.{pred_prop_prefix}optimised.md.bad_geometries.xyz")
         md_with_soap_fname = cycle_dir / f"06.{pred_prop_prefix}optimised.md.good_geometries.soap.xyz"
         test_md_selection_fname = cycle_dir / f"07.1.{pred_prop_prefix}optimised.md.test_sample.xyz"
         train_md_selection_fname = cycle_dir / f"07.2.{pred_prop_prefix}optimised.md.train_sample.xyz"
@@ -300,20 +279,20 @@ def fit(
 
         # 2. Run tests
         tests_wdir = cycle_dir / "tests"
-        it.check_dft(train_set_fname, "dft_", orca_kwargs, tests_wdir)
+        # it.check_dft(train_set_fname, "dft_", orca_kwargs, tests_wdir)
         # if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
-            # logger.info("running_tests")
-            # it.run_tests(
-            #     calculator=calculator,
-            #     pred_prop_prefix=pred_prop_prefix,
-            #     dft_prop_prefix=dft_prop_prefix,
-            #     train_set_fname=train_set_fname,
-            #     test_set_fname=test_set_fname,
-            #     tests_wdir=tests_wdir,
-            #     bde_test_fname=bde_test_fname,
-            #     orca_kwargs=orca_kwargs,
-            #     output_dir = cycle_dir,
-            # )
+        #     logger.info("running_tests")
+        #     it.run_tests(
+        #         calculator=calculator,
+        #         pred_prop_prefix=pred_prop_prefix,
+        #         dft_prop_prefix=dft_prop_prefix,
+        #         train_set_fname=train_set_fname,
+        #         test_set_fname=test_set_fname,
+        #         tests_wdir=tests_wdir,
+        #         bde_test_fname=bde_test_fname,
+        #         orca_kwargs=orca_kwargs,
+        #         output_dir = cycle_dir,
+        #     )
         
 
         # 3. Select some smiles from the initial smiles csv
@@ -341,233 +320,32 @@ def fit(
             num_rads_per_mol=num_rads_per_mol,
         )
 
-        # for _ in range(30):
-        #     try:
-        #         # 5. optimise structures with current IP and re-evaluate them
-        #         logger.info(f"optimising structures from {md_starts_fname} with {ip_type}")
-        #         outputs = ConfigSet_out(
-        #             output_files=opt_traj_fn,
-        #             force=True,
-        #             all_or_none=True,
-        #             set_tags={"dataset_type": f"next_rdkit", "config_type": "opt_traj"},
-        #         )
-        #         # traj_step_interval=None selects only last converged config.
-        #         # traj_step_interval = 1 returns all configs
-        #         inputs = opt.optimise(
-        #             inputs=inputs,
-        #             outputs=outputs,
-        #             calculator=calculator,
-        #             prop_prefix=pred_prop_prefix,
-        #             traj_step_interval=1,
-        #             npool=None
-        #         )
-        #     except:
-        #         continue
-        #     break
+  
+        # TODO 
+        if not tests_wdir:
+            raise RuntimeError("need to run MD")
 
-        # for _ in range(30):
-        #     try:
-        #         # need to re-evaluate again, because energy is sometimes not written
-        #         outputs = ConfigSet_out(
-        #             output_files=opt_traj_evaled_fname,
-        #             force=True, 
-        #             all_or_none=True)
-        #         inputs = generic.run(inputs=inputs, 
-        #                             outputs=outputs,
-        #                             calculator=calculator, 
-        #                             properties=["energy", "forces"], 
-        #                             output_prefix=pred_prop_prefix, 
-        #                             npool=None)
-        #     except:
-        #         continue
-        #     break
-
-        # # 6. process optimisation trajectories: check for bad geometry and process accordingly
-        # good_traj_configs_co = ConfigSet_out(output_files=good_opt_for_md_fname,
+        # # process optimisation trajectories: check for bad geometry and process accordingly
+        # good_traj_configs_co = ConfigSet_out(output_files=good_md_to_sample_fn,
         #                            force=True, all_or_none=True,
-        #                            set_tags={"dataset_type": f"next_rdkit_{pred_prop_prefix}opt", "config_type": "optimised"})
-        # bad_traj_bad_cfg_co = ConfigSet_out (output_files=bad_opt_traj_bad_configs_fname,
+        #                            set_tags={"dataset_type": f"next_rdkit_{pred_prop_prefix}_md", "config_type": "md"})
+        # bad_traj_bad_cfg_co = ConfigSet_out(output_files=bad_md_bad_configs_fn,
         #                                   force=True, all_or_none=True,
         #                                   set_tags={"config_type": "bad_opt_bad_config"})
-        # bad_traj_good_cfg_co = ConfigSet_out(output_files=bad_opt_traj_good_configs_fn,
+        # bad_traj_good_cfg_co = ConfigSet_out(output_files=bad_md_good_configs_fn,
         #                                   force=True, all_or_none=True,
-        #                                   set_tags={"config_type": "bad_opt_good_config"})
+        #                                   set_tags={"config_type": "bad_md_good_config"})
         # it.process_trajs(
         #     traj_ci=inputs, 
         #     good_traj_configs_co=good_traj_configs_co,
         #     bad_traj_bad_cfg_co=bad_traj_bad_cfg_co,
         #     bad_traj_good_cfg_co=bad_traj_good_cfg_co, 
-        #     traj_sample_rule="last") 
-
-        # # 7. slight digression - sub-sample the good geometries from geometry-failed trajectory
-        # if os.stat(bad_opt_traj_good_configs_fn).st_size != 0:
-        #     bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_opt_traj_good_configs_fn)
-        #     sample_co = ConfigSet_out(output_files=bad_opt_traj_good_configs_sample_for_train,
-        #                                     force=True, all_or_none=True)
-        #     it.sample_failed_trajectory(ci=bad_traj_good_cfgs_ci, co=sample_co, orca_kwargs=orca_kwargs, 
-        #                                 dft_prop_prefix=dft_prop_prefix, cycle_dir=cycle_dir, pred_prop_prefix=pred_prop_prefix)
-
-
-        # # 8. evaluate DFT
-        # logger.info("evaluatig dft on optimised structures")
-        # outputs = ConfigSet_out(output_files=good_opt_for_md_w_dft_fn, force=True, all_or_none=True)
-        # inputs = ConfigSet_in(input_files=good_opt_for_md_fname)
-        # inputs = orca.evaluate(
-        #     inputs=inputs,
-        #     outputs=outputs,
-        #     orca_kwargs=orca_kwargs,
-        #     output_prefix=dft_prop_prefix,
-        #     keep_files=False,
-        #     base_rundir=cycle_dir / "orca_wdir_on_opt")
-
-        # # report errors on optimised structures
-        # logger.info("Errors on optimised structures:")
-        # error_table.plot(inputs, ref_prefix=dft_prop_prefix, pred_prefix=pred_prop_prefix, info_key="graph_name")
-
-        # # 9. filter by energy and force error
-        # logger.info("Filtering by energy and force errors")
-        # outputs_large_error = ConfigSet_out(output_files=large_error_configs, force=True, all_or_none=True)
-        # outputs_small_error = ConfigSet_out(output_files=small_error_configs, force=True, all_or_none=True)
-        # inputs = it.filter_configs(
-        #     inputs=inputs,
-        #     outputs_large_error=outputs_large_error,
-        #     outputs_small_error=outputs_small_error,
-        #     pred_prop_prefix=pred_prop_prefix,
-        #     e_threshold_per_atom=energy_error_per_atom_threshold,
-        #     e_threshold_total=energy_error_total_threshold,
-        #     max_f_comp_threshold=max_f_comp_error_threshold,
-        # )
-        # if inputs is None:
-        #     logger.warning("Found no optimised geometries with large errors, stopping cycles")
-        #     return None
-
-        # logger.info(f'{len(read(large_error_configs, ":"))/len(read(good_opt_for_md_fname, ":"))*100:.1f}% structures have large error; running MD on them')
-        # if len(read(large_error_configs, ':')) == 0:
-        #     logger.info("all new config energy/force evaluations were within threshold, done with iterations?")
-        #     break
-
-
-        # # 10.0 remove old energies and forces
-        # if not full_md_fname_sanitised.exists():
-        #     logger.info("removing energy&force entries pre-md")
-        #     sanitised_ats = [remove_energy_force_containing_entries(at) for at in inputs]
-        #     write(full_md_fname_sanitised, sanitised_ats)
-        # inputs = ConfigSet_in(input_files=full_md_fname_sanitised)
-
-        for _ in range(30): 
-            try:
-                # 10. Run MD
-                logger.info(f"Running {ip_type} md")
-                outputs = ConfigSet_out(
-                    output_files=md_traj_fn,
-                    force=True,
-                    all_or_none=True,
-                    set_tags={"config_type": f"{pred_prop_prefix}md"},
-                )
-                inputs = md.sample(
-                    inputs=inputs,
-                    outputs=outputs,
-                    calculator=calculator,
-                    verbose=False,
-                    npool=None,
-                    **md_params,
-                )
-            except:
-                continue
-            break
-
-        for _ in range(30):
-            try:
-                # need to re-evaluate again, because energy is sometimes not written
-                outputs = ConfigSet_out(
-                    output_files=md_traj_evaled_fn,
-                    force=True, 
-                    all_or_none=True)
-                inputs = generic.run(inputs=inputs, 
-                                    outputs=outputs,
-                                    calculator=calculator, 
-                                    properties=["energy", "forces"], 
-                                    output_prefix=pred_prop_prefix,
-                                    npool=None)
-            except: 
-                continue
-            break
-
-
-        # ***
-        # process optimisation trajectories: check for bad geometry and process accordingly
-        good_traj_configs_co = ConfigSet_out(output_files=good_md_to_sample_fn,
-                                   force=True, all_or_none=True,
-                                   set_tags={"dataset_type": f"next_rdkit_{pred_prop_prefix}_md", "config_type": "md"})
-        bad_traj_bad_cfg_co = ConfigSet_out(output_files=bad_md_bad_configs_fn,
-                                          force=True, all_or_none=True,
-                                          set_tags={"config_type": "bad_opt_bad_config"})
-        bad_traj_good_cfg_co = ConfigSet_out(output_files=bad_md_good_configs_fn,
-                                          force=True, all_or_none=True,
-                                          set_tags={"config_type": "bad_md_good_config"})
-        it.process_trajs(
-            traj_ci=inputs, 
-            good_traj_configs_co=good_traj_configs_co,
-            bad_traj_bad_cfg_co=bad_traj_bad_cfg_co,
-            bad_traj_good_cfg_co=bad_traj_good_cfg_co, 
-            traj_sample_rule=100) 
-
-        # 12. slight digression - sub-sample the good geometries from geometry-failed trajectory
-        if os.stat(bad_md_good_configs_fn).st_size !=0: 
-            bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_md_good_configs_fn)
-            sample_co = ConfigSet_out(output_files=bad_md_good_configs_sample_train_fn,
-                                            force=True, all_or_none=True)
-            it.sample_failed_trajectory(ci=bad_traj_good_cfgs_ci, co=sample_co, orca_kwargs=orca_kwargs, 
-                                        dft_prop_prefix=dft_prop_prefix, cycle_dir=cycle_dir, pred_prop_prefix=pred_prop_prefix)
-
-
-        # 13. Calculate soap descriptor
-        logger.info("Calculating SOAP descriptor")
-        inputs = ConfigSet_in(input_files=good_md_to_sample_fn)
-        outputs = ConfigSet_out(output_files=md_with_soap_fname, force=True, all_or_none=True)
-        inputs = wfl.calc_descriptor.calc(
-            inputs=inputs,
-            outputs=outputs,
-            descs=soap_params_for_cur,
-            key="small_soap",  # where to store the descriptor
-            local=True,
-        )  # calculate local descriptor
-
-        # 12. do CUR
-        if not train_md_selection_fname.exists():
-            logger.info("Selecting configs with CUR")
-            outputs = ConfigSet_out(set_tags={"dataset_type": "next_addition_from_md"})
-            inputs = cur.per_environment(
-                inputs=inputs,
-                outputs=outputs,
-                num=num_train_environments_per_cycle + num_test_environments_per_cycle,
-                at_descs_key="small_soap",
-                kernel_exp=3,
-                leverage_score_key="cur_leverage_score",
-                write_all_configs=False,
-            )
-            selected_with_cur = list(inputs)
-            for at in selected_with_cur:
-                del at.arrays["small_soap"]
-            random.shuffle(selected_with_cur)
-            write(train_md_selection_fname, selected_with_cur[0::2],)
-            write(test_md_selection_fname, selected_with_cur[1::2])
-        
+        #     traj_sample_rule=100) 
 
         # 13. evaluate DFT
         logger.info("evaluatig dft structures selected for next training set")
         
-        # first: test set
-        inputs = ConfigSet_in(input_files=test_md_selection_fname)
-        outputs = ConfigSet_out(output_files=test_extra_fname_dft, force=True, all_or_none=True, 
-                                set_tags={"dataset_type": "next_test"})
-        orca.evaluate(
-            inputs=inputs,
-            outputs=outputs,
-            orca_kwargs=orca_kwargs,
-            output_prefix=dft_prop_prefix,
-            keep_files=False,
-            base_rundir=cycle_dir / "orca_wdir_on_extra_test")
+
 
         # next: all extra for training set
         input_files = [train_md_selection_fname]
@@ -614,23 +392,23 @@ def fit(
             logger.info("combining old and extra data")
 
             previous_train = read(train_set_fname, ":")
-            if test_set_fname is not None:
-                previous_test = read(test_set_fname, ":")
-            else: 
-                previous_test = []
+            # if test_set_fname is not None:
+            #     previous_test = read(test_set_fname, ":")
+            # else: 
+            #     previous_test = []
 
             extra_train = read(train_extra_fname_dft, ":")
-            extra_test = read(test_extra_fname_dft, ":")
+            # extra_test = read(test_extra_fname_dft, ":")
 
             for at in extra_train:
                 at.info["dataset_type"] = "train"
                 at.info["iter_no"] = cycle_idx + 1
-            for at in extra_test:
-                at.info["dataset_type"] = "test"
-                at.info["iter_no"] = cycle_idx + 1
+            # for at in extra_test:
+            #     at.info["dataset_type"] = "test"
+            #     at.info["iter_no"] = cycle_idx + 1
 
             write(next_train_set_fname, previous_train + extra_train)
-            write(next_test_set_fname, previous_test + extra_test)
+            # write(next_test_set_fname, previous_test + extra_test)
 
         logger.info(f"cycle {cycle_idx} done. ")
 
