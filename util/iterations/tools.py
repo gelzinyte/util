@@ -834,19 +834,39 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
 
     return co.to_ConfigSet_in()
 
+
 def check_accuracy(at, dft_prop_prefix, pred_prop_prefix):
     dft_forces = at.arrays[f'{dft_prop_prefix}forces']
     pred_forces = at.arrays[f'{pred_prop_prefix}forces']
 
+    max_dft_f = np.max(np.abs(dft_forces))
+    max_pred_f = np.max(np.abs(pred_forces))
+
     ratios = np.divide(dft_forces, pred_forces)
+
+    # print(dft_forces)
+    # print(pred_forces)
 
     ## only care about non-minute forces
     # check for dft forces > 1 eV/A and only take 
     # relevant predicted forces elements to check further
-    relevant_pred_forces = np.where(dft_forces > 1, pred_forces, np.nan)
+    relevant_pred_forces = np.where(np.abs(dft_forces) > 1, pred_forces, np.nan)
     # check predicted forces to be 1 eV/A
     # and only return the relevant ratios
-    relevant_ratios = np.where(relevant_pred_forces > 1, ratios, np.nan)
+    relevant_ratios = np.where(np.abs(relevant_pred_forces) > 1, ratios, np.nan)
+
+    # print("relevant pred forces")
+    # print(relevant_pred_forces)
+    # print("relevant ratios")
+    # print(relevant_ratios)
+
+    print(f"max_dft: {max_dft_f}, max_pred: {max_pred_f}, ratios: min: {np.min(relevant_ratios)} max: {np.max(relevant_ratios)}")
+
+    if max_dft_f > 15:
+        return False
+
+    if max_pred_f > 15:
+        return False
 
     if np.any(relevant_ratios < 0.25) or np.any(relevant_ratios > 4):
         return False
