@@ -125,14 +125,14 @@ def fit(
         raise NotImplementedError("haven't redone dft-xtb2 fitting")
 
     logger.info(
-        f"Optimising structures from {all_extra_smiles_csv}. "
+        f"Generating structures from {all_extra_smiles_csv}. "
         f"fit parameters from {fit_param_fname}. Fitting to "
         f"{ref_type} energies and forces."
     )
 
     cfg = Config.load()
     scratch_dir = cfg["scratch_path"]
-    logger.info(f"Using:scratch_dir: {scratch_dir}")
+    logger.info(f"Using: scratch_dir: {scratch_dir}")
 
     if ip_type == "gap":
         fit_exec_path = cfg["gap_fit_path"]
@@ -152,7 +152,7 @@ def fit(
     all_extra_smiles_csv = wdir / all_extra_smiles_csv.name
 
     # setup orca parameters
-    default_kw = Config.from_yaml(os.path.join(cfg["util_root"], "default_kwargs.yml"))
+    default_kw = Config.from_yaml(Path(util.__file__).parent /  "default_kwargs.yml")
     dft_prop_prefix = "dft_"
     orca_kwargs = default_kw["orca"]
     orca_kwargs["orca_command"] = cfg["orca_path"]
@@ -184,10 +184,7 @@ def fit(
     }
     logger.info(f"MD params: {md_params}")
 
-    # soap descriptor for cur params
-    # with open(soap_params_for_cur_fname, "r") as f:
-    #     soap_params_for_cur = yaml.safe_load(f)
-
+ 
     initial_train_fname = train_set_dir / "train_for_fit_0.xyz"
     # if not initial_train_fname.exists():
     #     it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, orca_kwargs=orca_kwargs, tests_wdir=wdir/"dft_check_wdir")
@@ -198,15 +195,6 @@ def fit(
                        set_tags={"dataset_type": "train"})
     it.prepare_0th_dataset(ci, co)
 
-    # if base_test_fname is not None:
-    #     initial_test_fname = train_set_dir / "test_for_fit_0.xyz"
-    #     ci = ConfigSet_in(input_files=base_test_fname)
-    #     co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True,
-    #                        set_tags={"dataset_type": "test"})
-    #     it.prepare_0th_dataset(ci, co)
-    # else:
-    #     initial_test_fname = None
-
     for cycle_idx in range(0, num_cycles + 1):
 
         logger.info("-" * 50)
@@ -214,7 +202,6 @@ def fit(
 
         # Check for the final training set from this iteration and skip if found.
         next_train_set_fname = (train_set_dir / f"{cycle_idx:02d}.train_for_{ip_type}_{cycle_idx+1:02d}.xyz")
-        # next_test_set_fname = (train_set_dir / f"{cycle_idx:02d}.test_for_{ip_type}_{cycle_idx+1:02d}.xyz")
         if os.path.exists(next_train_set_fname):
             logger.info(f"Found {next_train_set_fname}, skipping iteration {cycle_idx}")
             continue
@@ -224,11 +211,9 @@ def fit(
         cycle_dir.mkdir(exist_ok=True)
 
         train_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.train_for_{ip_type}_{cycle_idx:02d}.xyz")
-        # test_set_fname = (train_set_dir / f"{cycle_idx - 1:02d}.test_for_{ip_type}_{cycle_idx:02d}.xyz")
 
         if cycle_idx == 0:
             train_set_fname = initial_train_fname
-            # test_set_fname = initial_test_fname
 
         extra_smiles_for_this_cycle_csv = cycle_dir / "01.extra_smiles.csv"
         md_starts_fname = cycle_dir / "02.rdkit_mols_rads.xyz"
@@ -275,24 +260,26 @@ def fit(
             # pred_prop_prefix = f"{ip_type}{cycle_idx}_plus_xtb2_"
             pred_prop_prefix = f"{ip_type}_plus_xtb2_"
 
-
-
         # 2. Run tests
         tests_wdir = cycle_dir / "tests"
-        # it.check_dft(train_set_fname, "dft_", orca_kwargs, tests_wdir)
-        # if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
-        #     logger.info("running_tests")
-        #     it.run_tests(
-        #         calculator=calculator,
-        #         pred_prop_prefix=pred_prop_prefix,
-        #         dft_prop_prefix=dft_prop_prefix,
-        #         train_set_fname=train_set_fname,
-        #         test_set_fname=test_set_fname,
-        #         tests_wdir=tests_wdir,
-        #         bde_test_fname=bde_test_fname,
-        #         orca_kwargs=orca_kwargs,
-        #         output_dir = cycle_dir,
-        #     )
+        it.check_dft(train_set_fname, "dft_", orca_kwargs, tests_wdir)
+        if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
+            logger.info("running_tests")
+            with open(fit_dir / f"ace_params.yaml") as f:
+                fit_params = yaml.safe_load(f)
+            it.run_tests(
+                calculator=calculator,
+                pred_prop_prefix=pred_prop_prefix,
+                dft_prop_prefix=dft_prop_prefix,
+                train_set_fname=train_set_fname,
+                # test_set_fname=test_set_fname,
+                tests_wdir=tests_wdir,
+                # bde_test_fname=bde_test_fname,
+                orca_kwargs=orca_kwargs,
+                output_dir = cycle_dir,
+                validation_fname=validation_fname, 
+                quick = True, 
+                fit_params = fit_params)
         
 
         # 3. Select some smiles from the initial smiles csv
@@ -300,8 +287,7 @@ def fit(
             it.select_extra_smiles(
                 all_extra_smiles_csv=all_extra_smiles_csv,
                 smiles_selection_csv=extra_smiles_for_this_cycle_csv,
-                chunksize=num_extra_smiles_per_cycle,
-            )
+                chunksize=num_extra_smiles_per_cycle)
 
         # 4. Generate actual structures for optimisation
         logger.info("generating structures to optimise")
@@ -310,15 +296,13 @@ def fit(
             force=True,
             all_or_none=True,
             verbose=False,
-            set_tags={"iter_no": cycle_idx, "config_type": "rdkit"},
-        )
+            set_tags={"iter_no": cycle_idx, "config_type": "rdkit"})
 
         inputs = it.make_structures(
             extra_smiles_for_this_cycle_csv,
             num_smi_repeat=1,
             outputs=outputs,
-            num_rads_per_mol=num_rads_per_mol,
-        )
+            num_rads_per_mol=num_rads_per_mol)
 
   
         # TODO 
@@ -344,8 +328,6 @@ def fit(
 
         # 13. evaluate DFT
         logger.info("evaluatig dft structures selected for next training set")
-        
-
 
         # next: all extra for training set
         input_files = [train_md_selection_fname]

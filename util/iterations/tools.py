@@ -328,23 +328,23 @@ def run_tests(
     pred_prop_prefix,
     dft_prop_prefix,
     train_set_fname,
-    test_set_fname,
     tests_wdir,
-    bde_test_fname,
+    # bde_test_fname,
     orca_kwargs,
     output_dir,
     validation_fname,
-    quick = True
+    quick = True,
+    fit_params=None
 ):
 
     tests_wdir.mkdir(exist_ok=True)
 
     train_evaled = tests_wdir / f"{pred_prop_prefix}on_{train_set_fname.name}"
-    test_evaled = tests_wdir / f"{pred_prop_prefix}on_{test_set_fname.name}"
+    val_evaled = tests_wdir / f"{pred_prop_prefix}on_{validation_fname.name}"
 
     # evaluate on training and test sets
-    ci = ConfigSet_in(input_files=[train_set_fname, test_set_fname])
-    co = ConfigSet_out(output_files={train_set_fname: train_evaled, test_set_fname: test_evaled},
+    ci = ConfigSet_in(input_files=[train_set_fname, validation_fname])
+    co = ConfigSet_out(output_files={train_set_fname: train_evaled, validation_fname: val_evaled},
                        force=True, all_or_none=True)
 
     generic.run(
@@ -353,20 +353,31 @@ def run_tests(
         calculator=calculator,
         properties=["energy", "forces"],
         output_prefix=pred_prop_prefix,
-        chunksize=20,
-        npool=0
-    )
+        chunksize=20)
 
     # check the offset is not there
     check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
 
-    dimer_2b(calculator, tests_wdir)
+    dimer_2b(calculator, tests_wdir, fit_params)
 
     # training & validation set scatter plots
-
-    # rmse_scatter_plot(
-    #     ref_energy_name=f"{dft_prop_prefix}"
-    # )
+    ats_train = read(train_evaled, ":")
+    ats_val = read(val_evaled, ":")
+    rmse_scatter_plot(
+        ref_energy_name=f"{dft_prop_prefix}energy",
+        pred_energy_name=f"{pred_prop_prefix}energy",
+        ref_force_name=f"{dft_prop_prefix}forces",
+        pred_force_name=f"{pred_prop_prefix}forces",
+        all_atoms=ats_train + ats_val,
+        output_dir=output_dir, 
+        prefix=None, 
+        color_info_name="dataset_type", 
+        isolated_atoms=None,
+        energy_type="binding_energy", 
+        energy_shift=False,
+        no_legend=False,
+        error_type='mae', 
+        skip_if_prop_not_present=False)
 
     if quick:
         return
@@ -469,18 +480,27 @@ def run_tests(
 
 
 
-def dimer_2b(calculator, tests_wdir):
+def dimer_2b(calculator, tests_wdir, fit_params=None):
 
-    # ace_fname = calculator[2]["jsonpath"]
-    # fname = tests_wdir / "ace_2b.pdf"
+    if fit_params is None:
+        cc_in = None, 
+        ch_in = None, 
+        hh_in = None,
+    else:
+        cutoffs_mb = params["cutoffs_mb"]
+        cc_in = parse_cutoffs(f'(:C, :C)', cutoffs_mb) 
+        ch_in = parse_cutoffs(f'(:C, :H)', cutoffs_mb) 
+        hh_in = parse_cutoffs(f'(:H, :H)', cutoffs_mb) 
 
-    # cfg = Config.load()
-    # ace_2b_script_path = cfg["julia_2b_script"] 
+    ace_fname = calculator[1][0]
 
-    # command = f"julia {ace_2b_script_path} --param-fname {ace_fname} --fname {fname}"
-    # print(command)
-    # # assert False
-    # subprocess.run(command, shell=True)
+    for plot_type in ["2b", "full"]:
+        util.plot.julia_plots.plot_ace_2b(ace_fname, plot_type, cc_in=cc_in, ch_in=ch_in, hh_in=hh_in)
+
+
+def parse_cutoffs(key, cutoffs_mb):
+    vals = cutoffs_mb[key]
+    return = [float(val) for val in vals.strip("()").split(',')]
 
 
 def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
