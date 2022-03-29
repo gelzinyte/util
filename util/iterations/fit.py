@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 def fit(
     num_cycles,
     base_train_fname="train.xyz",
-    base_test_fname="test.xyz",
     fit_param_fname=None,
     all_extra_smiles_csv=None,
     md_temp=500,
@@ -38,7 +37,8 @@ def fit(
     num_train_environments_per_cycle=10,
     num_test_environments_per_cycle=10,
     num_extra_smiles_per_cycle=10,
-    num_rads_per_mol=0
+    num_rads_per_mol=0, 
+    validation_fname = 'validation.xyz'
 ):
     """ iteratively fits potetnials
 
@@ -48,30 +48,19 @@ def fit(
     * An iteration starts with a fit to a training set file from the previous iteration
         ("02_train_for_ACE_03.xyz").
     * Then run tests with this potential:
-        - Accuracy on train set and similarly generated test set
-        - BDE test on tracked configs
-        - (dimer curves)?
+        - Accuracy on train set and new compounds' validation set
+        - dimer curves
         - offset in training/testing configs
-        - removal of hydrogen
-        - error on the configs vs bde error
     * Generate initial (rdkit) configs
         - slice a slice from all of the extra csv
         - generate 3D structures
-    * Potential-optimise
-    * Select configs with high error
     * Run MD at a given temperature
-        - look out for unreasonable structures
-            - filter geometry
-            - (check for weird energy drifts)
-    * CUR-select new configs
-        - BASED ON SOAP?!
-    * Accuracy summary on things that don't need extra dft evaluations
-        - train set
-        - test set
-        - potential - optimised structures
-        - structures selected from md
-        - dft-optimised bde structures
-        - potential-reoptimised bde structures
+        - check if any geometry is unreasonable
+            - if all good: 
+                - continue
+            - if not:
+                - select one config for training
+                - save this structure for next iteration
     * Get dft and combine datasets.
 
     Info keys:
@@ -86,13 +75,8 @@ def fit(
     * Generate heuristics for fitting params. For now:
         - select inner cutoff where data ends
         - Start with overly-large basis and cut down with ARD.
-    * select configs based on ACE basis?
-    * make sure dataset and config types are correctly assinged
-    * check that wherever I am using configset out, outputs are skipped if done.
-    * will md run remotely?
-    * what happens if ConfigSet_out is done, so action isn't performed and then I try to access co.to_ConfigSet_in()
     * do configs have unique identifier?
-    * 2b plot 
+    * is parallelisation done correctly
 
     Parameters
     ---------
@@ -289,8 +273,8 @@ def fit(
                 smiles_selection_csv=extra_smiles_for_this_cycle_csv,
                 chunksize=num_extra_smiles_per_cycle)
 
-        # 4. Generate actual structures for optimisation
-        logger.info("generating structures to optimise")
+        # 4. Generate actual structures for md 
+        logger.info("generating structures to work with")
         outputs = ConfigSet_out(
             output_files=md_starts_fname,
             force=True,
@@ -305,9 +289,7 @@ def fit(
             num_rads_per_mol=num_rads_per_mol)
 
   
-        # TODO 
-        if not tests_wdir:
-            raise RuntimeError("need to run MD")
+        # 5. Run MD and do sth with it 
 
         # # process optimisation trajectories: check for bad geometry and process accordingly
         # good_traj_configs_co = ConfigSet_out(output_files=good_md_to_sample_fn,
