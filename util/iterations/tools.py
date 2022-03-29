@@ -500,7 +500,7 @@ def dimer_2b(calculator, tests_wdir, fit_params=None):
 
 def parse_cutoffs(key, cutoffs_mb):
     vals = cutoffs_mb[key]
-    return = [float(val) for val in vals.strip("()").split(',')]
+    return [float(val) for val in vals.strip("()").split(',')]
 
 
 def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
@@ -697,14 +697,12 @@ def combine_plots(pred_prop_prefix, dft_prop_prefix, tests_wdir, cycle_idx, figs
         f"{pred_prop_prefix}error_on_{pred_prop_prefix}opt_vs_{pred_prop_prefix}bde_error_by_bde_type_scatter.pdf",
     ]
 
-
     merger = PdfFileMerger(strict=False)
     for fn in fnames:
         merger.append(fileobj=open(tests_wdir / fn, 'rb'), pages=(0,1))        
 
     merger.write(fileobj=open(combined_out, 'wb'))
     merger.close()
-
 
     update_tracker_plot(pred_prop_prefix=pred_prop_prefix,
                         dft_prop_prefix=dft_prop_prefix,
@@ -867,75 +865,37 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
     return co.to_ConfigSet_in()
 
 
-def check_accuracy(at, dft_prop_prefix, pred_prop_prefix):
-    dft_forces = at.arrays[f'{dft_prop_prefix}forces']
+def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
+
     pred_forces = at.arrays[f'{pred_prop_prefix}forces']
-
-    max_dft_f = np.max(np.abs(dft_forces))
     max_pred_f = np.max(np.abs(pred_forces))
-
-    ratios = np.divide(dft_forces, pred_forces)
-
-    # print(dft_forces)
-    # print(pred_forces)
-
-    ## only care about non-minute forces
-    # check for dft forces > 1 eV/A and only take 
-    # relevant predicted forces elements to check further
-    relevant_pred_forces = np.where(np.abs(dft_forces) > 1, pred_forces, np.nan)
-    # check predicted forces to be 1 eV/A
-    # and only return the relevant ratios
-    relevant_ratios = np.where(np.abs(relevant_pred_forces) > 1, ratios, np.nan)
-
-    # print("relevant pred forces")
-    # print(relevant_pred_forces)
-    # print("relevant ratios")
-    # print(relevant_ratios)
-
-    print(f"max_dft: {max_dft_f}, max_pred: {max_pred_f}, ratios: min: {np.min(relevant_ratios)} max: {np.max(relevant_ratios)}")
-
-    if max_dft_f > 15:
-        return False
 
     if max_pred_f > 15:
         return False
 
-    if np.any(relevant_ratios < 0.25) or np.any(relevant_ratios > 4):
-        return False
-    else: 
-        return True
+    if not no_dft:
+        dft_forces = at.arrays[f'{dft_prop_prefix}forces']
+        max_dft_f = np.max(np.abs(dft_forces))
 
-    # dft_f_mags =  f_mag(dft_forces)
-    # pred_f_mags = f_mag(pred_forces)
-    # max_dft_f_mag = np.max(dft_f_mags)
-    # max_pred_f_mag = np.max(pred_f_mags)
-    # ratio = max_dft_f_mag / max_pred_f_mag
+        if max_dft_f > 15:
+            return False
 
-    # if max_pred_f_mag < 1 and max_dft_f_mag < 1:
-    #     # logger.info("max per atom force mag below 1 eV/A")
-    #     return True
+        ratios = np.divide(dft_forces, pred_forces)
 
-    # if max_pred_f_mag > 10 or max_dft_f_mag > 10:
-    #     logger.info("atom force magnitude more than 10 eV/A")
-    #     return False
+        ## only care about non-minute forces
+        # check for dft forces > 1 eV/A and only take 
+        # relevant predicted forces elements to check further
+        relevant_pred_forces = np.where(np.abs(dft_forces) > 1, pred_forces, np.nan)
+        # check predicted forces to be 1 eV/A
+        # and only return the relevant ratios
+        relevant_ratios = np.where(np.abs(relevant_pred_forces) > 1, ratios, np.nan)
 
-    
-    # if ratio > 4 or ratio < 0.25:
-    #     logger.info(f"Forces raio more than 4, graph_name {at.info}")
-    #     return False 
+        print(f"max_dft: {max_dft_f}, max_pred: {max_pred_f}, ratios: min: {np.min(relevant_ratios)} max: {np.max(relevant_ratios)}")
 
-    # angles = get_angles(dft_forces, pred_forces)
-    # large_angles_idc = np.where(angles > 45)[0]
+        if np.any(relevant_ratios < 0.25) or np.any(relevant_ratios > 4):
+            return False
 
-    # for idx in large_angles_idc:
-    #     if dft_f_mags[idx] < 1 and pred_f_mags[idx] < 1:
-    #         return True
-    #     else:
-    #         logger.info(f"angle more than 45 degrees, at no {idx}")
-    #         return False
-
-    # return True
-    
+    return True
 
 def angle(x, y):
     """x, y: 3-element vectors"""
