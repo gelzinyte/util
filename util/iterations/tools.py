@@ -890,7 +890,7 @@ def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
         # and only return the relevant ratios
         relevant_ratios = np.where(np.abs(relevant_pred_forces) > 1, ratios, np.nan)
 
-        print(f"max_dft: {max_dft_f}, max_pred: {max_pred_f}, ratios: min: {np.min(relevant_ratios)} max: {np.max(relevant_ratios)}")
+        # print(f"max_dft: {max_dft_f}, max_pred: {max_pred_f}, ratios: min: {np.min(relevant_ratios)} max: {np.max(relevant_ratios)}")
 
         if np.any(relevant_ratios < 0.25) or np.any(relevant_ratios > 4):
             return False
