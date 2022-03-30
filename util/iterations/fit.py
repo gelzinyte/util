@@ -32,10 +32,7 @@ def fit(
     wdir="runs",
     ref_type="dft",
     ip_type="ace",
-    bde_test_fname="dft_bde.xyz",
-    soap_params_for_cur_fname="soap_params_for_cur.xyz",
-    num_train_environments_per_cycle=10,
-    num_test_environments_per_cycle=10,
+    # bde_test_fname="dft_bde.xyz",
     num_extra_smiles_per_cycle=10,
     num_rads_per_mol=0, 
     validation_fname = 'validation.xyz'
@@ -313,7 +310,7 @@ def fit(
 
         inputs = it.launch_analyse_md(
             inputs=inputs,
-            pred_prop_prefix=pred_prop_prefix
+            pred_prop_prefix=pred_prop_prefix,
             outputs_to_fit=outputs_to_fit, 
             outputs_traj=outputs_traj,
             outputs_rerun=outputs_rerun,

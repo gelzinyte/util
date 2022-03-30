@@ -14,7 +14,12 @@ from PyPDF4 import PdfFileMerger
 
 from ase.io import read, write
 
-import ace
+try:
+    import ace
+except ModuleNotFoundError:
+    ace = None
+    pass
+
 from quippy.potential import Potential
 
 from wfl.configset import ConfigSet_in, ConfigSet_out
@@ -314,8 +319,6 @@ def update_cutoffs(cutoffs_mb, symbols, min_dist):
 def parse_cutoffs(key, cutoffs_mb):
     vals = cutoffs_mb[key]
     return [float(val) for val in vals.strip("()").split(',')]
-
-
 
 
 def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):

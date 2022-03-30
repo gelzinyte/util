@@ -52,50 +52,31 @@ def evaluate_ip(config_file, gap_fname, output_fname,
               help='number of gap_fit - optimise cycles')
 @click.option('--train-fname', default='train.xyz', show_default=True,
               help='fname of the first training set file')
-@click.option('--test-fname')
 @click.option('--fit-param-fname', help='(base) parameters for fitting the potential')
 @click.option('--all-smiles-csv', help='csv with ALL smiles to be added')
 @click.option('--md-temp', type=click.FLOAT, default=500, show_default=True,
               help='temperature to run md at')
-# @click.option('--energy-error-per-atom-threshold', type=click.FLOAT,
-#               help='Threshold to accept predictions as accurate')
-# @click.option("--energy-error-total-threshold", type=click.FLOAT,
-#               help='Threshold to accept predictions as accurate')
-# @click.option('--max-f-comp-error-threshold', type=click.FLOAT,
-#               help='Threshold to accept predictions as accurate')
 @click.option('--wdir', default='runs', show_default=True)
 @click.option('--ref-type', default='dft', help='fit to dft data only for now')
 @click.option('--ip-type', type=click.Choice(["ace"]), help='fit ACE only for now.')
-@click.option('--bde-test-fname', help='xyz with configs to test bdes on')
-@click.option('--soap-params-for-cur-fname', help='soap param filename')
-@click.option('--num-train-env-per-cycle', default=10, type=click.INT, show_default=True)
-@click.option('--num-test-env-per-cycle', default=10, type=click.INT, show_default=True)
+# @click.option('--bde-test-fname', help='xyz with configs to test bdes on')
 @click.option('--num-extra-smiles-per-cycle', default=10, type=click.INT, show_default=True, 
               help="How many structures to generate each cycle")
 @click.option('--num-rads-per-mol', default=0, type=click.INT, show_default=True)
-def fit(num_cycles, train_fname, test_fname, fit_param_fname, all_smiles_csv, md_temp, 
-        # energy_error_per_atom_threshold, energy_error_total_threshold, max_f_comp_error_threshold,
-        wdir, ref_type, ip_type, bde_test_fname, soap_params_for_cur_fname,
-        num_train_env_per_cycle, num_test_env_per_cycle, num_extra_smiles_per_cycle,
-        num_rads_per_mol):
+def fit(num_cycles, train_fname, fit_param_fname, all_smiles_csv, md_temp, 
+        wdir, ref_type, ip_type, # bde_test_fname, 
+        num_extra_smiles_per_cycle, num_rads_per_mol):
 
     import util.iterations.fit
 
     util.iterations.fit.fit(num_cycles=num_cycles,
                             base_train_fname=train_fname,
-                            base_test_fname=test_fname,
                             fit_param_fname=fit_param_fname,
                             all_extra_smiles_csv=all_smiles_csv,
                             md_temp=md_temp,
-                            # energy_error_per_atom_threshold=energy_error_per_atom_threshold,
-                            # energy_error_total_threshold=energy_error_total_threshold,
-                            # max_f_comp_error_threshold=max_f_comp_error_threshold,
                             wdir=wdir,
                             ref_type=ref_type,
                             ip_type=ip_type,
-                            bde_test_fname=bde_test_fname,
-                            soap_params_for_cur_fname=soap_params_for_cur_fname,
-                            num_train_environments_per_cycle=num_train_env_per_cycle,
-                            num_test_environments_per_cycle=num_test_env_per_cycle,
+                            # bde_test_fname=bde_test_fname,
                             num_extra_smiles_per_cycle=num_extra_smiles_per_cycle,
                             num_rads_per_mol=num_rads_per_mol)

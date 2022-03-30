@@ -25,7 +25,6 @@ def test_iterfit(tmp_path):
     tmp_path = Path("/home/eg475/scripts/tests/iterations_wdir")
     tmp_path.mkdir(exist_ok=True)
 
-
     # sort out train/test sets
     all_ats = read(ref_path() / 'files/tiny_train_set.xyz', ':')
     iso = [at for at in all_ats if len(at) == 1]

@@ -2,10 +2,15 @@ import click
 from pathlib import Path
 from util.single_use import md_test
 from wfl.configset import ConfigSet_in, ConfigSet_out
-import ace
 from ase.io import read, write
 from wfl.generate_configs import md
 from util import configs
+
+try:
+    import ace
+except ModuleNotFoundError:
+    pass
+
 
 @click.command("grab-first")
 @click.option("--input-fname", '-i')
