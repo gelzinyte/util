@@ -200,18 +200,16 @@ def fit(
             train_set_fname = initial_train_fname
 
         extra_smiles_for_this_cycle_csv = cycle_dir / "01.extra_smiles.csv"
-        md_starts_fname = cycle_dir / "02.rdkit_mols_rads.xyz"
-        md_traj_fn = cycle_dir / f"03.0.{pred_prop_prefix}optimised.md_traj.xyz"
-        md_traj_evaled_fn = cycle_dir / f"03.1.{pred_prop_prefix}optimised.md_traj.{pred_prop_prefix[:-1]}.xyz"
-        good_md_to_sample_fn = cycle_dir / f"04.0.{pred_prop_prefix}optimised.md.xyz"
-        bad_md_bad_configs_fn = cycle_dir / f"04.1.{pred_prop_prefix}bad_md_traj_bad_configs.xyz"
-        bad_md_good_configs_fn = cycle_dir / f"04.2.{pred_prop_prefix}bad_md_traj_good_configs.xyz"
-        bad_md_good_configs_sample_train_fn = cycle_dir / f"05.0.{pred_prop_prefix}bad_md_traj_good_configs.sample_for_train.xyz"
-        md_with_soap_fname = cycle_dir / f"06.{pred_prop_prefix}optimised.md.good_geometries.soap.xyz"
-        test_md_selection_fname = cycle_dir / f"07.1.{pred_prop_prefix}optimised.md.test_sample.xyz"
-        train_md_selection_fname = cycle_dir / f"07.2.{pred_prop_prefix}optimised.md.train_sample.xyz"
-        test_extra_fname_dft = cycle_dir / f"08.1.{pred_prop_prefix}optimised.md.test_sample.dft.xyz"
-        train_extra_fname_dft = cycle_dir / f"08.2.{pred_prop_prefix}optimised.md.extra_train_configs.dft.xyz"
+        extra_md_starts_fname = cycle_dir / "02.rdkit_mols_rads.xyz"
+        combined_md_starts_fname = cycle_dir / "03.md_starts.xyz"
+        md_traj_fn = cycle_dir / f"04.{pred_prop_prefix[:-1]}.md_traj.xyz"
+        selected_for_train_fn = cycle_dir / f"05.{pred_prop_prefix[:-1]}.md_traj.train_subselect.xyz"
+        bad_mds_to_rerun_fn_name =  f"06.rdkit_mols_to_next_restart_configs.xyz"
+        bad_mds_to_rerun_fn = cycle_dir / bad_mds_to_rerun_fn_name
+        selected_for_train_fn_dft = cycle_dir / f"07.{pred_prop_prefix[:-1]}.md_traj.train_subselect.dft.xyz"
+
+        # 1. Fit ace/gap
+        # TODO: redo to ACE1pack
 
         fit_dir = cycle_dir / "fit_dir"
         fit_dir.mkdir(exist_ok=True)
@@ -276,7 +274,7 @@ def fit(
         # 4. Generate actual structures for md 
         logger.info("generating structures to work with")
         outputs = ConfigSet_out(
-            output_files=md_starts_fname,
+            output_files=extra_md_starts_fname,
             force=True,
             all_or_none=True,
             verbose=False,
@@ -288,43 +286,43 @@ def fit(
             outputs=outputs,
             num_rads_per_mol=num_rads_per_mol)
 
-  
-        # 5. Run MD and do sth with it 
+        # 5. add structures from previous cycle
+        if not combined_md_starts_fname.exists():
+            previous_bad_md_to_rerun_fname = Path(f"iteration_{cycle_idx-1:02d}") / bad_mds_to_rerun_fn
+            if os.stat(previous_bad_md_to_rerun_fname).st_size != 0:
+                structs_to_rerun = read(previous_bad_md_to_rerun_fname, ":")
+            else:
+                structs_to_rerun = []
 
-        # # process optimisation trajectories: check for bad geometry and process accordingly
-        # good_traj_configs_co = ConfigSet_out(output_files=good_md_to_sample_fn,
-        #                            force=True, all_or_none=True,
-        #                            set_tags={"dataset_type": f"next_rdkit_{pred_prop_prefix}_md", "config_type": "md"})
-        # bad_traj_bad_cfg_co = ConfigSet_out(output_files=bad_md_bad_configs_fn,
-        #                                   force=True, all_or_none=True,
-        #                                   set_tags={"config_type": "bad_opt_bad_config"})
-        # bad_traj_good_cfg_co = ConfigSet_out(output_files=bad_md_good_configs_fn,
-        #                                   force=True, all_or_none=True,
-        #                                   set_tags={"config_type": "bad_md_good_config"})
-        # it.process_trajs(
-        #     traj_ci=inputs, 
-        #     good_traj_configs_co=good_traj_configs_co,
-        #     bad_traj_bad_cfg_co=bad_traj_bad_cfg_co,
-        #     bad_traj_good_cfg_co=bad_traj_good_cfg_co, 
-        #     traj_sample_rule=100) 
+            extra_md_starts = read(extra_md_starts_fname, ":")
+            write(combined_md_starts_fname, structs_to_rerun + extra_md_starts)
+    
+        # 6. Run MD and select needed configs 
+        outputs_to_fit = ConfigSet_out(output_files=selected_for_train_fn,
+                                force=True, 
+                                all_or_none=True,
+                                set_tags={"config_type": f"selected_from_{pred_prop_prefix}md"})
+        outputs_traj = ConfigSet_out(output_files=md_traj_fn, 
+                                     force=True, 
+                                     all_or_none=True,
+                                     set_tags={"config_type":f"{pred_prop_prefix}md"})
+        outputs_rerun = ConfigSet_out(output_files=bad_mds_to_rerun_fn, 
+                                     force=True, 
+                                     all_or_none=True,
+                                     set_tags={"config_type":f"md_to_restart"})
 
-        # 13. evaluate DFT
-        logger.info("evaluatig dft structures selected for next training set")
+        inputs = it.launch_analyse_md(
+            inputs=inputs,
+            pred_prop_prefix=pred_prop_prefix
+            outputs_to_fit=outputs_to_fit, 
+            outputs_traj=outputs_traj,
+            outputs_rerun=outputs_rerun,
+            calculator=calculator, 
+            md_params=md_params)
+    
 
-        # next: all extra for training set
-        input_files = [train_md_selection_fname]
-
-        # if bad_opt_traj_good_configs_sample_for_train.exists() and \
-            # os.stat(bad_opt_traj_good_configs_sample_for_train).st_size != 0:
-            # input_files.append(bad_opt_traj_good_configs_sample_for_train)
-
-        if bad_md_good_configs_sample_train_fn.exists() and \
-            os.stat(bad_md_good_configs_sample_train_fn).st_size != 0:
-            input_files.append(bad_md_good_configs_sample_train_fn)
-
-        inputs = ConfigSet_in(input_files=input_files)
         outputs = ConfigSet_out(output_files=train_extra_fname_dft,
-            force=True, all_or_none=True, set_tags={"dataset_type": "next_train"})
+            force=True, all_or_none=True, set_tags={"dataset_type": "train", "iter_no": cycle_idx + 1})
 
         inputs = orca.evaluate(
             inputs=inputs,
@@ -356,23 +354,8 @@ def fit(
             logger.info("combining old and extra data")
 
             previous_train = read(train_set_fname, ":")
-            # if test_set_fname is not None:
-            #     previous_test = read(test_set_fname, ":")
-            # else: 
-            #     previous_test = []
-
             extra_train = read(train_extra_fname_dft, ":")
-            # extra_test = read(test_extra_fname_dft, ":")
-
-            for at in extra_train:
-                at.info["dataset_type"] = "train"
-                at.info["iter_no"] = cycle_idx + 1
-            # for at in extra_test:
-            #     at.info["dataset_type"] = "test"
-            #     at.info["iter_no"] = cycle_idx + 1
-
             write(next_train_set_fname, previous_train + extra_train)
-            # write(next_test_set_fname, previous_test + extra_test)
 
         logger.info(f"cycle {cycle_idx} done. ")
 
