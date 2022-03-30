@@ -2,6 +2,7 @@ import click
 from pathlib import Path
 from util.single_use import md_test
 from wfl.configset import ConfigSet_in, ConfigSet_out
+# import ace
 from ase.io import read, write
 from wfl.generate_configs import md
 from util import configs
@@ -60,7 +61,9 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
 
     traj_fname = output.replace(".out.", ".traj.")
 
-    calc = ace.ACECalculator(jsonpath=ace_fname, ACE_version=1)
+    # calc = ace.ACECalculator(jsonpath=ace_fname, ACE_version=1)
+    from pyjulip import ACE1
+    calc = ACE1(ace_fname)
 
     md_params = {
         "steps": steps,
