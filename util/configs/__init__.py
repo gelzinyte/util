@@ -141,62 +141,15 @@ def filter_insane_geometries(atoms_list, mult=1.2, mark_elements=False, skin=0):
     atoms_out = []
     skipped_idx = []
     for idx, atoms in enumerate(atoms_list):
+
         if len(atoms) == 1:
             atoms_out.append(atoms)
+        
+        geometry_ok = check_geometry(atoms, mult=mult, skin=skin, mark_elements=mark_elements)
 
-        natural_cutoffs = neighborlist.natural_cutoffs(atoms,
-                                                       mult=mult)
-        neighbor_list = neighborlist.NeighborList(natural_cutoffs,
-                                                  self_interaction=False,
-                                                  skin=skin,
-                                                  bothways=True)
-        _ = neighbor_list.update(atoms)
-
-        for at_idx, at in enumerate(atoms):
-
-            indices, offsets = neighbor_list.get_neighbors(at.index)
-            if at.symbol == 'H':
-                if len(indices) != 1:
-                    skipped_idx.append(idx)
-                    if mark_elements:
-                        at.symbol = "He"
-                        atoms.info["bad_atom_id"] = at_idx
-                        atoms.info["bad_atom_neighbrous"] = indices
-                        for bad_idx in indices:
-                            if atoms[bad_idx].symbol == "C":
-                                atoms[bad_idx].symbol = "Co"
-                            if atoms[bad_idx].symbol == "H":
-                                atoms[bad_idx].symbol = "Hg"
-
-                        print(atoms.info["graph_name"], at_idx)
-                        print(indices)
-                    bad_atoms.append(atoms)
-                    break
-
-            elif at.symbol == 'C':
-                if len(indices) < 2:
-                    skipped_idx.append(idx)
-                    if mark_elements:
-                        for bad_idx in indices:
-                            if atoms[bad_idx].symbol == "C":
-                                atoms[bad_idx].symbol = "Co"
-                            if atoms[bad_idx].symbol == "H":
-                                atoms[bad_idx].symbol = "Hg"
-                        atoms.info["bad_atom_id"] = at_idx
-                        atoms.info["bad_atom_neighbrous"] = indices
-                        print(atoms.info["graph_name"], at_idx)
-                        print(indices)
-                        at.symbol = "Ca"
-                    bad_atoms.append(atoms)
-                    break
-            elif at.symbol == 'O':
-                if len(indices) == 0:
-                    skipped_idx.append(idx)
-                    if mark_elements:
-                        atoms.symbol = "Os"
-                    bad_atoms.append(atoms)
-                    break
-
+        if not geometry_ok:
+            skipped_idx.append(idx)
+            bad_atoms.append(atoms)
         else:
             atoms_out.append(atoms)
 
@@ -210,6 +163,59 @@ def filter_insane_geometries(atoms_list, mult=1.2, mark_elements=False, skin=0):
     return {'good_geometries':atoms_out, 'bad_geometries':bad_atoms}
 
 
+def check_geometry(atoms, mult=1.2, mark_elements=False, skin=0):
+
+    natural_cutoffs = neighborlist.natural_cutoffs(atoms, mult=mult)
+    neighbor_list = neighborlist.NeighborList(natural_cutoffs,
+                                                self_interaction=False,
+                                                skin=skin,
+                                                bothways=True)
+    _ = neighbor_list.update(atoms)
+
+    for at_idx, at in enumerate(atoms):
+
+        indices, offsets = neighbor_list.get_neighbors(at.index)
+        if at.symbol == 'H':
+            if len(indices) != 1:
+                if mark_elements:
+                    at.symbol = "He"
+                    atoms.info["bad_atom_id"] = at_idx
+                    atoms.info["bad_atom_neighbrous"] = indices
+                    for bad_idx in indices:
+                        if atoms[bad_idx].symbol == "C":
+                            atoms[bad_idx].symbol = "Co"
+                        if atoms[bad_idx].symbol == "H":
+                            atoms[bad_idx].symbol = "Hg"
+
+                    # print(atoms.info["graph_name"], at_idx)
+                    # print(indices)
+                return False
+
+        elif at.symbol == 'C':
+            if len(indices) < 2:
+                if mark_elements:
+                    for bad_idx in indices:
+                        if atoms[bad_idx].symbol == "C":
+                            atoms[bad_idx].symbol = "Co"
+                        if atoms[bad_idx].symbol == "H":
+                            atoms[bad_idx].symbol = "Hg"
+                    atoms.info["bad_atom_id"] = at_idx
+                    atoms.info["bad_atom_neighbrous"] = indices
+                    # print(atoms.info["graph_name"], at_idx)
+                    # print(indices)
+                    at.symbol = "Ca"
+                return False
+        elif at.symbol == 'O':
+            if len(indices) == 0:
+                if mark_elements:
+                    atoms.symbol = "Os"
+                bad_atoms.append(atoms)
+                return False
+
+    else:
+        return True
+
+    
 def process_config_info(fname_in, fname_out):
 
     ats = read(fname_in, ':')
