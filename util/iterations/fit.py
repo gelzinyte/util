@@ -17,8 +17,10 @@ from util import remove_energy_force_containing_entries
 from util import opt
 from util.util_config import Config
 from util.iterations import tools as it
+from util.iterations import plots as ip
 from util.configs import cur
 from util import error_table
+import util
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +139,7 @@ def fit(
     dft_prop_prefix = "dft_"
     orca_kwargs = default_kw["orca"]
     orca_kwargs["orca_command"] = cfg["orca_path"]
+    orca_kwargs["scratch_path"] = scratch_dir
     logger.info(f"orca_kwargs: {orca_kwargs}")
 
     if ref_type == "dft":
@@ -241,12 +244,12 @@ def fit(
 
         # 2. Run tests
         tests_wdir = cycle_dir / "tests"
-        it.check_dft(train_set_fname, "dft_", orca_kwargs, tests_wdir)
         if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
+            it.check_dft(train_set_fname, "dft_", orca_kwargs, tests_wdir)
             logger.info("running_tests")
-            with open(fit_dir / f"ace_params.yaml") as f:
+            with open(fit_dir / f"ace_{cycle_idx}_params.yaml") as f:
                 fit_params = yaml.safe_load(f)
-            it.run_tests(
+            ip.run_tests(
                 calculator=calculator,
                 pred_prop_prefix=pred_prop_prefix,
                 dft_prop_prefix=dft_prop_prefix,

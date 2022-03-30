@@ -1,5 +1,7 @@
 import click
 
+from pathlib import Path
+
 from ase import Atoms
 from ase.io import read, write
 
@@ -63,9 +65,10 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 @click.option('--num-extra-smiles-per-cycle', default=10, type=click.INT, show_default=True, 
               help="How many structures to generate each cycle")
 @click.option('--num-rads-per-mol', default=0, type=click.INT, show_default=True)
+@click.option('--validation-fname')
 def fit(num_cycles, train_fname, fit_param_fname, all_smiles_csv, md_temp, 
         wdir, ref_type, ip_type, # bde_test_fname, 
-        num_extra_smiles_per_cycle, num_rads_per_mol):
+        num_extra_smiles_per_cycle, num_rads_per_mol, validation_fname):
 
     import util.iterations.fit
 
@@ -79,4 +82,5 @@ def fit(num_cycles, train_fname, fit_param_fname, all_smiles_csv, md_temp,
                             ip_type=ip_type,
                             # bde_test_fname=bde_test_fname,
                             num_extra_smiles_per_cycle=num_extra_smiles_per_cycle,
-                            num_rads_per_mol=num_rads_per_mol)
+                            num_rads_per_mol=num_rads_per_mol, 
+                            validation_fname=Path(validation_fname))

@@ -14,7 +14,10 @@ from PyPDF4 import PdfFileMerger
 
 from ase.io import read, write
 
-import ace
+try:
+    import ace
+except ModuleNotFoundError:
+    pass
 from quippy.potential import Potential
 
 from wfl.configset import ConfigSet_in, ConfigSet_out
@@ -31,7 +34,9 @@ from util.bde import generate
 from util.plot import dataset
 from util.plot import rmse_scatter_evaled, multiple_error_files
 from util.util_config import Config
+from util.iterations import tools as it
 
+logger = logging.getLogger(__name__)
 
 def run_tests(
     calculator,
@@ -88,12 +93,13 @@ def run_tests(
         error_type='mae', 
         skip_if_prop_not_present=False)
 
+    # re-evaluate a couple of DFTs
+    # check_dft(train_evaled, dft_prop_prefix, orca_kwargs, tests_wdir)
+
     if quick:
         return
 
-    # re-evaluate a couple of DFTs
-    check_dft(train_evaled, dft_prop_prefix, orca_kwargs, tests_wdir)
-
+    
     # bde test - final file of bde_test_fname.stem + ip_prop_prefix + bde.xyz
     bde_ci = generate.everything(
         calculator=calculator,
@@ -194,10 +200,10 @@ def dimer_2b(calculator, tests_wdir, fit_params=None):
         ch_in = None, 
         hh_in = None,
     else:
-        cutoffs_mb = params["cutoffs_mb"]
-        cc_in = parse_cutoffs(f'(:C, :C)', cutoffs_mb) 
-        ch_in = parse_cutoffs(f'(:C, :H)', cutoffs_mb) 
-        hh_in = parse_cutoffs(f'(:H, :H)', cutoffs_mb) 
+        cutoffs_mb = fit_params["basis"]["rpi_basis"]["transform"]["cutoffs"]        
+        cc_in = it.parse_cutoffs(f'(C, C)', cutoffs_mb) 
+        ch_in = it.parse_cutoffs(f'(C, H)', cutoffs_mb) 
+        hh_in = it.parse_cutoffs(f'(H, H)', cutoffs_mb) 
 
     ace_fname = calculator[1][0]
 

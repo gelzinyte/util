@@ -17,8 +17,10 @@ from ase.io import read, write
 try:
     import ace
 except ModuleNotFoundError:
-    ace = None
     pass
+
+from pyjulip import ACE1
+
 
 from quippy.potential import Potential
 
@@ -280,24 +282,27 @@ def do_ace_fit(
 
     ace_name = f"ace_{idx}"
     ace_fname = fit_dir / (ace_name + ".json")
-    params["ACE_fname"] = ace_fname
+    params["ACE_fname"] = str(ace_fname)
 
-    with open(fit_dir / "ace_params.yaml", "w") as f:
+    with open(fit_dir / f"ace_{idx}_params.yaml", "w") as f:
         yaml.dump(params, f)
 
     ace_fname = wfl.fit.ace.run_ace_fit(
         fitting_configs=fit_inputs, 
         ace_fit_params=params,
-        run_dir=fit_dir)
+        run_dir=fit_dir, 
+        skip_if_present=True)
 
-    return (ace.ACECalculator, [], {"jsonpath": str(ace_fname), 'ACE_version':1})
+    # return (ace.ACECalculator, [], {"jsonpath": str(ace_fname), 'ACE_version':1})
+    return  (ACE1, [str(ace_fname)], {})
 
 
 def update_ace_params(base_params, fit_inputs):
     """ for now just select inner cutoff"""
     params = deepcopy(base_params)
     dists = util.distances_dict(fit_inputs)
-    cutoffs_mb = params["cutoffs_mb"]
+    # cutoffs_mb = params["cutoffs_mb"]
+    cutoffs_mb = params["basis"]["rpi_basis"]["transform"]["cutoffs"]
     for key, dists in dists.items():
         if len(dists) == 0:
             logger.warning(f"did not find any pairs between elements {key}")
@@ -310,7 +315,7 @@ def update_ace_params(base_params, fit_inputs):
 def update_cutoffs(cutoffs_mb, symbols, min_dist):
     # assumes keys are always alphabetical :/
     logger.info(f"old cutoffs: {cutoffs_mb}")
-    key = f'(:{symbols[0]}, :{symbols[1]})'
+    key = f'({symbols[0]}, {symbols[1]})'
     vals = cutoffs_mb[key]
     vals = [float(val) for val in vals.strip("()").split(',')]
     cutoffs_mb[key] = f"({min_dist:.2f}, {vals[1]})"
@@ -340,7 +345,7 @@ def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
 
     for at in inputs:
         energy_ok = pytest.approx(at.info[f'{dft_prop_prefix}energy']) == at.info['dft_recalc_energy']
-        forces_ok = np.all(pytest.approx(at.arrays[f'{dft_prop_prefix}forces']) == at.arrays['dft_recalc_forces'])
+        forces_ok = np.all(pytest.approx(at.arrays[f'{dft_prop_prefix}forces'], abs=1e-4) == at.arrays['dft_recalc_forces'])
         logger.info(f"forces_ok: {forces_ok}")
         if not (energy_ok and forces_ok):
             logger.info(f'energy ok: {energy_ok}, forces_ok: {forces_ok}')

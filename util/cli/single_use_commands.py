@@ -2,7 +2,6 @@ import click
 from pathlib import Path
 from util.single_use import md_test
 from wfl.configset import ConfigSet_in, ConfigSet_out
-# import ace
 from ase.io import read, write
 from wfl.generate_configs import md
 from util import configs
@@ -72,8 +71,7 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
         "temperature_tau": 500,  # fs, somewhat quicker than recommended (???)
         "traj_step_interval": sampling_interval,
         "results_prefix": pred_prop_prefix,
-        "reuse_momenta": True,
-    }
+        "reuse_momenta": True}
 
     md.sample(
         inputs=ci,
@@ -82,10 +80,6 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
         verbose=True,
         npool=None,
         traj_fname=traj_fname,
-        **md_params,
-    )
-
-
-
+        **md_params)
 
 
