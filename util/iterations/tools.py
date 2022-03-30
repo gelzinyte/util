@@ -269,35 +269,23 @@ def do_ace_fit(
         os.environ["ACE_FIT_JULIA_THREADS"] = str(ncores)
         os.environ["ACE_FIT_BLAS_THREADS"] = str(ncores)
 
-    fit_inputs = ConfigSet_in(input_files=train_set_fname)
+    fit_inputs = read(train_set_fname, ":")
 
     params = update_ace_params(fit_params_base, fit_inputs)
 
     ace_name = f"ace_{idx}"
     ace_fname = fit_dir / (ace_name + ".json")
+    params["ACE_fname"] = ace_fname
 
     with open(fit_dir / "ace_params.yaml", "w") as f:
         yaml.dump(params, f)
 
-    ace_file_base = wfl.fit.ace.fit(
-        fitting_configs=fit_inputs,
-        ACE_name=ace_name,
-        params=params,
-        ref_property_prefix=fit_to_prop_prefix,
-        skip_if_present=True,
-        run_dir=fit_dir,
-        formats=[".json"],
-        ace_fit_exec=ace_fit_exec,
-        verbose=True,
-        remote_info=None,
-        wait_for_results=True,
-    )
+    ace_fname = wfl.fit.ace.run_ace_fit(
+        fitting_configs=fit_inputs, 
+        ace_fit_params=params,
+        run_dir=fit_dir)
 
-    ace_fname = str(ace_fname)
-
-    assert str(ace_file_base) + ".json" == ace_fname
-
-    return (ace.ACECalculator, [], {"jsonpath": ace_fname, 'ACE_version':2})
+    return (ace.ACECalculator, [], {"jsonpath": str(ace_fname), 'ACE_version':1})
 
 
 def update_ace_params(base_params, fit_inputs):
