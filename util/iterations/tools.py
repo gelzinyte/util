@@ -29,6 +29,7 @@ import wfl.fit.gap_simple
 import wfl.fit.ace
 from wfl.calculators import generic
 from wfl.calculators import orca
+from wfl.generate_configs import md
 
 import util
 from util import radicals
@@ -548,7 +549,7 @@ def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
     return True
 
 def md_subselector_function(traj):
-    all_configs = configs.filter_insane_geometries(inputs, mult=1, skin=0)
+    all_configs = configs.filter_insane_geometries(traj, mult=1.2, skin=0)
 
     if len(all_configs["bad_geometries"]) == 0:
         return []
@@ -587,6 +588,8 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
         selector_function=md_subselector_function,
         **md_params)
 
+    import pdb; pdb.set_trace()
+
     # 2. reevaluate ace
     inputs = generic.run(inputs=inputs, 
                          outputs=outputs_traj,
@@ -596,7 +599,7 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
 
     # 3. select configs we need
     dict_of_trajs = configs.into_dict_of_labels([at for at in inputs], "graph_name")
-    for label, traj in dict_of_trajs:
+    for label, traj in dict_of_trajs.items():
         outputs_rerun.write(traj[0])
         outputs_to_fit.write(select_at_from_failed_md(traj))
 
@@ -605,9 +608,10 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
     return outputs_to_fit.to_ConfigSet_in()
 
 
-def select_at_from_failed_md(traj):
+def select_at_from_failed_md(traj, pred_prop_prefix='ace_'):
     
     for at in reversed(traj):
+        # TODO: fix the ace_ bit
         is_accurate = check_accuracy(at, None, pred_prop_prefix, no_dft=True)
         if is_accurate:
             return at

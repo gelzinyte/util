@@ -32,7 +32,7 @@ from util import configs
 from util.calculators import xtb2_plus_gap
 from util.bde import generate
 from util.plot import dataset
-from util.plot import rmse_scatter_evaled, multiple_error_files
+from util.plot import rmse_scatter_evaled, multiple_error_files, julia_plots
 from util.util_config import Config
 from util.iterations import tools as it
 
@@ -77,7 +77,7 @@ def run_tests(
     # training & validation set scatter plots
     ats_train = read(train_evaled, ":")
     ats_val = read(val_evaled, ":")
-    rmse_scatter_plot(
+    rmse_scatter_evaled.scatter_plot(
         ref_energy_name=f"{dft_prop_prefix}energy",
         pred_energy_name=f"{pred_prop_prefix}energy",
         ref_force_name=f"{dft_prop_prefix}forces",
@@ -201,14 +201,14 @@ def dimer_2b(calculator, tests_wdir, fit_params=None):
         hh_in = None,
     else:
         cutoffs_mb = fit_params["basis"]["rpi_basis"]["transform"]["cutoffs"]        
-        cc_in = it.parse_cutoffs(f'(C, C)', cutoffs_mb) 
-        ch_in = it.parse_cutoffs(f'(C, H)', cutoffs_mb) 
-        hh_in = it.parse_cutoffs(f'(H, H)', cutoffs_mb) 
+        cc_in = it.parse_cutoffs(f'(C, C)', cutoffs_mb)[0] 
+        ch_in = it.parse_cutoffs(f'(C, H)', cutoffs_mb)[0]
+        hh_in = it.parse_cutoffs(f'(H, H)', cutoffs_mb)[0]
 
     ace_fname = calculator[1][0]
 
     for plot_type in ["2b", "full"]:
-        util.plot.julia_plots.plot_ace_2b(ace_fname, plot_type, cc_in=cc_in, ch_in=ch_in, hh_in=hh_in)
+        julia_plots.plot_ace_2b(ace_fname, plot_type, cc_in=cc_in, ch_in=ch_in, hh_in=hh_in)
 
 
 

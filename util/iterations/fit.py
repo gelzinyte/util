@@ -37,8 +37,8 @@ def fit(
     # bde_test_fname="dft_bde.xyz",
     num_extra_smiles_per_cycle=10,
     num_rads_per_mol=0, 
-    validation_fname = 'validation.xyz'
-):
+    validation_fname = 'validation.xyz',
+    md_steps = 2000):
     """ iteratively fits potetnials
 
     No files are created or modified in the original directory, everything's done in "wdir"
@@ -159,7 +159,7 @@ def fit(
     # md params
     # TODO revisit
     md_params = {
-        "steps": 2000,
+        "steps": md_steps,
         "dt": 0.5,  # fs
         "temperature": md_temp,  # K
         "temperature_tau": 200,  # fs, somewhat quicker than recommended (???)
@@ -244,7 +244,7 @@ def fit(
 
         # 2. Run tests
         tests_wdir = cycle_dir / "tests"
-        if not (tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz").exists():
+        if not (tests_wdir / f"{pred_prop_prefix}on_{train_set_fname.name}").exists():
             it.check_dft(train_set_fname, "dft_", orca_kwargs, tests_wdir)
             logger.info("running_tests")
             with open(fit_dir / f"ace_{cycle_idx}_params.yaml") as f:
@@ -288,11 +288,15 @@ def fit(
 
         # 5. add structures from previous cycle
         if not combined_md_starts_fname.exists():
-            previous_bad_md_to_rerun_fname = Path(f"iteration_{cycle_idx-1:02d}") / bad_mds_to_rerun_fn
-            if os.stat(previous_bad_md_to_rerun_fname).st_size != 0:
-                structs_to_rerun = read(previous_bad_md_to_rerun_fname, ":")
-            else:
+            if cycle_idx == 0: 
                 structs_to_rerun = []
+                pass
+            else:
+                previous_bad_md_to_rerun_fname = wdir / f"iteration_{cycle_idx-1:02d}" / bad_mds_to_rerun_fn_name
+                if os.stat(previous_bad_md_to_rerun_fname).st_size != 0:
+                    structs_to_rerun = read(previous_bad_md_to_rerun_fname, ":")
+                else:
+                    structs_to_rerun = []
 
             extra_md_starts = read(extra_md_starts_fname, ":")
             write(combined_md_starts_fname, structs_to_rerun + extra_md_starts)
@@ -321,7 +325,7 @@ def fit(
             md_params=md_params)
     
 
-        outputs = ConfigSet_out(output_files=train_extra_fname_dft,
+        outputs = ConfigSet_out(output_files=selected_for_train_fn_dft,
             force=True, all_or_none=True, set_tags={"dataset_type": "train", "iter_no": cycle_idx + 1})
 
         inputs = orca.evaluate(
@@ -342,7 +346,7 @@ def fit(
         #     test_fname=test_set_fname,
         #     bde_fname=bde_test_fname,
         #     ip_optimised_fname=good_opt_for_md_w_dft_fn,
-        #     train_extra_fname=train_extra_fname_dft,
+        #     train_extra_fname=selected_for_train_fn_dft,
         #     test_extra_fname=test_extra_fname_dft,
         #     tests_wdir=tests_wdir,
         # )
@@ -354,7 +358,7 @@ def fit(
             logger.info("combining old and extra data")
 
             previous_train = read(train_set_fname, ":")
-            extra_train = read(train_extra_fname_dft, ":")
+            extra_train = read(selected_for_train_fn_dft, ":")
             write(next_train_set_fname, previous_train + extra_train)
 
         logger.info(f"cycle {cycle_idx} done. ")
@@ -370,6 +374,6 @@ def fit(
     #     test_fname=test_set_fname,
     #     bde_fname=bde_test_fname,
     #     ip_optimised_fname=good_opt_for_md_w_dft_fn,
-    #     train_extra_fname=train_extra_fname_dft,
+    #     train_extra_fname=selected_for_train_fn_dft,
     #     test_extra_fname=test_extra_fname_dft,
     #     tests_wdir=tests_wdir)

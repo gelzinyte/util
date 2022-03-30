@@ -35,20 +35,6 @@ def evaluate_ip(config_file, gap_fname, output_fname,
                 properties=['energy', 'forces'], output_prefix=gap_prop_prefix)
 
 
-# @click.command('eval-h')
-# @click.argument('gap-fname')
-# @click.option('--output', '-o')
-# @click.option('--prop-prefix', '-p')
-# def eval_h(gap_fname, output, prop_prefix):
-#     from quippy.potential import Potential
-
-#     gap = Potential(param_filename=gap_fname)
-#     at = Atoms('H', positions=[(0, 0, 0)])
-#     at.calc = gap
-#     at.info[f'{prop_prefix}energy'] = at.get_potential_energy()
-#     write(output, at)
-
-
 @click.command('fit')
 @click.option('--num-cycles', type=click.INT,
               help='number of gap_fit - optimise cycles')
@@ -66,9 +52,11 @@ def evaluate_ip(config_file, gap_fname, output_fname,
               help="How many structures to generate each cycle")
 @click.option('--num-rads-per-mol', default=0, type=click.INT, show_default=True)
 @click.option('--validation-fname')
+@click.option('--md-steps', type=click.INT, default=2000)
 def fit(num_cycles, train_fname, fit_param_fname, all_smiles_csv, md_temp, 
         wdir, ref_type, ip_type, # bde_test_fname, 
-        num_extra_smiles_per_cycle, num_rads_per_mol, validation_fname):
+        num_extra_smiles_per_cycle, num_rads_per_mol, validation_fname,
+        md_steps):
 
     import util.iterations.fit
 
@@ -83,4 +71,5 @@ def fit(num_cycles, train_fname, fit_param_fname, all_smiles_csv, md_temp,
                             # bde_test_fname=bde_test_fname,
                             num_extra_smiles_per_cycle=num_extra_smiles_per_cycle,
                             num_rads_per_mol=num_rads_per_mol, 
-                            validation_fname=Path(validation_fname))
+                            validation_fname=Path(validation_fname),
+                            md_steps=md_steps)

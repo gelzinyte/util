@@ -1,7 +1,9 @@
+import logging
 import util
 from pathlib import Path
 import subprocess
 
+logger = logging.getLogger(__name__)
 
 def plot_ace_2b(ace_fname, plot_type, cc_in=None, ch_in=None, hh_in=None):
     script_path = Path(util.__file__).parent / "scripts/2b.jl"
@@ -13,4 +15,5 @@ def plot_ace_2b(ace_fname, plot_type, cc_in=None, ch_in=None, hh_in=None):
     if hh_in is not None:
         command += f" --hh-in {hh_in}"
 
+    logger.info(command)
     subprocess.run(command, shell=True)
