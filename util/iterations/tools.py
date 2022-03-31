@@ -548,6 +548,7 @@ def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
 
     return True
 
+
 def md_subselector_function(traj):
     all_configs = configs.filter_insane_geometries(traj, mult=1.2, skin=0)
 
@@ -558,6 +559,7 @@ def md_subselector_function(traj):
         at.info["config_type"] = "bad_md_good_geometry"
 
     return all_configs["good_geometries"]
+
 
 def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, outputs_rerun, calculator, md_params):
     """
@@ -588,7 +590,7 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
         selector_function=md_subselector_function,
         **md_params)
 
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
     # 2. reevaluate ace
     inputs = generic.run(inputs=inputs, 
