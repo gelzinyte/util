@@ -20,7 +20,7 @@ def remove_old_calc_results(input_fname, output_fname):
     ats = read(input_fname, ':')
     for at in ats:
         util.remove_energy_force_containing_entries(at)
-    write(output_fname, ats)
+    write(output_fname, ats, write_results=False)
 
 
 

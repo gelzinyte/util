@@ -30,12 +30,15 @@ except:
 from contextlib import contextmanager,redirect_stderr,redirect_stdout
 from os import devnull
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def remove_energy_force_containing_entries(at):
     "remove info keys with 'energy' in label and arrays keys with 'force' in label"
-    info_keys_to_remove = [key for key in at.info.keys() if 'energy' in key or "dipole" in key]
-    arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key]
+    info_keys_to_remove = [key for key in at.info.keys() if ('energy' in key or "dipole" in key)]
+    arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key or "charge" in key]
 
     for key in info_keys_to_remove:
         del at.info[key]

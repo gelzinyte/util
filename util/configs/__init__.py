@@ -223,12 +223,16 @@ def process_config_info(fname_in, fname_out):
 
     write(fname_out, ats)
 
-def assign_info_entries(atoms, config_type, compound, mol_or_rad, rad_no):
-    atoms.info["config_type"] = config_type
-    atoms.info["compound"] = compound
+
+def assign_info_entries(atoms, mol_or_rad, rad_no, config_type=None, compound=None):
+    if config_type is not None:
+        atoms.info["config_type"] = config_type
+    if compound is not None:
+        atoms.info["compound"] = compound
     atoms.info["mol_or_rad"] = mol_or_rad
     atoms.info["rad_num"] = rad_no
-    atoms.info["graph_name"] = f'{compound}_{rad_no}' if rad_no == 'mol' \
+    if compound is not None:
+        atoms.info["graph_name"] = f'{compound}_{rad_no}' if rad_no == 'mol' \
         else f'{compound}_rad{rad_no}'
 
 

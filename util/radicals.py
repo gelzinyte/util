@@ -83,6 +83,7 @@ def abstract_sp3_hydrogen_atoms(inputs, label_config_type=True,
         for h_idx in sp3_hs:
             at = atoms.copy()
             del at[h_idx]
+            configs.assign_info_entries(at, mol_or_rad="rad", rad_no=h_idx, compound=at.info["compound"])
             radicals.append(at)
 
         if label_config_type:
@@ -91,15 +92,15 @@ def abstract_sp3_hydrogen_atoms(inputs, label_config_type=True,
 
             if return_mol:
                 mol = atoms.copy()
-                mol.info['compound'] = mol.info['config_type']
-                config_type_append(mol, 'mol')
-                mol.info['mol_or_rad'] = 'mol'
+                # mol.info['compound'] = mol.info['config_type']
+                # config_type_append(mol, 'mol')
+                # mol.info['mol_or_rad'] = 'mol'
                 atoms_out.append(mol)
 
             for rad, h_id in zip(radicals, sp3_hs):
-                rad.info['compound'] = rad.info['config_type']
-                config_type_append(rad, f'rad{h_id}')
-                rad.info['mol_or_rad'] = f'rad{h_id}'
+                # rad.info['compound'] = rad.info['config_type']
+                # config_type_append(rad, f'rad{h_id}')
+                # rad.info['mol_or_rad'] = f'rad{h_id}'
                 atoms_out.append(rad)
 
         else:
