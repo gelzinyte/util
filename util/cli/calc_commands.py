@@ -10,6 +10,8 @@ from ase.io import read, write
 
 from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.generate_configs import vib
+from wfl.calculators import generic 
+from util.calculators import pyjulip_ace
 
 logger = logging.getLogger(__name__)
 
@@ -122,8 +124,6 @@ def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
         # means it's a gap_fit param
         descriptors = deepcopy(params.pop('_gap'))
 
-
-
     inputs = ConfigSet_in(input_files=input_fname)
     outputs = ConfigSet_out(output_files=output_fname)
 
@@ -139,24 +139,31 @@ def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
 @click.option('--prop-prefix', '-p', default='ace_', show_default=True)
 def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
 
-
-    import ace
-
     inputs = ConfigSet_in(input_files=input_fname)
     outputs = ConfigSet_out(output_files=output_fname)
-    # calc = (pyjulip.ACE, [ace_fname], {})
+
+    calc = (pyjulip_ace, [ace_fname], {})
+
+    # import pyjulip
+    # calc = (pyjulip.ACE1, [ace_fname], {})
 
     # generic.run(inputs=inputs, outputs=outputs, calculator=calc,
     #             properties=['energy', 'forces'], output_prefix=prop_prefix)
 
+    # import ace
+    # calc = ace.ACECalculator(jsonpath=ace_fname, ACE_version=1)
 
-    calc = ace.ACECalculator(jsonpath=ace_fname, ACE_version=1)
-    logger.info('loaded up ace calculator')
-    for at in tqdm(inputs):
-        calc.reset()
-        at.calc = calc
-        at.calc.atoms = at
-        at.info[f'{prop_prefix}energy'] = calc.get_potential_energy()
-        at.arrays[f'{prop_prefix}forces'] = calc.get_forces()
-        outputs.write(at)
-    outputs.end_write()
+    # logger.info('loaded up ace calculator')
+    # for at in tqdm(inputs):
+    #     calc.reset()
+    #     at.calc = calc
+    #     at.calc.atoms = at
+    #     at.info[f'{prop_prefix}energy'] = calc.get_potential_energy()
+    #     at.arrays[f'{prop_prefix}forces'] = calc.get_forces()
+    #     outputs.write(at)
+    # outputs.end_write()
+
+    generic.run(inputs=inputs, outputs=outputs, calculator=calc, properties=["energy", "forces"],
+                output_prefix=prop_prefix)
+
+

@@ -37,3 +37,8 @@ class xtb2_plus_gap(Calculator):
 
         self.results["energy"] = gap_energy + xtb_energy
         self.results["forces"] = gap_forces + xtb_forces
+
+
+def pyjulip_ace(ace_fname):
+    import pyjulip
+    return pyjulip.ACE1(ace_fname)
