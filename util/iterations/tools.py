@@ -19,7 +19,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-from pyjulip import ACE1
+# from pyjulip import ACE1
+from util.calculators import pyjulip_ace
 
 
 from quippy.potential import Potential
@@ -295,7 +296,8 @@ def do_ace_fit(
         skip_if_present=True)
 
     # return (ace.ACECalculator, [], {"jsonpath": str(ace_fname), 'ACE_version':1})
-    return (ACE1, [str(ace_fname)], {})
+    # return (ACE1, [str(ace_fname)], {})
+    return (pyjulip_ace, [str(ace_fname)], {})
 
 
 def update_ace_params(base_params, fit_inputs):
@@ -597,7 +599,8 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
                          outputs=outputs_traj,
                          calculator=calculator,
                          properties=["energy", "forces"],
-                         output_prefix=pred_prop_prefix)
+                         output_prefix=pred_prop_prefix,
+                         chunksize=200)
 
     # 3. select configs we need
     dict_of_trajs = configs.into_dict_of_labels([at for at in inputs], "graph_name")

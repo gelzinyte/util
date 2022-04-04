@@ -67,7 +67,7 @@ def run_tests(
         calculator=calculator,
         properties=["energy", "forces"],
         output_prefix=pred_prop_prefix,
-        chunksize=20)
+        chunksize=200)
 
     # check the offset is not there
     check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
