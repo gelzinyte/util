@@ -163,7 +163,7 @@ def fit(
         "dt": 0.5,  # fs
         "temperature": md_temp,  # K
         "temperature_tau": 200,  # fs, somewhat quicker than recommended (???)
-        "traj_step_interval": 2,
+        "traj_step_interval": 20,
         "results_prefix": pred_prop_prefix,
     }
     logger.info(f"MD params: {md_params}")
@@ -204,8 +204,9 @@ def fit(
         combined_md_starts_fname = cycle_dir / "03.md_starts.xyz"
         md_traj_fn = cycle_dir / f"04.{pred_prop_prefix[:-1]}.md_traj.xyz"
         selected_for_train_fn = cycle_dir / f"05.{pred_prop_prefix[:-1]}.md_traj.train_subselect.xyz"
-        bad_mds_to_rerun_fn_name =  f"06.rdkit_mols_to_next_restart_configs.xyz"
+        bad_mds_to_rerun_fn_name =  f"06.0.rdkit_mols_to_next_restart_configs.xyz"
         bad_mds_to_rerun_fn = cycle_dir / bad_mds_to_rerun_fn_name
+        good_mds_starts_fn = cycle_dir / f"06.1.rdkit_mols_ok_mds.xyz"
         selected_for_train_fn_dft = cycle_dir / f"07.{pred_prop_prefix[:-1]}.md_traj.train_subselect.dft.xyz"
 
         # 1. Fit ace/gap
@@ -308,12 +309,16 @@ def fit(
                                 set_tags={"config_type": f"selected_from_{pred_prop_prefix}md"})
         outputs_traj = ConfigSet_out(output_files=md_traj_fn, 
                                      force=True, 
-                                     all_or_none=True,
-                                     set_tags={"config_type":f"{pred_prop_prefix}md"})
+                                     all_or_none=True)
+                                    #  set_tags={"config_type":f"{pred_prop_prefix}md"})
         outputs_rerun = ConfigSet_out(output_files=bad_mds_to_rerun_fn, 
                                      force=True, 
                                      all_or_none=True,
                                      set_tags={"config_type":f"md_to_restart"})
+        outputs_good_md = ConfigSet_out(output_files=good_mds_starts_fn,
+                                        force=True,
+                                        all_or_none=True,
+                                        set_tags={"config_type":f"ok_md"})
 
         inputs = it.launch_analyse_md(
             inputs=inputs,
@@ -321,6 +326,7 @@ def fit(
             outputs_to_fit=outputs_to_fit, 
             outputs_traj=outputs_traj,
             outputs_rerun=outputs_rerun,
+            outputs_good_md=outputs_good_md,
             calculator=calculator, 
             md_params=md_params)
     

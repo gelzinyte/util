@@ -523,14 +523,14 @@ def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
     pred_forces = at.arrays[f'{pred_prop_prefix}forces']
     max_pred_f = np.max(np.abs(pred_forces))
 
-    if max_pred_f > 15:
+    if max_pred_f > 10:
         return False
 
     if not no_dft:
         dft_forces = at.arrays[f'{dft_prop_prefix}forces']
         max_dft_f = np.max(np.abs(dft_forces))
 
-        if max_dft_f > 15:
+        if max_dft_f > 10:
             return False
 
         ratios = np.divide(dft_forces, pred_forces)
@@ -555,7 +555,9 @@ def md_subselector_function(traj):
     all_configs = configs.filter_insane_geometries(traj, mult=1.2, skin=0)
 
     if len(all_configs["bad_geometries"]) == 0:
-        return []
+        at = traj[0].copy()
+        at.info["config_type"] = "good_md_traj"
+        return [at]
 
     for at in all_configs["good_geometries"]:
         at.info["config_type"] = "bad_md_good_geometry"
@@ -563,7 +565,8 @@ def md_subselector_function(traj):
     return all_configs["good_geometries"]
 
 
-def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, outputs_rerun, calculator, md_params):
+def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, outputs_rerun, 
+                      outputs_good_md, calculator, md_params):
     """
     1. run MD
     2. on-the-fly parse whether trajectory is ok or not
@@ -574,10 +577,11 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
         * pick single config to include into training 
         * ~save the rest of the trajectory~ 
           -> actually that will have been saved. 
+        * save good md's starts so it's easy to track what's going on
     """
 
-    doneness = sum([outputs_to_fit.is_done(), outputs_traj.is_done(), outputs_rerun.is_done()])
-    if doneness == 3:
+    doneness = sum([outputs_to_fit.is_done(), outputs_traj.is_done(), outputs_rerun.is_done(), outputs_good_md.is_done()])
+    if doneness == 4:
         logger.info("outputs_are_done, not re-splitting the full trajectories ")
         return outputs_to_fit.to_ConfigSet_in()
     elif doneness != 0:
@@ -590,9 +594,8 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
         outputs=outputs, 
         calculator=calculator, 
         selector_function=md_subselector_function,
+        update_config_type=False,
         **md_params)
-
-    # import pdb; pdb.set_trace()
 
     # 2. reevaluate ace
     inputs = generic.run(inputs=inputs, 
@@ -605,11 +608,21 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
     # 3. select configs we need
     dict_of_trajs = configs.into_dict_of_labels([at for at in inputs], "graph_name")
     for label, traj in dict_of_trajs.items():
-        outputs_rerun.write(traj[0])
-        outputs_to_fit.write(select_at_from_failed_md(traj))
+        if traj[0].info["config_type"] == "bad_md_good_geometry": 
+            outputs_rerun.write(traj[0])
+            outputs_to_fit.write(select_at_from_failed_md(traj))
+        elif traj[0].info["config_type"] == "good_md_traj":
+            outputs_good_md.write(traj[0]) 
+        else:
+            logger.info(traj[0].info)
+            raise RuntimeError("Messed up when processing trajectories")
 
     outputs_rerun.end_write()
     outputs_to_fit.end_write()
+    outputs_good_md.end_write()
+
+    # TODO resample the done trajectories so fewer configs are kept
+
     return outputs_to_fit.to_ConfigSet_in()
 
 
@@ -622,9 +635,3 @@ def select_at_from_failed_md(traj, pred_prop_prefix='ace_'):
             return at
 
          
-
-
-
-
-
-

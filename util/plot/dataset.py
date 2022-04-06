@@ -14,7 +14,8 @@ from pathlib import Path
 
 def energy_by_idx(atoms, prop_prefix='dft_', title=None,
                   group_compounds=False,
-                  isolated_atoms=None, info_label='config_type', dir='.'):
+                  isolated_atoms=None, info_label='config_type', dir='.',
+                  cmap="tab10"):
     """TODO: do binding energy per atom"""
 
     if title is None:
@@ -41,21 +42,28 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
         data = group_data(data)
         data = group_data(data)
 
+    if cmap != "tab10":
+        cmap = plt.get_cmap(cmap)
+        colors = [cmap(idx) for idx in np.linspace(0, 1, len(data.keys()))]
+    else:
+        cmap = plt.get_cmap(cmap)
+        colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
+    
 
     plt.figure(figsize=(20, 6))
     global_idx = 0
-    for cfg_type, configs in data.items():
+    for idx, (cfg_type, configs) in enumerate(data.items()):
 
         binding_energies_per_at = np.array([util.get_binding_energy_per_at(at, isolated_atoms, prop_prefix+"energy")
                                             for at in configs if len(at) != 1])
         indices = np.array([at.info['dset_idx'] for at in configs if len(at) != 1])
 
-        plt.scatter(indices, binding_energies_per_at, label=cfg_type, s=8, marker='x')
+        plt.scatter(indices, binding_energies_per_at, label=cfg_type, s=8, marker='x', color=colors[idx])
         # plt.plot(range(global_idx, global_idx +len(binding_energies_per_at)), binding_energies_per_at, label=cfg_type)
         # global_idx += len(binding_energies_per_at)
 
     plt.title(title)
-    if len(data.keys()) < 11:
+    if len(data.keys()) < 11 or cmap != 'tab10':
         plt.legend()
     plt.xlabel('index in dataset')
     plt.ylabel(f'{prop_prefix} binding energy / ev/atom')
@@ -69,7 +77,7 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
 
 def forces_by_idx(atoms, prop_prefix='dft_', title=None,
                   group_compounds=False, info_label='config_type',
-                  dir='.'):
+                  dir='.', cmap='tab10'):
 
     if title is None:
         title = 'force components vs index'
@@ -88,9 +96,17 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
         data = group_data(data)
         data = group_data(data)
 
+    if cmap != "tab10":
+        cmap = plt.get_cmap(cmap)
+        colors = [cmap(idx) for idx in np.linspace(0, 1, len(data.keys()))]
+    else:
+        cmap = plt.get_cmap(cmap)
+        colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
+    
+
     plt.figure(figsize=(20, 6))
 
-    for cfg_type, configs in data.items():
+    for c_idx, (cfg_type, configs) in enumerate(data.items()):
         xs = []
         ys = []
         for idx, at in enumerate(configs):
@@ -102,10 +118,10 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
             xs += idc
             ys += forces
 
-        plt.scatter(xs, ys, label=cfg_type, s=1)
+        plt.scatter(xs, ys, label=cfg_type, s=1, color=colors[c_idx])
 
     plt.title(title)
-    if len(data.keys()) < 11:
+    if len(data.keys()) < 11 or cmap != 'tab10':
         plt.legend(bbox_to_anchor=(1, 1), markerscale=6)
     plt.xlabel('index in dataset')
     plt.ylabel(f'{prop_prefix} force component / eV/Ā')

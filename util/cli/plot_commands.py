@@ -88,8 +88,9 @@ def plot_dimer(ip_fname, ip_type, train_fname, ref_isolated_fname, ref_prefix,
 @click.option('--info', default='config_type', help='label to color by')
 @click.option('--prop-prefix', default='dft_', type=click.STRING)
 @click.option('--no-ef', is_flag=True, help='dont plot energy and forces')
+@click.option('--cmap', default='tab10')
 def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff,
-                 info, prop_prefix, no_ef):
+                 info, prop_prefix, no_ef, cmap):
 
     from util.plot import dataset
 
@@ -117,9 +118,9 @@ def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff,
     if not no_ef:
         dataset.energy_by_idx(atoms, title=title_energy,
                               isolated_atoms=isolated_ats,
-                              info_label=info, prop_prefix=prop_prefix)
+                              info_label=info, prop_prefix=prop_prefix, cmap=cmap)
         dataset.forces_by_idx(atoms, title=title_forces, info_label=info,
-                              prop_prefix=prop_prefix)
+                              prop_prefix=prop_prefix, cmap=cmap)
 
     dataset.pairwise_distances_hist(atoms, dists_fig_name)
 
