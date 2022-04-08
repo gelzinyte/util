@@ -12,6 +12,12 @@ from ase.io import read, write
 
 logger = logging.getLogger(__name__)
 
+@click.command('ard-scores')
+@click.argument("fname")
+def plot_ard_scores(fname):
+    from util.plot import ard_scores
+    ard_scores.plot_ard_scores(fname)
+
 @click.command("ace-2b")
 @click.argument("ace_fname")
 @click.option('--plot-type', '-t', help="2b or full")
@@ -19,7 +25,8 @@ logger = logging.getLogger(__name__)
 @click.option('--ch-in')
 @click.option('--hh-in')
 def ace_2b(ace_fname, plot_type, cc_in, ch_in, hh_in):
-    util.plot.julia_plots.plot_ace_2b(ace_fname, plot_type, cc_in, ch_in, hh_in)
+    from util.plot import julia_plots
+    julia_plots.plot_ace_2b(ace_fname, plot_type, cc_in, ch_in, hh_in)
 
 
 @click.command("dissociate-h")

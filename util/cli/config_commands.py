@@ -4,13 +4,13 @@ from wfl.configset import ConfigSet_out
 from ase.io import read, write
 from util import configs    
 
-@click.command("check-geometry")
-@click.option("--inputs", "-i")
-@click.option("--outputs", "-o")
-def check_geometry(inputs, outputs):
-    ats = read(inputs, ":")
-    results = configs.filter_insane_geometries(ats, mark_elements=True)
-    write(outputs, results["bad_geometries"])
+# @click.command("check-geometry")
+# @click.option("--inputs", "-i")
+# @click.option("--outputs", "-o")
+# def check_geometry(inputs, outputs):
+#     ats = read(inputs, ":")
+#     results = configs.filter_insane_geometries(ats, mark_elements=True)
+#     write(outputs, results["bad_geometries"])
 
 @click.command("remove-calc-results")
 @click.argument("input-fname")
@@ -137,3 +137,16 @@ def info_to_numbers(fname_in, info_key, output):
     print(entries_dict)
 
     write(output, ats)
+
+
+@click.command('check-geometry')
+@click.option('--input', "-i")
+@click.option('--output', '-o')
+def check_geometry(input, output):
+    ats = read(input, ":")
+    for at in ats:
+        out = configs.check_geometry(at, mult=1.2, mark_elements=True, skin=0)
+        if out == False:
+            print(at.info)
+    write(output, ats)
+

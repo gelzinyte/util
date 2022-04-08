@@ -306,19 +306,19 @@ def fit(
         outputs_to_fit = ConfigSet_out(output_files=selected_for_train_fn,
                                 force=True, 
                                 all_or_none=True,
-                                set_tags={"config_type": f"selected_from_{pred_prop_prefix}md"})
+                                set_tags={"fit_config_type": f"selected_from_{pred_prop_prefix}md"})
         outputs_traj = ConfigSet_out(output_files=md_traj_fn, 
                                      force=True, 
-                                     all_or_none=True)
-                                    #  set_tags={"config_type":f"{pred_prop_prefix}md"})
+                                     all_or_none=True,
+                                     set_tags={"fit_config_type":f"{pred_prop_prefix}md"})
         outputs_rerun = ConfigSet_out(output_files=bad_mds_to_rerun_fn, 
                                      force=True, 
                                      all_or_none=True,
-                                     set_tags={"config_type":f"md_to_restart"})
+                                     set_tags={"fit_config_type":f"md_to_restart"})
         outputs_good_md = ConfigSet_out(output_files=good_mds_starts_fn,
                                         force=True,
                                         all_or_none=True,
-                                        set_tags={"config_type":f"ok_md"})
+                                        set_tags={"fit_config_type":f"ok_md"})
 
         inputs = it.launch_analyse_md(
             inputs=inputs,

@@ -209,7 +209,7 @@ def check_geometry(atoms, mult=1.2, mark_elements=False, skin=0):
             if len(indices) == 0:
                 if mark_elements:
                     atoms.symbol = "Os"
-                bad_atoms.append(atoms)
+                # bad_atoms.append(atoms)
                 return False
 
     else:

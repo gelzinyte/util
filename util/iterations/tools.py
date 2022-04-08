@@ -560,9 +560,9 @@ def md_subselector_function(traj):
         return [at]
 
     for at in all_configs["good_geometries"]:
-        at.info["config_type"] = "bad_md_good_geometry"
+        at.info["config_type"] = "bad_md_traj"
+    return traj
 
-    return all_configs["good_geometries"]
 
 
 def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, outputs_rerun, 
@@ -585,7 +585,8 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
         logger.info("outputs_are_done, not re-splitting the full trajectories ")
         return outputs_to_fit.to_ConfigSet_in()
     elif doneness != 0:
-        raise RuntimeError("some outputs done, but not all!")
+        pass
+        # raise RuntimeError("some outputs done, but not all!")
 
     # 1. run md 
     outputs = ConfigSet_out()
@@ -608,7 +609,7 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
     # 3. select configs we need
     dict_of_trajs = configs.into_dict_of_labels([at for at in inputs], "graph_name")
     for label, traj in dict_of_trajs.items():
-        if traj[0].info["config_type"] == "bad_md_good_geometry": 
+        if traj[0].info["config_type"] == "bad_md_traj": 
             outputs_rerun.write(traj[0])
             outputs_to_fit.write(select_at_from_failed_md(traj))
         elif traj[0].info["config_type"] == "good_md_traj":
@@ -627,8 +628,10 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
 
 
 def select_at_from_failed_md(traj, pred_prop_prefix='ace_'):
-    
-    for at in reversed(traj):
+
+    all_configs = configs.filter_insane_geometries(traj, mult=1.2, skin=0)
+
+    for at in reversed(all_configs["good_geometries"]):
         # TODO: fix the ace_ bit
         is_accurate = check_accuracy(at, None, pred_prop_prefix, no_dft=True)
         if is_accurate:

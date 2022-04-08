@@ -297,7 +297,7 @@ def scatter_plot(ref_energy_name,
         # prefix = os.path.basename(param_fname)
         # prefix = os.path.splitext(prefix)[0]
         prefix = ''
-    picture_fname = f'{prefix}_by_{color_info_name}_scatter.pdf'
+    picture_fname = f'{prefix}_by_{color_info_name}_scatter.png'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
@@ -305,7 +305,7 @@ def scatter_plot(ref_energy_name,
     plt.tight_layout()
 
     if output_dir:
-        plt.savefig(picture_fname,# dpi=300,
+        plt.savefig(picture_fname, dpi=300,
                     bbox_inches='tight')
         plt.close(fig)
     else:

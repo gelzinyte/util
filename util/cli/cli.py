@@ -77,7 +77,7 @@ def subcli_plot():
     pass
 from util.cli.plot_commands import plot_dataset, plot_error_table, scatter,  \
                 distance_autocorrelation, plot_mols, plot_dimer, dissociate, \
-                ace_2b
+                ace_2b, plot_ard_scores
 subcli_plot.add_command(plot_dataset)
 subcli_plot.add_command(plot_error_table)
 subcli_plot.add_command(scatter)
@@ -86,6 +86,7 @@ subcli_plot.add_command(plot_mols)
 subcli_plot.add_command(plot_dimer)
 subcli_plot.add_command(dissociate)
 subcli_plot.add_command(ace_2b)
+subcli_plot.add_command(plot_ard_scores)
 
 
 @cli.group("track")
@@ -157,6 +158,7 @@ from util.cli.qm_commands import read_orca_stuff, calculate, \
 subcli_qm.add_command(read_orca_stuff)
 subcli_qm.add_command(calculate)
 subcli_qm.add_command(plot_scf_convergence_graph)
+
 
 
 if __name__=="__main__":
