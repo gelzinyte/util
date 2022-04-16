@@ -14,7 +14,7 @@ def main(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps):
     assert aces_dir is None or ace_fname is None
     if aces_dir is not None:
         aces_dir = Path(aces_dir)
-        aces_fnames = [fn for fn in aes_dir.iterdir()]
+        aces_fnames = [fn for fn in aces_dir.iterdir()]
     elif ace_fname is not None:
         aces_fnames = [ace_fname]
     
