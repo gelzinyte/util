@@ -554,13 +554,18 @@ def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
 def md_subselector_function(traj):
     all_configs = configs.filter_insane_geometries(traj, mult=1.2, skin=0)
 
+    print(f"working with before: {traj[0].info}")
+
     if len(all_configs["bad_geometries"]) == 0:
+        for at in all_configs["good_geometries"]:
+            at.info["config_type"] = "good_md_traj"
         at = traj[0].copy()
-        at.info["config_type"] = "good_md_traj"
+        print(f"working with after good_md_traj: {at.info}")
         return [at]
 
     for at in all_configs["good_geometries"]:
         at.info["config_type"] = "bad_md_traj"
+    print(f"working with after bad_md_traj: {traj[0].info}")
     return traj
 
 
@@ -609,6 +614,13 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
     # 3. select configs we need
     dict_of_trajs = configs.into_dict_of_labels([at for at in inputs], "graph_name")
     for label, traj in dict_of_trajs.items():
+
+        print("-"*40)
+        print("-"*40)
+        print("-"*40)
+
+        traj = md_subselector_function(traj)
+
         if traj[0].info["config_type"] == "bad_md_traj": 
             outputs_rerun.write(traj[0])
             outputs_to_fit.write(select_at_from_failed_md(traj))

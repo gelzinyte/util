@@ -8,10 +8,16 @@ import matplotlib.pyplot as plt
 from util import configs
 
 
-def main(sub_template, input_fname, aces_dir, output_dir, temps):
+def main(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps):
 
     sub_template = Path(sub_template) 
-    aces_dir = Path(aces_dir)
+    assert aces_dir is None or ace_fname is None
+    if aces_dir is not None:
+        aces_dir = Path(aces_dir)
+        aces_fnames = [fn for fn in aes_dir.iterdir()]
+    elif ace_fname is not None:
+        aces_fnames = [ace_fname]
+    
     input_configs = read(input_fname, ":")
 
     outputs_dir = Path("md_trajs")
@@ -21,7 +27,7 @@ def main(sub_template, input_fname, aces_dir, output_dir, temps):
 
     for temp in temps:
 
-        for ace_fname in aces_dir.iterdir():
+        for ace_fname in aces_fnames:
             if "ace" not in ace_fname.name:
                 continue
 
