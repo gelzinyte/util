@@ -42,7 +42,7 @@ def test_aces(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps)
 @click.option('--temp', '-t', type=click.FLOAT, help='temp to run md at')
 @click.option('--output', '-o')
 @click.option("--pred-prop-prefix", '-p')
-@click.option("--steps", type=click.INT, default=2000000)
+@click.option("--steps", type=click.INT, default=1000000)
 @click.option("--sampling-interval", type=click.INT, default=500)
 def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_interval):
 

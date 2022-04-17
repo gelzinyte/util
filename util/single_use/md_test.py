@@ -28,6 +28,7 @@ def main(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps):
     for temp in temps:
 
         for ace_fname in aces_fnames:
+            ace_fname = Path(ace_fname)
             if "ace" not in ace_fname.name:
                 continue
 
