@@ -23,6 +23,7 @@ def track_mem(my_job_id, period=10, max_time=200000,
 
         node_id = get_node_id(my_job_id, cluster=cluster)
 
+        # import pdb; pdb.set_trace()
         mem = None
         if node_id is not None:
             # job is running
@@ -70,15 +71,17 @@ def node_id_from_line(line, cluster='womble'):
         node_pat = re.compile(r'node-[cyz]12[a-z]-\d{3}')
         node_id_pat = re.compile(r'node-[cyz]12[a-z]-\d{3}')
 
-
-
     node_match = node_pat.search(line)
 
     if node_match == None:
         return None
 
     else:
-        return node_id_pat.search(node_match.group()).group()
+        num = node_id_pat.search(node_match.group()).group()
+        if cluster == "womble":
+            return f"node{num}"
+        else:
+            return num
 
 
 def get_mem_usage(node_id):

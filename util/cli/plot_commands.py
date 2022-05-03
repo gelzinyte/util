@@ -12,6 +12,22 @@ from ase.io import read, write
 
 logger = logging.getLogger(__name__)
 
+@click.command('quick-md')
+@click.option("--root-dir", '-r', help='path to "md_trajs" or similar')
+@click.option('--ace-fname', '-a', default='ace.json')
+@click.option('--temps', '-t', type=click.FLOAT, multiple=True, default=[300, 500, 800])
+def md_test_summary(root_dir, ace_fname, temps):
+
+    from util.single_use import md_test
+
+    root_dir = Path(root_dir)
+    graphs = [d.name for d in root_dir.iterdir() if "mol" in str(d) or "rad" in str(d)] 
+
+    extra_info = {"plot_kwargs": {"color": "tab:orange"} }    
+
+    md_test.plot_struct_graphs(graphs, extra_info, temps=temps, ace_fname=ace_fname, traj_root=root_dir)
+
+
 @click.command('ard-scores')
 @click.argument("fname")
 def plot_ard_scores(fname):
@@ -193,11 +209,13 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--error-type', default='rmse')
 @click.option('--xvals', help="values for x axis for multi-file plot")
 @click.option('--xlabel', help='x axis label ')
+@click.option('--skip', is_flag=True, help="skip if property not present")
 def scatter(ref_energy_name, pred_energy_name, ref_force_name,
             pred_force_name,
                atoms_filenames,
                output_dir, prefix, info_label, isolated_at_fname,
-               energy_type, energy_shift, no_legend, error_type, xvals, xlabel):
+               energy_type, energy_shift, no_legend, error_type, xvals, xlabel,
+               skip):
     """Makes energy and force scatter plots and dimer curves"""
 
     from util.plot import rmse_scatter_evaled, multiple_error_files
@@ -230,7 +248,8 @@ def scatter(ref_energy_name, pred_energy_name, ref_force_name,
                                          energy_type=energy_type,
                                          energy_shift=energy_shift,
                                          no_legend=no_legend,
-                                         error_type=error_type)
+                                         error_type=error_type, 
+                                         skip_if_prop_not_present=skip)
     else:
         if xvals is not None:
             xvals = [float(x) for x in xvals.split()]

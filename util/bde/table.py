@@ -55,7 +55,7 @@ def assign_bde_info(all_atoms, prop_prefix, dft_prop_prefix, h_energy=None, isol
 
 
 
-def multiple_tables_from_atoms(all_atoms, isolated_h, gap_prefix,
+def multiple_tables_from_atoms(all_atoms, isolated_h, pred_prop_prefix,
                               dft_prefix='dft_', printing=False, precision=3):
     """sorts atoms in file by their hash and prints/collects bde tables:
     """
@@ -67,17 +67,53 @@ def multiple_tables_from_atoms(all_atoms, isolated_h, gap_prefix,
     for hash, atoms in atoms_by_hash.items():
 
         if printing:
-            print(f'\n{hash}')
+            print(f'\n\n\n{hash}: {len(atoms[0])} atoms')
 
         data = bde_table(atoms=atoms,
-                         gap_prefix=gap_prefix,
+                         pred_prop_prefix=pred_prop_prefix,
                          isolated_h=isolated_h,
                          dft_prefix=dft_prefix,
                          printing=printing,
                          precision=precision)
+
+        if printing:
+            print(f'\ndifferences, meV. ')
+            print(f'radical')
+            dif_table_rad = print_error_diff_table(data, compound="rad")
+            print('\nmolecule')
+            dif_table_mol = print_error_diff_table(data, compound="mol")
+            print(f'\nbde_error:BDE error: {data.loc["rad", "abs_bde_err"]:.3f} eV')
+            expected = dif_table_rad.loc["dft_opt_dft_E", "ip_opt_dft_E"] - dif_table_rad.loc["ip_opt_ip_E", "ip_opt_dft_E"] - dif_table_mol.loc["dft_opt_dft_E", "ip_opt_dft_E"] + dif_table_mol.loc["ip_opt_ip_E", "ip_opt_dft_E"]
+            print(f'expected bde error: {expected:.3f}')
+        
         data_out.append(data)
 
     return data_out
+
+def print_error_diff_table(data, compound):
+
+    interesting = ["dft_opt_dft_E", "dft_opt_ip_E", "ip_opt_ip_E", "ip_opt_dft_E"]
+    names = ["original"] + interesting
+
+    t = pd.DataFrame(index=names, columns=names)
+
+    for col_name in names:
+        for row_name in names:
+            if col_name == row_name: 
+                continue
+            if col_name == "original":
+                val = data.loc[compound, row_name]
+            elif row_name == "original":
+                val = data.loc[compound, col_name]
+            else:
+                val = (data.loc[compound, row_name] - data.loc[compound, col_name]) * 1e3
+
+            t.loc[row_name, col_name] = val
+
+    print_table(t)
+    return t
+            
+
 
 def get_atoms_by_hash_dict(atoms, dft_prefix):
     """returns dictionary of hash:[Atoms]"""
@@ -114,21 +150,21 @@ def get_atoms_by_hash_dict(atoms, dft_prefix):
     return atoms_by_hash
 
 
-def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False, precision=3):
+def bde_table(atoms, pred_prop_prefix, isolated_h, dft_prefix='dft_',  printing=False, precision=3):
     """makes a pd/other t of bde properties for mol/rads with a given hash:
 
-    -how well gap performs on gap-optimised configs on its own:
-    * gap absolute energy error
+    -how well ip performs on ip-optimised configs on its own:
+    * ip absolute energy error
     * rmse of force error
     * max force error
 
     -compare with dft-optimised structures
     * max displacement of best rmsd
-    * gap-optimised structure's and dft-optimised structure's dft energy difference
+    * ip-optimised structure's and dft-optimised structure's dft energy difference
 
     - interesting properties
     * bde error
-    * gap BDE
+    * ip BDE
     * dft BDE
 
     ---
@@ -139,20 +175,20 @@ def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False,
     {dft_prefix}opt_{dft_prefix}forces
     {dft_prefix}opt_{dft_prefix}energy
 
-    {dft_prefix}opt_{gap_prefix}forces
-    {dft_prefix}opt_{gap_prefix}energy
+    {dft_prefix}opt_{pred_prop_prefix}forces
+    {dft_prefix}opt_{pred_prop_prefix}energy
 
 
-    {gap_prefix}opt_positions
+    {pred_prop_prefix}opt_positions
 
-    {gap_prefix}opt_{gap_prefix}forces
-    {gap_prefix}opt_{gap_prefix}energy
+    {pred_prop_prefix}opt_{pred_prop_prefix}forces
+    {pred_prop_prefix}opt_{pred_prop_prefix}energy
 
-    {gap_prefix}opt_{dft_prefix}forces
-    {gap_prefix}opt_{dft_prefix}energy
+    {pred_prop_prefix}opt_{dft_prefix}forces
+    {pred_prop_prefix}opt_{dft_prefix}energy
 
     and for isolated_h simply:
-    {gap_prefix}energy
+    {pred_prop_prefix}energy
     {dft_prefix}energy
 
     """
@@ -165,57 +201,64 @@ def bde_table(atoms, gap_prefix, isolated_h, dft_prefix='dft_',  printing=False,
     # print(atoms[0].info['dft_opt_mol_positions_hash'])
 
 
-    columns = ['energy_absolute_error',  # meV/atom  between gap and dft on gap opt config
-              'force_rmse',             # meV/Å between gap and dft on gap opt config
-              'max_abs_force_error',    # meV/Å between gap and dft on gap opt config
-              'max_distance_best_RMSD', # Å between gap opt and dft opt configs
-              'dft_energy_difference',  # between dft equilibrium and gap equilibrium
-              'absolute_bde_error',     # meV between gap opt and dft opt configs
+    columns = ['E_abs_at_err',  # meV/atom  between ip and dft on ip opt config
+              'F_rmse',             # meV/Å between ip and dft on ip opt config
+              'max_abs_F_err',    # meV/Å between ip and dft on ip opt config
+              'max_rmsd', # Å between ip opt and dft opt configs
+              'dft_E_diff',  # between dft equilibrium and ip equilibrium
+              'abs_bde_err',     # meV between ip opt and dft opt configs
               'dft_bde',                # eV on dft opt mol and rad
-              'gap_bde',                # eV on gap opt mol and rad
-              'dft_opt_dft_energy',     # eV on dft opt mol/rad
-              'dft_opt_gap_energy',
-              'gap_opt_gap_energy',     # eV on gap opt mol/rad
-              'gap_opt_dft_energy'
+              'ip_bde',                # eV on ip opt mol and rad
+              'dft_opt_dft_E',     # eV on dft opt mol/rad
+              'dft_opt_ip_E',
+              'ip_opt_ip_E',     # eV on ip opt mol/rad
+              'ip_opt_dft_E'
               ]
 
 
     t = pd.DataFrame(columns=columns, index=index)
 
-    add_H_data(t, isolated_h=isolated_h, gap_prefix=gap_prefix,
+    add_H_data(t, isolated_h=isolated_h, pred_prop_prefix=pred_prop_prefix,
                    dft_prefix=dft_prefix)
 
     mol = atoms[0]
     rads = atoms[1:]
 
-    add_mol_data(t, mol=mol, gap_prefix=gap_prefix, dft_prefix=dft_prefix)
+    add_mol_data(t, mol=mol, pred_prop_prefix=pred_prop_prefix, dft_prefix=dft_prefix)
     for rad in rads:
         add_rad_data(t, mol=mol, rad=rad, isolated_h=isolated_h,
-                     gap_prefix=gap_prefix, dft_prefix=dft_prefix)
+                     pred_prop_prefix=pred_prop_prefix, dft_prefix=dft_prefix)
 
 
     if printing:
-        pd.options.display.float_format = lambda x: f'{{:,.{precision}f}}'.format(x) if int(
-            x) == x else f'{{:,.{precision}f}}'.format(x)
-        pd.set_option('display.max_rows', None)
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', None)
-        pd.set_option('display.max_colwidth', None)
-        print(t)
+        print_table(t, precision=precision)
 
     return t
+
+def print_table(t, precision=3):
+    pd.options.display.float_format = lambda x: f'{{:,.{precision}f}}'.format(x) if int(
+        x) == x else f'{{:,.{precision}f}}'.format(x)
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_colwidth', None)
+    print(t)
+
 
 def abs_error(energy1, energy2):
     abs_err = np.abs(energy2 - energy1) * 1e3
     return abs_err
 
-def force_rmse(forces1, forces2):
+
+def F_rmse(forces1, forces2):
     return np.sqrt(np.mean(forces1 - forces2)**2) * 1e3
 
-def max_abs_force_error(forces1, forces2):
+
+def max_abs_F_err(forces1, forces2):
     return np.max(np.abs(forces1 - forces2)) * 1e3
 
-def add_mol_data(t, mol, gap_prefix, dft_prefix):
+
+def add_mol_data(t, mol, pred_prop_prefix, dft_prefix):
 
     assert mol.info['mol_or_rad'] == 'mol'
 
@@ -223,43 +266,41 @@ def add_mol_data(t, mol, gap_prefix, dft_prefix):
 
     label = 'mol'
 
-    gap_opt_gap_energy = mol.info[f'{gap_prefix}opt_{gap_prefix}energy']
-    gap_opt_gap_forces = mol.arrays[f'{gap_prefix}opt_{gap_prefix}forces']
+    ip_opt_ip_E = mol.info[f'{pred_prop_prefix}opt_{pred_prop_prefix}energy']
+    ip_opt_ip_forces = mol.arrays[f'{pred_prop_prefix}opt_{pred_prop_prefix}forces']
 
-    dft_opt_dft_energy = mol.info[f'{dft_prefix}opt_{dft_prefix}energy']
-    dft_opt_gap_energy = mol.info[f'{dft_prefix}opt_{gap_prefix}energy']
+    dft_opt_dft_E = mol.info[f'{dft_prefix}opt_{dft_prefix}energy']
+    dft_opt_ip_E = mol.info[f'{dft_prefix}opt_{pred_prop_prefix}energy']
 
-    gap_opt_dft_energy = mol.info.get(f'{gap_prefix}opt_{dft_prefix}energy', None)
-    gap_opt_dft_forces = mol.arrays.get(f'{gap_prefix}opt_{dft_prefix}forces', None)
-
-
-    if gap_opt_dft_energy is not None:
-        t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
-                                                      gap_opt_dft_energy) / n_atoms
-
-        t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
-                                        gap_opt_dft_forces)
-
-        t.loc[label, 'max_abs_force_error'] = max_abs_force_error(gap_opt_gap_forces,
-                                                              gap_opt_dft_forces)
-
-        t.loc[label, 'dft_energy_difference'] = abs_error(gap_opt_dft_energy,
-                                                          dft_opt_dft_energy)
-
-    t.loc[label, 'max_distance_best_RMSD'] = 'to do'
+    ip_opt_dft_E = mol.info.get(f'{pred_prop_prefix}opt_{dft_prefix}energy', None)
+    ip_opt_dft_forces = mol.arrays.get(f'{pred_prop_prefix}opt_{dft_prefix}forces', None)
 
 
+    if ip_opt_dft_E is not None:
+        t.loc[label, 'E_abs_at_err'] = abs_error(ip_opt_ip_E,
+                                                      ip_opt_dft_E) / n_atoms
 
-    t.loc[label, 'dft_opt_dft_energy'] = dft_opt_dft_energy
-    if gap_opt_dft_energy is not None:
-        t.loc[label, 'gap_opt_dft_energy'] = gap_opt_dft_energy
-    t.loc[label, 'gap_opt_gap_energy'] = gap_opt_gap_energy
-    t.loc[label, 'dft_opt_gap_energy'] = dft_opt_gap_energy
+        t.loc[label, 'F_rmse'] = F_rmse(ip_opt_ip_forces,
+                                        ip_opt_dft_forces)
+
+        t.loc[label, 'max_abs_F_err'] = max_abs_F_err(ip_opt_ip_forces,
+                                                              ip_opt_dft_forces)
+
+        t.loc[label, 'dft_E_diff'] = abs_error(ip_opt_dft_E,
+                                                          dft_opt_dft_E)
+
+    # t.loc[label, 'max_rmsd'] = get_max_rmsd()
+
+    t.loc[label, 'dft_opt_dft_E'] = dft_opt_dft_E
+    if ip_opt_dft_E is not None:
+        t.loc[label, 'ip_opt_dft_E'] = ip_opt_dft_E
+    t.loc[label, 'ip_opt_ip_E'] = ip_opt_ip_E
+    t.loc[label, 'dft_opt_ip_E'] = dft_opt_ip_E
 
 def get_bde(mol_energy, rad_energy, isolated_h_energy):
     return (rad_energy + isolated_h_energy - mol_energy)
 
-def add_rad_data(t, mol, rad, isolated_h, gap_prefix, dft_prefix):
+def add_rad_data(t, mol, rad, isolated_h, pred_prop_prefix, dft_prefix):
     """ adds radical data"""
 
     label =  rad.info['mol_or_rad']
@@ -267,70 +308,68 @@ def add_rad_data(t, mol, rad, isolated_h, gap_prefix, dft_prefix):
 
     n_atoms = len(rad)
 
-    gap_opt_gap_energy = rad.info[f'{gap_prefix}opt_{gap_prefix}energy']
-    gap_opt_gap_forces = rad.arrays[f'{gap_prefix}opt_{gap_prefix}forces']
+    ip_opt_ip_E = rad.info[f'{pred_prop_prefix}opt_{pred_prop_prefix}energy']
+    ip_opt_ip_forces = rad.arrays[f'{pred_prop_prefix}opt_{pred_prop_prefix}forces']
 
-    dft_opt_dft_energy = rad.info[f'{dft_prefix}opt_{dft_prefix}energy']
-    dft_opt_gap_energy = rad.info[f'{dft_prefix}opt_{gap_prefix}energy']
+    dft_opt_dft_E = rad.info[f'{dft_prefix}opt_{dft_prefix}energy']
+    dft_opt_ip_E = rad.info[f'{dft_prefix}opt_{pred_prop_prefix}energy']
 
-    gap_opt_dft_energy = rad.info.get(f'{gap_prefix}opt_{dft_prefix}energy', None)
-    gap_opt_dft_forces = rad.arrays.get(f'{gap_prefix}opt_{dft_prefix}forces', None)
+    ip_opt_dft_E = rad.info.get(f'{pred_prop_prefix}opt_{dft_prefix}energy', None)
+    ip_opt_dft_forces = rad.arrays.get(f'{pred_prop_prefix}opt_{dft_prefix}forces', None)
 
-    if gap_opt_dft_energy is not None:
-        # gap performance alone
-        t.loc[label, 'energy_absolute_error'] = abs_error(gap_opt_gap_energy,
-                                                      gap_opt_dft_energy) / n_atoms
+    if ip_opt_dft_E is not None:
+        # ip performance alone
+        t.loc[label, 'E_abs_at_err'] = abs_error(ip_opt_ip_E,
+                                                      ip_opt_dft_E) / n_atoms
 
-        t.loc[label, 'force_rmse'] = force_rmse(gap_opt_gap_forces,
-                                            gap_opt_dft_forces)
+        t.loc[label, 'F_rmse'] = F_rmse(ip_opt_ip_forces,
+                                            ip_opt_dft_forces)
 
-        t.loc[label, 'max_abs_force_error'] = max_abs_force_error(gap_opt_gap_forces,
-                                                              gap_opt_dft_forces)
+        t.loc[label, 'max_abs_F_err'] = max_abs_F_err(ip_opt_ip_forces,
+                                                              ip_opt_dft_forces)
 
-        t.loc[label, 'dft_energy_difference'] = abs_error(gap_opt_dft_energy,
-                                                          dft_opt_dft_energy)
+        t.loc[label, 'dft_E_diff'] = abs_error(ip_opt_dft_E,
+                                                          dft_opt_dft_E)
 
-    # gap optimisation wrt dft optimisation
-    t.loc[label, 'max_distance_best_RMSD'] = 'to do'
-
-
+    # ip optimisation wrt dft optimisation
+    # t.loc[label, 'max_rmsd'] = 'to do'
 
     # just original energy values
-    t.loc[label, 'dft_opt_dft_energy'] = dft_opt_dft_energy
-    if gap_opt_dft_energy is not None:
-        t.loc[label, 'gap_opt_dft_energy'] = gap_opt_dft_energy
-    t.loc[label, 'gap_opt_gap_energy'] = gap_opt_gap_energy
-    t.loc[label, 'dft_opt_gap_energy'] = dft_opt_gap_energy
+    t.loc[label, 'dft_opt_dft_E'] = dft_opt_dft_E
+    if ip_opt_dft_E is not None:
+        t.loc[label, 'ip_opt_dft_E'] = ip_opt_dft_E
+    t.loc[label, 'ip_opt_ip_E'] = ip_opt_ip_E
+    t.loc[label, 'dft_opt_ip_E'] = dft_opt_ip_E
 
     # bde stuff
-    mol_gap_opt_gap_energy = mol.info[f'{gap_prefix}opt_{gap_prefix}energy']
-    mol_dft_opt_dft_energy = mol.info[f'{dft_prefix}opt_{dft_prefix}energy']
-    isolated_h_gap_energy = isolated_h.info[f'{gap_prefix}energy']
+    mol_ip_opt_ip_E = mol.info[f'{pred_prop_prefix}opt_{pred_prop_prefix}energy']
+    mol_dft_opt_dft_E = mol.info[f'{dft_prefix}opt_{dft_prefix}energy']
+    isolated_h_ip_energy = isolated_h.info[f'{pred_prop_prefix}energy']
     isolated_h_dft_energy = isolated_h.info[f'{dft_prefix}energy']
 
-    gap_bde = get_bde(mol_energy = mol_gap_opt_gap_energy,
-                      rad_energy = gap_opt_gap_energy,
-                      isolated_h_energy = isolated_h_gap_energy)
+    ip_bde = get_bde(mol_energy = mol_ip_opt_ip_E,
+                      rad_energy = ip_opt_ip_E,
+                      isolated_h_energy = isolated_h_ip_energy)
 
-    dft_bde = get_bde(mol_energy = mol_dft_opt_dft_energy,
-                      rad_energy = dft_opt_dft_energy,
+    dft_bde = get_bde(mol_energy = mol_dft_opt_dft_E,
+                      rad_energy = dft_opt_dft_E,
                       isolated_h_energy = isolated_h_dft_energy)
 
-    t.loc[label, 'absolute_bde_error'] = abs_error(dft_bde, gap_bde)
+    t.loc[label, 'abs_bde_err'] = abs_error(dft_bde, ip_bde)
     t.loc[label, 'dft_bde'] = dft_bde
-    t.loc[label, 'gap_bde'] = gap_bde
+    t.loc[label, 'ip_bde'] = ip_bde
 
 
 
-def add_H_data(t, isolated_h, gap_prefix, dft_prefix):
+def add_H_data(t, isolated_h, pred_prop_prefix, dft_prefix):
     """adds H data to the table, where applicable"""
 
-    gap_energy = isolated_h.info[f'{gap_prefix}energy']
+    ip_energy = isolated_h.info[f'{pred_prop_prefix}energy']
     dft_energy = isolated_h.info[f'{dft_prefix}energy']
 
-    t.loc['H', 'energy_absolute_error'] = abs_error(gap_energy, dft_energy)
-    t.loc['H', 'dft_opt_dft_energy']= dft_energy
-    t.loc['H', 'gap_opt_gap_energy'] = gap_energy
+    t.loc['H', 'E_abs_at_err'] = abs_error(ip_energy, dft_energy)
+    t.loc['H', 'dft_opt_dft_E']= dft_energy
+    t.loc['H', 'ip_opt_ip_E'] = ip_energy
 
 
 

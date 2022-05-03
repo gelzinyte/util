@@ -150,3 +150,12 @@ def check_geometry(input, output):
             print(at.info)
     write(output, ats)
 
+
+@click.command("summary")
+@click.argument("input")
+@click.option("--info", '-i', default='config_type', help="name of atoms.info entry to group compounds by")
+def configs_summary(input, info):
+    ats = read(input, ":")
+    dd = configs.into_dict_of_labels(ats, info)
+    for key, entries in dd.items():
+        print(f"{key}: {len(entries)}")

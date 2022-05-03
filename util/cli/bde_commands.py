@@ -127,4 +127,25 @@ def generate_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_prefix,
 
 
 
+@click.command('table')
+@click.argument('fname')
+@click.option('--isolated-at', '-i')
+@click.option('--pred-prop-prefix', '-p')
+@click.option('--dft-prop-prefix', '-d', default='dft_')
+@click.option('--print', is_flag=True)
+def bde_table(fname, isolated_at, pred_prop_prefix, dft_prop_prefix, print):
+    from util.bde import table
+
+    ats = read(fname, ":")
+    if isolated_at is None:
+        isolated_at = [at for at in ats if len(at) == 1 and str(at.symbols) == "H"]
+        if len(isolated_at) != 1:
+            raise RuntimeError('no isolated atoms present')
+        else:
+            isolated_at = isolated_at[0]
+        ats = [at for at in ats if len(at) != 1]
+    else: 
+        isolated_at = [at for at in read(isolated_at, ":") if str(at.symbols) == "H"][0]
+
+    table.multiple_tables_from_atoms(ats, isolated_at, pred_prop_prefix, dft_prop_prefix, print)
 

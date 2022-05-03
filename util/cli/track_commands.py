@@ -2,9 +2,9 @@ import click
 
 @click.command('mem')
 @click.argument('my_job_id')
-@click.option('--period', '-p', type=click.INT, default=60, help='how often to check')
-@click.option('--max_time', type=click.INT, default=1e5, help='How long to keep checking for, s')
-@click.option('--out_fname_prefix', default='mem_usage', help='output\'s prefix')
+@click.option('--period', '-p', type=click.INT, default=60, help='how often to check', show_default=True)
+@click.option('--max_time', type=click.INT, default=1e5, help='How long to keep checking for, s', show_default=True)
+@click.option('--out_fname_prefix', default='mem_usage', help='output\'s prefix', show_default=True)
 @click.option('--womble', 'cluster', flag_value='womble', default=True)
 @click.option('--young', 'cluster', flag_value='young')
 def memory(my_job_id, period=10, max_time=100000,

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from util import configs
 
 
-def main(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps):
+def main(sub_template, input_fname, aces_dir, ace_fname, temps):
 
     sub_template = Path(sub_template) 
     assert aces_dir is None or ace_fname is None
@@ -23,7 +23,7 @@ def main(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps):
     outputs_dir = Path("md_trajs")
     outputs_dir.mkdir(exist_ok=True)
 
-    home_dir = os.getcwd()
+    traj_root = os.getcwd()
 
     for temp in temps:
 
@@ -68,87 +68,78 @@ def main(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps):
 
                 subprocess.run("qsub sub.sh", shell=True)
 
-                os.chdir(home_dir)
+                os.chdir(traj_root)
 
 
-def plot_mol_graph(mol_id, extra_info, runs, temps, aces_nos, home_dir, run_dir):
+def plot_struct_graph(mols, extra_info, temps, ace_fname, traj_root, repeats=None):
     """ analyses the long md trajectories"""
 
-    home_dir = Path(home_dir)
+    traj_root = Path(traj_root)
+    # print(traj_root)
 
-    # fig = plt.figure(figsize=(15, 2 * len(aces_nos)))
-    fig = plt.figure(figsize=(8, 1 * len(aces_nos)))
-    num_columns = int(len(aces_nos)/2)
-    if num_columns%2 == 0:
-        num_columns += 1
-    # gs = gridspec.GridSpec(num_columns, 1)
-    gs = gridspec.GridSpec(num_columns, 2)
+    num_rows = len(mols)
+    fig = plt.figure(figsize=(8, num_rows*2))
+    gs = gridspec.GridSpec(num_rows, 1)
 
     axes = [plt.subplot(g) for g in gs]
 
-    for ax, ace_no in zip(axes, aces_nos):
-        # print(ace_no)
+    for ax, mol_id in zip(axes, mols):
+        # print(mol_id)
 
-        plot_ace_graph(ax, ace_no, extra_info, runs, temps, mol_id, home_dir, run_dir)
+        plot_ace_graph(ax, ace_fname, extra_info, repeats, temps, mol_id, traj_root)
 
         # ax.legend()
         ax.grid(color="lightgrey")
         ax.set_xlabel("time, fs")
-        ax.set_title(f"ACE {ace_no}")
-        ax.set_xlim(right=100000)
+        ax.set_title(mol_id)
+        ax.set_xlim(right=500100)
+        # ax.set_xscale('log')
 
-    plt.suptitle(mol_id)
+    plt.suptitle(ace_fname)
     plt.tight_layout()
-    plt.savefig(mol_id + '.pdf')
+    plt.savefig(mol_id + '.png', dpi=300)
 
     # return fig
 
 
-def plot_ace_graph(ax, ace_no, extra_info, runs, temps, mol_id, home_dir, run_dir):
+def plot_ace_graph(ax, ace_fname, extra_info, repeats, temps, mol_id, traj_root):
 
     main_y_vals = np.arange(len(temps))
     for main_y_val, temp in zip(main_y_vals, temps):
-        # print(main_y_val, temp)
-        plot_temp_graph(ax, main_y_val, temp, extra_info, runs, mol_id, ace_no, home_dir, run_dir)
+        plot_temp_graph(ax, main_y_val, temp, extra_info, repeats, mol_id, ace_fname, traj_root)
 
     ax.set_yticks(main_y_vals)
     ax.set_yticklabels([str(t) for t in temps])
     ax.set_ylabel("temperature, K")
 
 
+def plot_temp_graph(ax, main_y_val, temp, extra_info, repeats, mol_id, ace_name, traj_root):
 
-def plot_temp_graph(ax, main_y_val, temp, extra_info, runs, mol_id, ace_no, home_dir, run_dir):
+    # dels = (np.linspace(0, 1, len(repeats)) - 0.5) / 3
+    if repeats is None:
+        dels = [0]
+        repeats = [None]
 
-    dels = (np.linspace(0, 1, len(runs)) - 0.5) / 3
-    
-    for del_y, run in zip(dels, runs):
-
-        # print(run)
-        # print(run)
+    for del_y, run in zip(dels, repeats):
 
         y_val = main_y_val + del_y
 
-        ace_name = f'ace_{ace_no}.json'
-        # print(ace_name)
-        all_ace_names = extra_info[run]["aces"]
-        # print(all_ace_names)
-        if ace_name not in all_ace_names:
-            # print("naaaay")
-            continue
+        ace_fname_bit = str(ace_name).replace('.json', "")
+        traj_fname = traj_root / f"{mol_id}/{temp}/{ace_fname_bit}/{mol_id}.traj.xyz" 
 
-        # traj_fname = home_dir / f"{run}/md_stuff/md_runs/md_trajs/{mol_id}/{temp}/ace_{ace_no}/{mol_id}.traj.xyz" 
-        # traj_fname = home_dir / f"{run}/md_stuff/re_run_failed_trajectories/md_trajs/{mol_id}/{temp}/ace_{ace_no}/{mol_id}.traj.xyz" 
-        traj_fname = home_dir / f"{run}/md_stuff/{run_dir}/md_trajs/{mol_id}/{temp}/ace_{ace_no}/{mol_id}.traj.xyz" 
+        # print(mol_id)
 
-        print(traj_fname)
+        if run is not None:
+            plots_kwargs = extra_info[run]["plot_kwargs"]
+        else:
+            plots_kwargs = extra_info["plot_kwargs"]
 
-        times, kwargs = process_traj(traj_fname, extra_info[run]["plot_kwargs"])
+        times, kwargs = process_traj(traj_fname, plots_kwargs)
 
         yvals = [y_val] * len(times)
 
-        ax.scatter(times, yvals, label=f"{run}/ace_{ace_no}", **kwargs)
+        ax.scatter(times, yvals, label=mol_id, **kwargs)
     
-
 
 def process_traj(traj_fname, plot_kwargs):
     ats = read(traj_fname, ":") 

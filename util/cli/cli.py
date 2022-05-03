@@ -64,10 +64,12 @@ subcli_ip.add_command(fit)
 def subcli_bde(ctx):
     """related to handling bond dissociation energies"""
     pass
-from util.cli.bde_commands import do_dissociate_h, assign_bdes, generate_bdes
+from util.cli.bde_commands import do_dissociate_h, assign_bdes, generate_bdes, \
+    bde_table
 subcli_bde.add_command(do_dissociate_h)
 subcli_bde.add_command(assign_bdes)
 subcli_bde.add_command(generate_bdes)
+subcli_bde.add_command(bde_table)
 
 
 
@@ -113,7 +115,7 @@ def subcli_configs():
 from util.cli.config_commands import assign_differences, \
     smiles_to_molecules_and_rads, distribute_configs, \
     gather_configs, info_to_numbers, hash_structures, \
-    remove_old_calc_results, check_geometry
+    remove_old_calc_results, check_geometry, configs_summary
 # smiles_to_molecules
 subcli_configs.add_command(assign_differences)
 subcli_configs.add_command(smiles_to_molecules_and_rads)
@@ -124,6 +126,7 @@ subcli_configs.add_command(info_to_numbers)
 subcli_configs.add_command(hash_structures)
 subcli_configs.add_command(remove_old_calc_results)
 subcli_configs.add_command(check_geometry)
+subcli_configs.add_command(configs_summary)
 
 
 @cli.group("calc")

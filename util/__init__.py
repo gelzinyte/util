@@ -30,10 +30,22 @@ except:
 from contextlib import contextmanager,redirect_stderr,redirect_stdout
 from os import devnull
 
+from util.util_config import Config
+from pathlib import Path
+
 import logging
 
 logger = logging.getLogger(__name__)
 
+
+def default_orca_params():
+    cfg = Config.load()
+    # dft_prop_prefix = "dft_"
+    default_kw = Config.from_yaml(Path(__file__).parent /  "default_kwargs.yml")
+    orca_kwargs = default_kw["orca"]
+    orca_kwargs["orca_command"] = cfg["orca_path"]
+    orca_kwargs["scratch_path"] = cfg["scratch_path"] 
+    return orca_kwargs
 
 def remove_energy_force_containing_entries(at):
     "remove info keys with 'energy' in label and arrays keys with 'force' in label"

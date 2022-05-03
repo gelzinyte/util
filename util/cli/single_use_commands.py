@@ -33,7 +33,7 @@ def grab_first(input_fname, output_fname, labels):
 @click.option('--output-dir', default='md_trajs')
 @click.option('--temps', '-t', type=click.FLOAT, multiple=True, default=[300, 500, 800])
 def test_aces(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps):
-    md_test.main(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps)
+    md_test.main(sub_template, input_fname, aces_dir, ace_fname, temps)
 
 
 @click.command('md')

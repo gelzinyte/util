@@ -112,14 +112,6 @@ def calc_on_dimer(calc, train_ats, ref_isolated_ats, ref_prefix='dft_',
 
 
 
-
-
-
-
-
-
-
-
 def dimer_generic(dimer_fnames, prefix, energy_names):
 
     plt.figure()
