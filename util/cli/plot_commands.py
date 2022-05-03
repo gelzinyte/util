@@ -1,5 +1,6 @@
 import click
 import subprocess 
+import logging
 import util
 from pathlib import Path
 import os
@@ -25,7 +26,7 @@ def md_test_summary(root_dir, ace_fname, temps):
 
     extra_info = {"plot_kwargs": {"color": "tab:orange"} }    
 
-    md_test.plot_struct_graphs(graphs, extra_info, temps=temps, ace_fname=ace_fname, traj_root=root_dir)
+    md_test.plot_mol_graph(graphs, extra_info, temps=temps, ace_fname=ace_fname, traj_root=root_dir)
 
 
 @click.command('ard-scores')

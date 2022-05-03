@@ -6,6 +6,8 @@ from matplotlib import gridspec
 import numpy as np
 import matplotlib.pyplot as plt
 from util import configs
+import logging
+logger = logging.getLogger(__name__)
 
 
 def main(sub_template, input_fname, aces_dir, ace_fname, temps):
@@ -71,74 +73,64 @@ def main(sub_template, input_fname, aces_dir, ace_fname, temps):
                 os.chdir(traj_root)
 
 
-def plot_struct_graph(mols, extra_info, temps, ace_fname, traj_root, repeats=None):
+def plot_mol_graph(mols, extra_info, temps, ace_fname, traj_root):
     """ analyses the long md trajectories"""
 
     traj_root = Path(traj_root)
-    # print(traj_root)
 
-    num_rows = len(mols)
-    fig = plt.figure(figsize=(8, num_rows*2))
-    gs = gridspec.GridSpec(num_rows, 1)
-
+    num_cols = len(temps)
+    num_rows = 1
+    fig = plt.figure(figsize=(num_cols * 4, len(mols) * 2))
+    gs = gridspec.GridSpec(num_rows, num_cols)
     axes = [plt.subplot(g) for g in gs]
 
-    for ax, mol_id in zip(axes, mols):
-        # print(mol_id)
+    for ax, temp in zip(axes, temps):
 
-        plot_ace_graph(ax, ace_fname, extra_info, repeats, temps, mol_id, traj_root)
+        logger.info(f"temp: {temp}")
+        
+        plot_temp_graph(ax, temp, mols, traj_root, extra_info, ace_fname)
 
-        # ax.legend()
-        ax.grid(color="lightgrey")
-        ax.set_xlabel("time, fs")
-        ax.set_title(mol_id)
-        ax.set_xlim(right=500100)
-        # ax.set_xscale('log')
 
     plt.suptitle(ace_fname)
     plt.tight_layout()
-    plt.savefig(mol_id + '.png', dpi=300)
+    plt.savefig(Path(ace_fname).name + '.md_test.png', dpi=300)
 
-    # return fig
+        
+# def plot_ace_graph(ax, ace_fname, extra_info, repeats, temps, mol_id, traj_root, ace_name):
 
+#     main_y_vals = np.arange(len(temps))
+#     for main_y_val, temp in zip(main_y_vals, temps):
+#         plot_temp_graph(ax, main_y_val, temp, extra_info, repeats, mol_id, ace_fname, traj_root, ace_name)
 
-def plot_ace_graph(ax, ace_fname, extra_info, repeats, temps, mol_id, traj_root):
-
-    main_y_vals = np.arange(len(temps))
-    for main_y_val, temp in zip(main_y_vals, temps):
-        plot_temp_graph(ax, main_y_val, temp, extra_info, repeats, mol_id, ace_fname, traj_root)
-
-    ax.set_yticks(main_y_vals)
-    ax.set_yticklabels([str(t) for t in temps])
-    ax.set_ylabel("temperature, K")
+#     ax.set_yticks(main_y_vals)
+#     ax.set_yticklabels([str(t) for t in temps])
+#     ax.set_ylabel("temperature, K")
 
 
-def plot_temp_graph(ax, main_y_val, temp, extra_info, repeats, mol_id, ace_name, traj_root):
+def plot_temp_graph(ax, temp, mols, traj_root, extra_info, ace_name):
 
-    # dels = (np.linspace(0, 1, len(repeats)) - 0.5) / 3
-    if repeats is None:
-        dels = [0]
-        repeats = [None]
+    for mol_idx, mol in enumerate(mols):
+        logger.info(f"mol: {mol}")
+        plot_mol_line(ax, mol_idx, mol, traj_root, extra_info, ace_name, temp)
 
-    for del_y, run in zip(dels, repeats):
+    ax.set_title(f"Temp: {temp} K")
+    ax.grid(color="lightgrey")
+    ax.set_xlabel("time, fs")
+    # ax.set_xlim(right=500100)
 
-        y_val = main_y_val + del_y
 
-        ace_fname_bit = str(ace_name).replace('.json', "")
-        traj_fname = traj_root / f"{mol_id}/{temp}/{ace_fname_bit}/{mol_id}.traj.xyz" 
+def plot_mol_line(ax, mol_idx, mol_id, traj_root, extra_info, ace_name, temp):
 
-        # print(mol_id)
+    ace_fname_bit = str(ace_name).replace('.json', "")
+    traj_fname = traj_root / f"{mol_id}/{temp}/{ace_fname_bit}/{mol_id}.traj.xyz" 
 
-        if run is not None:
-            plots_kwargs = extra_info[run]["plot_kwargs"]
-        else:
-            plots_kwargs = extra_info["plot_kwargs"]
+    plots_kwargs = extra_info["plot_kwargs"]
 
-        times, kwargs = process_traj(traj_fname, plots_kwargs)
+    times, kwargs = process_traj(traj_fname, plots_kwargs)
 
-        yvals = [y_val] * len(times)
+    yvals = [mol_idx] * len(times)
 
-        ax.scatter(times, yvals, label=mol_id, **kwargs)
+    ax.scatter(times, yvals, label=mol_id, **kwargs)
     
 
 def process_traj(traj_fname, plot_kwargs):
