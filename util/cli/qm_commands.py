@@ -55,3 +55,5 @@ def calculate(structures_dir,
 @click.option('--plot-fname', '-o', default='orca_scf_convergence.png')
 def plot_scf_convergence_graph(orca_output, method, plot_fname):
     qm.orca_scf_plot(orca_output, method, plot_fname)
+
+

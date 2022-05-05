@@ -3,6 +3,7 @@ import util
 from wfl.configset import ConfigSet_out
 from ase.io import read, write
 from util import configs    
+from util import qm
 
 # @click.command("check-geometry")
 # @click.option("--inputs", "-i")
@@ -11,6 +12,18 @@ from util import configs
 #     ats = read(inputs, ":")
 #     results = configs.filter_insane_geometries(ats, mark_elements=True)
 #     write(outputs, results["bad_geometries"])
+
+@click.command("color-by-array")
+@click.option('--input', '-i', help='intput xyz')
+@click.option('--output', '-o', help='output xyz')
+@click.option('--key', '-k', help='key for at.arrays dict')
+@click.option('--cmap', '-c', default='seismic', show_default=True)
+@click.option('--vmax', type=click.FLOAT, help='max (min is negative of vmax) value to set to the colormap')
+def color_atoms_by_array(input, output, key, cmap, vmax):
+    ats = read(input, ":")
+    vmin = vmax * -1
+    ats = [qm.color_by_pop(ats=at, pop=key, cmap=cmap, vmin=vmin, vmax=vmax) for at in ats]
+    write(output, ats)
 
 @click.command("remove-calc-results")
 @click.argument("input-fname")

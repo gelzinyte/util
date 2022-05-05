@@ -80,7 +80,7 @@ def plot_mol_graph(mols, extra_info, temps, ace_fname, traj_root):
 
     num_cols = len(temps)
     num_rows = 1
-    fig = plt.figure(figsize=(num_cols * 4, len(mols) * 2))
+    fig = plt.figure(figsize=(num_cols * 4, len(mols)*0.5))
     gs = gridspec.GridSpec(num_rows, num_cols)
     axes = [plt.subplot(g) for g in gs]
 

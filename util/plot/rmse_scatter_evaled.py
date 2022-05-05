@@ -123,6 +123,7 @@ def scatter_plot(ref_energy_name,
                 number_of_skipped_configs += 1
                 continue
             else:
+                print(at.info)
                 raise RuntimeError("did not found property in atoms")
 
         ref_energies.append(energy_getter_function(at, isolated_atoms, ref_energy_name))
@@ -168,11 +169,11 @@ def scatter_plot(ref_energy_name,
 
         e_legend_kwargs = {'bbox_to_anchor':(0, 1),
                            'loc':'upper right'}
-        figsize=((10 * num_columns, 20))
+        figsize=(( 7.5* num_columns, 15))
     else:
         f_legend_kwargs = {}
         e_legend_kwargs = {}
-        figsize=(7 * num_columns, 14)
+        figsize=(4.5 * num_columns, 9)
 
 
     fig = plt.figure(figsize=figsize)
