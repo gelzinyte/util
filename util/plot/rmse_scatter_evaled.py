@@ -311,6 +311,7 @@ def scatter_plot(ref_energy_name,
         plt.close(fig)
     else:
         plt.show()
+        plt.close(fig)
 
     return errors_to_return
 
