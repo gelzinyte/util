@@ -9,7 +9,7 @@ from ase.build import molecule
 from quippy.potential import Potential
 
 from wfl.calculators import generic
-from wfl.configset import ConfigSet_out
+from wfl.configset import OutputSpec
 
 import util.bde.generate
 
@@ -40,7 +40,7 @@ def test_making_isolated_H(tmp_path, calculator):
     wdir = tmp_path / 'bde_wdir'
     output_fname = wdir / "gappy_isolated_h.xyz"
 
-    outputs=ConfigSet_out(output_files=output_fname)
+    outputs=OutputSpec(output_files=output_fname)
     util.bde.generate.ip_isolated_h(calculator=calculator, 
                                     dft_prop_prefix='dft_',
                                     ip_prop_prefix="gappy_",

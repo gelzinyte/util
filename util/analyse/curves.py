@@ -7,7 +7,7 @@ import pickle
 from util import natural_sort
 from pathlib import Path
 from wfl.calculators import generic
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 
 def save(base_dir, val_configs):
     base_dir = Path(base_dir)
@@ -92,7 +92,7 @@ def eval_potential(dir_name, idx, val_configs):
         print(f'not found {ace_name}')
         return
     calc = (ace.ACECalculator, [], {"jsonpath":ace_name, "ACE_version":2})
-    co = ConfigSet_out(output_files=f"tmp_ace_{idx}.xyz", force=True, all_or_none=True)
+    co = OutputSpec(output_files=f"tmp_ace_{idx}.xyz", force=True, all_or_none=True)
     print(f"evaluating {ace_name}")
     evaled_configs = generic.run(val_configs, co, calc, properties=["energy", "forces"], output_prefix="ace_")
     print(f'evaled configs')

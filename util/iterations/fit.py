@@ -9,7 +9,7 @@ from pathlib import Path
 from ase.io import read, write
 
 from wfl.calculators import orca, generic
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 from wfl.generate import md
 import wfl.calc_descriptor
 
@@ -175,7 +175,7 @@ def fit(
 
     # prepare 0th dataset
     ci = ConfigSet(input_files=base_train_fname)
-    co = ConfigSet_out(output_files=initial_train_fname, force=True, all_or_none=True,
+    co = OutputSpec(output_files=initial_train_fname, force=True, all_or_none=True,
                        set_tags={"dataset_type": "train"})
     it.prepare_0th_dataset(ci, co)
 
@@ -274,7 +274,7 @@ def fit(
 
         # 4. Generate actual structures for md 
         logger.info("generating structures to work with")
-        outputs = ConfigSet_out(
+        outputs = OutputSpec(
             output_files=extra_md_starts_fname,
             force=True,
             all_or_none=True,
@@ -303,19 +303,19 @@ def fit(
             write(combined_md_starts_fname, structs_to_rerun + extra_md_starts)
     
         # 6. Run MD and select needed configs 
-        outputs_to_fit = ConfigSet_out(output_files=selected_for_train_fn,
+        outputs_to_fit = OutputSpec(output_files=selected_for_train_fn,
                                 force=True, 
                                 all_or_none=True,
                                 set_tags={"fit_config_type": f"selected_from_{pred_prop_prefix}md"})
-        outputs_traj = ConfigSet_out(output_files=md_traj_fn, 
+        outputs_traj = OutputSpec(output_files=md_traj_fn, 
                                      force=True, 
                                      all_or_none=True,
                                      set_tags={"fit_config_type":f"{pred_prop_prefix}md"})
-        outputs_rerun = ConfigSet_out(output_files=bad_mds_to_rerun_fn, 
+        outputs_rerun = OutputSpec(output_files=bad_mds_to_rerun_fn, 
                                      force=True, 
                                      all_or_none=True,
                                      set_tags={"fit_config_type":f"md_to_restart"})
-        outputs_good_md = ConfigSet_out(output_files=good_mds_starts_fn,
+        outputs_good_md = OutputSpec(output_files=good_mds_starts_fn,
                                         force=True,
                                         all_or_none=True,
                                         set_tags={"fit_config_type":f"ok_md"})
@@ -331,7 +331,7 @@ def fit(
             md_params=md_params)
     
 
-        outputs = ConfigSet_out(output_files=selected_for_train_fn_dft,
+        outputs = OutputSpec(output_files=selected_for_train_fn_dft,
             force=True, all_or_none=True, set_tags={"dataset_type": "train", "iter_no": cycle_idx + 1})
 
         inputs = orca.evaluate(

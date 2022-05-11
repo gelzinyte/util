@@ -20,7 +20,7 @@ except ModuleNotFoundError:
     pass
 from quippy.potential import Potential
 
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 import wfl.fit.gap_simple
 import wfl.fit.ace
 from wfl.calculators import generic
@@ -58,7 +58,7 @@ def run_tests(
 
     # evaluate on training and test sets
     ci = ConfigSet(input_files=[train_set_fname, validation_fname])
-    co = ConfigSet_out(output_files={train_set_fname: train_evaled, validation_fname: val_evaled},
+    co = OutputSpec(output_files={train_set_fname: train_evaled, validation_fname: val_evaled},
                        force=True, all_or_none=True)
 
     generic.run(
@@ -127,7 +127,7 @@ def run_tests(
     )
 
     # ip bde absolute error vs ip energy absolute error
-    co = ConfigSet_out(
+    co = OutputSpec(
         output_files=tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz",
         force=True,
         all_or_none=True,
@@ -158,7 +158,7 @@ def run_tests(
             co.write(at)
         co.end_write()
     else:
-        logger.info("Not re-assigning bde errors, because ConfigSet_out is done")
+        logger.info("Not re-assigning bde errors, because OutputSpec is done")
 
     rmse_scatter_evaled.scatter_plot(
         ref_energy_name=f"{pred_prop_prefix}absolute_error_on_{pred_prop_prefix}opt",

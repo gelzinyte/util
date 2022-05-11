@@ -21,7 +21,7 @@ def sample_downweighted_normal_modes(inputs, outputs, temp, sample_size, prop_pr
     inputs: Atoms / list(Atoms) / ConfigSet
         Structures with normal mode information (eigenvalues &
         eigenvectors)
-    outputs: ConfigSet_out
+    outputs: OutputSpec
     temp: float
         Temperature for normal mode displacements
     sample_size: int

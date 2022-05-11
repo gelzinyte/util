@@ -22,7 +22,7 @@ def per_environment(inputs, outputs, num,
     ----------
     inputs: ConfigSet
         atomic configs to select from
-    outputs: ConfigSet_out
+    outputs: OutputSpec
         where to write output to
     num: int
         number to select
@@ -107,7 +107,7 @@ def clean_and_write_selected(inputs, outputs, selected,
     ----------
     inputs: ConfigSet
         input configuration set
-    outputs: ConfigSet_out
+    outputs: OutputSpec
         target for output of selected configurations
     selected: list(int)
         list of indices to be selected, cannot have duplicates

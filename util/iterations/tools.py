@@ -25,7 +25,7 @@ from util.calculators import pyjulip_ace
 
 from quippy.potential import Potential
 
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 import wfl.fit.gap_simple
 import wfl.fit.ace
 from wfl.calculators import generic
@@ -335,7 +335,7 @@ def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
 
     all_ats = read(train_set_fname, ':')
     ci = ConfigSet(input_configs=random.choices(all_ats, k=2))
-    co = ConfigSet_out()
+    co = OutputSpec()
     inputs = orca.evaluate(
         inputs=ci,
         outputs=co,
@@ -413,8 +413,8 @@ def process_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_g
 
     for graph_name, traj in trajs.items():
 
-        co_good = ConfigSet_out() 
-        co_bad = ConfigSet_out()
+        co_good = OutputSpec() 
+        co_bad = OutputSpec()
         filter_configs_by_geometry(inputs=traj, outputs_good=co_good, outputs_bad=co_bad)
         if len(cotl(co_bad)) == 0:
             #  trajectory is reasonable, only need to return part of it
@@ -446,7 +446,7 @@ def process_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_g
 
 
 def cotl(co):
-    """configset_out to configset in to list"""
+    """OutputSpec to configset in to list"""
     return [at for at in co.to_ConfigSet()]
 
 
@@ -469,7 +469,7 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
         found_good = False
         logger.info(f"{label}: checking first couple of configs from trajectory")
         dft_sample_ci = ConfigSet(input_configs=[at.copy() for at in traj[0:10]])
-        dft_sample_co = ConfigSet_out(output_files= dft_dir / f"{label}.dft.xyz")
+        dft_sample_co = OutputSpec(output_files= dft_dir / f"{label}.dft.xyz")
         orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
                       orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
                       keep_files=False, workdir_root=dft_dir/"orca_wdir")        
@@ -498,7 +498,7 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
                 break
             at_group = [at for at in at_group if at is not None]
             dft_sample_ci = ConfigSet(input_configs=at_group)
-            dft_sample_co = ConfigSet_out(output_files= dft_dir / f"{label}.{group_idx}.dft.xyz")
+            dft_sample_co = OutputSpec(output_files= dft_dir / f"{label}.{group_idx}.dft.xyz")
             orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
                         orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
                         keep_files=False, workdir_root=dft_dir/"orca_wdir")        
@@ -594,7 +594,7 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
         # raise RuntimeError("some outputs done, but not all!")
 
     # 1. run md 
-    outputs = ConfigSet_out()
+    outputs = OutputSpec()
     inputs = md.sample(
         inputs=inputs, 
         outputs=outputs, 

@@ -3,7 +3,7 @@ import logging
 from ase import Atoms
 
 from wfl.generate import optimize
-from wfl.autoparallelize.base import iterable_loop
+from wfl.autoparallelize.base import autoparallelize
 
 
 logger = logging.getLogger(__name__)
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def optimise(inputs, outputs, calculator, prop_prefix,  chunksize=1,
              traj_step_interval=None,npool=None):
-    return iterable_loop(iterable=inputs, configset_out=outputs,
+    return autoparallelize(iterable=inputs, OutputSpec=outputs,
                          calculator=calculator, op=optimise_op,
                          chunksize=chunksize,
                          traj_step_interval=traj_step_interval,

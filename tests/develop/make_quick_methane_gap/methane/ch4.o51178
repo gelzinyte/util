@@ -3,7 +3,7 @@ Tue 27 Apr 15:15:37 BST 2021
   warnings.warn('No universal_SOAPs, some functionality will not be available')
 ConfigSet:
    input files: mol_rad_nms.xyz @ :
-ConfigSet_out:
+OutputSpec:
    output files: : methane_sample.xyz
 Keeping info: ['smiles', 'config_type']
 Keeping_arrays: []

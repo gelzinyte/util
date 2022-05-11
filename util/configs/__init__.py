@@ -2,7 +2,7 @@ from ase.io import read, write
 import logging
 import pandas as pd
 from util import smiles
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 from wfl.generate.vib import Vibrations
 from ase import units
 from ase import Atoms

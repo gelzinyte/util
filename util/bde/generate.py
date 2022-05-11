@@ -10,7 +10,7 @@ import numpy as np
 from ase.io import read, write
 from ase import Atoms
 
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 from wfl.calculators import generic
 from wfl.calculators import orca
 from wfl.generate import optimize
@@ -35,7 +35,7 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, outputs,
     dft_h.cell = [50, 50, 50]
 
     inputs = ConfigSet(input_configs=dft_h)
-    interim_outputs = ConfigSet_out()
+    interim_outputs = OutputSpec()
     orca_kwargs = setup_orca_kwargs()
     inputs = orca.evaluate(inputs=inputs,
                   outputs=interim_outputs,
@@ -116,7 +116,7 @@ def everything(calculator, dft_bde_filename,
             # 1. evaluate structures with calculator
             logger.info("evaluating IP on dft-optimised structures")
             inputs = ConfigSet(input_files=dft_bde_filename)
-            outputs = ConfigSet_out(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
+            outputs = OutputSpec(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
             inputs = generic.run(inputs=inputs,
                                 outputs=outputs,
                                 calculator=calculator,
@@ -129,14 +129,14 @@ def everything(calculator, dft_bde_filename,
 
 
     # 2. Duplicate and relabel structures in-memory
-    outputs = ConfigSet_out()
+    outputs = OutputSpec()
     inputs = _prepare_structures(inputs, outputs)
 
     for _ in range(30):
         try:
             # 3. Optimise with interatomic potential
             logger.info('IP-optimising DFT structures')
-            outputs = ConfigSet_out(output_files=ip_reopt_fname,
+            outputs = OutputSpec(output_files=ip_reopt_fname,
                                     force=True, all_or_none=True,
                                     set_tags={'bde_config_type': f"{ip_prop_prefix}optimised",
                                             'dataset_type': f"bde_{ip_prop_prefix}reoptimised"})
@@ -154,7 +154,7 @@ def everything(calculator, dft_bde_filename,
     for _ in range(30):
         try:
             # 3.1 evaluate with interatomic potential
-            outputs = ConfigSet_out(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
+            outputs = OutputSpec(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
             inputs = generic.run(inputs=inputs,
                                 outputs=outputs,
                                 calculator=calculator,
@@ -168,7 +168,7 @@ def everything(calculator, dft_bde_filename,
 
     # 4. evaluate with DFT
     logger.info('Re-evaluating ip-optimised structures with DFT')
-    outputs = ConfigSet_out(output_files=ip_reopt_with_dft_fname,
+    outputs = OutputSpec(output_files=ip_reopt_with_dft_fname,
                                   force=True, all_or_none=True)
     orca_kwargs = setup_orca_kwargs()
     orca.evaluate(inputs=inputs,
@@ -180,7 +180,7 @@ def everything(calculator, dft_bde_filename,
 
     # 5. construct isolated atom 
     logger.info("Constructing isolated_h")
-    outputs = ConfigSet_out(output_files=isolated_h_fname, force=True, all_or_none=True)
+    outputs = OutputSpec(output_files=isolated_h_fname, force=True, all_or_none=True)
     ip_isolated_h(calculator=calculator,
                   dft_prop_prefix=dft_prop_prefix, 
                   ip_prop_prefix=ip_prop_prefix, 
@@ -225,7 +225,7 @@ def everything(calculator, dft_bde_filename,
     logger.debug("gathering results to one file")
     dft_opt_ats = ConfigSet(input_files=dft_opt_bde_fname)
     ip_reopt_ats = ConfigSet(input_files=ip_reopt_bde_fname)
-    outputs = ConfigSet_out(output_files=summary_file, force=True, all_or_none=True)
+    outputs = OutputSpec(output_files=summary_file, force=True, all_or_none=True)
     inputs = collect_bde_results(dft_opt_ats=dft_opt_ats, 
                         ip_reopt_ats=ip_reopt_ats, 
                         dft_prop_prefix=dft_prop_prefix,

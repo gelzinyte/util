@@ -22,7 +22,7 @@ except ModuleNotFoundError:
     pass
 
 from wfl.generate import optimize
-from wfl.autoparallelize import iterable_loop
+from wfl.autoparallelize import autoparallelize
 
 from util import plot
 

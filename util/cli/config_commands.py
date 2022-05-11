@@ -1,6 +1,6 @@
 import click
 import util
-from wfl.configset import ConfigSet_out
+from wfl.configset import OutputSpec
 from ase.io import read, write
 from util import configs    
 from util import qm
@@ -81,7 +81,7 @@ def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
 
     from util.iterations import tools as it
 
-    outputs = ConfigSet_out(output_files=output_fname)
+    outputs = OutputSpec(output_files=output_fname)
 
     it.make_structures(smiles_csv, num_smi_repeat=repeats,
                        outputs=outputs, num_rads_per_mol=num_rads_per_mol,
@@ -99,7 +99,7 @@ def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
 #
 #     from util import configs
 #
-#     outputs = ConfigSet_out(output_files=output_fname)
+#     outputs = OutputSpec(output_files=output_fname)
 #     configs.smiles_csv_to_molecules(smiles_csv,
 #         outputs, repeat=num_repeats, smiles_col=smiles_col, name_col=name_col)
 

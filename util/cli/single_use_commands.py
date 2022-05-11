@@ -1,7 +1,7 @@
 import click
 from pathlib import Path
 from util.single_use import md_test
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 from ase.io import read, write
 from wfl.generate import md
 from util import configs
@@ -50,7 +50,7 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
     assert len(at) == 1
 
     ci = ConfigSet(input_files=xyz)
-    co = ConfigSet_out(
+    co = OutputSpec(
         output_files=output, 
         force=True, 
         all_or_none=True,

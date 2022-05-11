@@ -8,7 +8,7 @@ import ace
 import pytest
 import shutil
 import pandas as pd
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 from ase.build import molecule
 from copy import deepcopy
 from ase.io import read
@@ -105,7 +105,7 @@ def test_select_extra_smiles(tmp_path):
 def test_make_structures():
 
     in_csv = Path(__file__).parent.resolve() / "files" / "extra_smiles.csv"
-    co = ConfigSet_out(set_tags={"iter_no":248, 
+    co = OutputSpec(set_tags={"iter_no":248, 
                       "config_type":"rdkit"})
 
     ci = it.make_structures(smiles_csv=in_csv, 
@@ -145,8 +145,8 @@ def test_filter_configs():
     at.arrays["pred_forces"][0][1] -= 0.051
     at.info["pred_energy"] += 0.02
     ats_to_test.append(at.copy())
-    co_large = ConfigSet_out()
-    co_small = ConfigSet_out()
+    co_large = OutputSpec()
+    co_small = OutputSpec()
     it.filter_configs(inputs=ats_to_test, 
                      outputs_large_error=co_large,
                      outputs_small_error=co_small, 
@@ -175,8 +175,8 @@ def test_filter_configs():
     at.info["test_config_type"] = "large_error"
     ats_to_test.append(at.copy())
 
-    co_large = ConfigSet_out()
-    co_small = ConfigSet_out()
+    co_large = OutputSpec()
+    co_small = OutputSpec()
     it.filter_configs(inputs=ats_to_test, 
                      outputs_large_error=co_large,
                      outputs_small_error=co_small, 
@@ -254,9 +254,9 @@ def test_process_trajs():
     traj_2[3].set_distance(0, 1, 5)
 
     ci = ConfigSet(input_configs=traj_1 + traj_2)
-    co_good_traj = ConfigSet_out()
-    co_bad_traj_good_cfg = ConfigSet_out()
-    co_bad_traj_bad_cfg = ConfigSet_out()
+    co_good_traj = OutputSpec()
+    co_bad_traj_good_cfg = OutputSpec()
+    co_bad_traj_bad_cfg = OutputSpec()
 
     it.process_trajs(ci, co_good_traj, co_bad_traj_bad_cfg, co_bad_traj_good_cfg, "last")
 
@@ -278,9 +278,9 @@ def test_process_trajs():
         at.info["graph_name"] = "bad_traj"
 
     ci = ConfigSet(input_configs=traj_1 + traj_2)
-    co_good_traj = ConfigSet_out()
-    co_bad_traj_good_cfg = ConfigSet_out()
-    co_bad_traj_bad_cfg = ConfigSet_out()
+    co_good_traj = OutputSpec()
+    co_bad_traj_good_cfg = OutputSpec()
+    co_bad_traj_bad_cfg = OutputSpec()
 
     it.process_trajs(ci, co_good_traj, co_bad_traj_bad_cfg, co_bad_traj_good_cfg, "last")
     assert len([at for at in co_good_traj.to_ConfigSet()]) == 2

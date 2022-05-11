@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from ase.io import read, write
 
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 from wfl.generate import vib
 from wfl.calculators import generic 
 from util.calculators import pyjulip_ace
@@ -27,7 +27,7 @@ def xtb_normal_modes(input_fname, output_fname, parallel_hessian):
     from xtb.ase.calculator import XTB
 
     ConfigSet = ConfigSet(input_files=input_fname)
-    configset_out = ConfigSet_out(output_files=output_fname)
+    OutputSpec = OutputSpec(output_files=output_fname)
 
     calc = (XTB, [], {'method':'GFN2-xTB'})
 
@@ -35,12 +35,12 @@ def xtb_normal_modes(input_fname, output_fname, parallel_hessian):
 
     if parallel_hessian:
         vib.generate_normal_modes_parallel_hessian(inputs=ConfigSet,
-                                          outputs=configset_out,
+                                          outputs=OutputSpec,
                                           calculator=calc,
                                           prop_prefix=prop_prefix)
     else:
         vib.generate_normal_modes_parallel_atoms(inputs=ConfigSet,
-                                                 outputs=configset_out,
+                                                 outputs=OutputSpec,
                                                  calculator=calc,
                                                  prop_prefix=prop_prefix,
                                                  chunksize=1)
@@ -99,7 +99,7 @@ def evaluate_diff_calc(input_fname, output_fname, prefix, gap_fname, force):
 
     calculator = (calculators.xtb2_plus_gap, [], {'gap_filename': gap_fname})
     inputs = ConfigSet(input_files=input_fname)
-    outputs = ConfigSet_out(output_files=output_fname, force=force)
+    outputs = OutputSpec(output_files=output_fname, force=force)
     generic.run(inputs=inputs, outputs=outputs, calculator=calculator,
                 properties=['energy', 'forces'], output_prefix=prefix)
 
@@ -125,7 +125,7 @@ def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
         descriptors = deepcopy(params.pop('_gap'))
 
     inputs = ConfigSet(input_files=input_fname)
-    outputs = ConfigSet_out(output_files=output_fname)
+    outputs = OutputSpec(output_files=output_fname)
 
     wfl.calc_descriptor.calc(inputs=inputs, outputs=outputs,
                              descs=descriptors, key=key,
@@ -140,7 +140,7 @@ def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
 def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
 
     inputs = ConfigSet(input_files=input_fname)
-    outputs = ConfigSet_out(output_files=output_fname)
+    outputs = OutputSpec(output_files=output_fname)
 
     calc = (pyjulip_ace, [ace_fname], {})
 

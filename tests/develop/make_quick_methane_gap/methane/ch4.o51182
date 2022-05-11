@@ -19,7 +19,7 @@ Traceback (most recent call last):
   File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/click/decorators.py", line 21, in new_func
     return f(get_current_context(), *args, **kwargs)
   File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/cli/cli.py", line 206, in sample_normal_modes
-    configset_out = ConfigSet_out(output_files=outputs, force=force)
+    OutputSpec = OutputSpec(output_files=outputs, force=force)
   File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/configset.py", line 316, in __init__
     self.fail_if_output_exists()
   File "/opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/configset.py", line 343, in fail_if_output_exists
@@ -27,7 +27,7 @@ Traceback (most recent call last):
 RuntimeError: Will write to file 'methane_sample.xyz' that exists, pass force to override
 ConfigSet:
    input files: methane_sample.xyz @ :
-ConfigSet_out:
+OutputSpec:
    output files: : methane_sample_dft.xyz
 ORCA calculation parameters:  {'smearing': 5000, 'scratch_path': '/scratch-ssd/eg475', 'orcasimpleinput': 'UKS B3LYP def2-SV(P) def2/J D3BJ'}
 /opt/womble/miniconda3/user_envs/eg475/py3.8/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:30: UserWarning: No universal_SOAPs, some functionality will not be available

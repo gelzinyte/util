@@ -63,7 +63,7 @@ def abstract_sp3_hydrogen_atoms(inputs, label_config_type=True,
 
     inputs: Atoms / list(Atoms) / ConfigSet
         structure to remove sp3 hydrogen atoms from
-    outputs: ConfigSet_out:
+    outputs: OutputSpec:
         where to write structures to
     label_config_type: bool, default True
         whether to append config_type with 'mol' or 'rad{idx}'

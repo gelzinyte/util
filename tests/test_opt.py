@@ -1,5 +1,5 @@
 from util import opt
-from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 
 # input input fixtures from conftest.py
 def test_optimise(atoms, calculator):
@@ -7,7 +7,7 @@ def test_optimise(atoms, calculator):
     atoms.set_distance(0, 1, 1.3)
 
     inputs = ConfigSet(input_configs=[atoms])
-    outputs = ConfigSet_out()
+    outputs = OutputSpec()
 
 
     opt.optimise(inputs=inputs,
@@ -19,7 +19,7 @@ def test_optimise(atoms, calculator):
     # returned full trajectory
     assert len([at for at in outputs.to_ConfigSet()]) == 6
 
-    outputs = ConfigSet_out()
+    outputs = OutputSpec()
     opt.optimise(inputs=inputs,
                  outputs=outputs,
                  traj_step_interval=None,
