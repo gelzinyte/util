@@ -5,7 +5,7 @@ import numpy as np
 from ase import Atoms
 from ase import units
 
-from wfl.generate_configs.vib import Vibrations
+from wfl.generate.vib import Vibrations
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def sample_downweighted_normal_modes(inputs, outputs, temp, sample_size, prop_pr
     Parameters
     ----------
 
-    inputs: Atoms / list(Atoms) / ConfigSet_in
+    inputs: Atoms / list(Atoms) / ConfigSet
         Structures with normal mode information (eigenvalues &
         eigenvectors)
     outputs: ConfigSet_out
@@ -60,7 +60,7 @@ def sample_downweighted_normal_modes(inputs, outputs, temp, sample_size, prop_pr
         outputs.write(sample)
 
     outputs.end_write()
-    return outputs.to_ConfigSet_in()
+    return outputs.to_ConfigSet()
 
 
 def downweight_energies(frequencies_eV, temp, threshold_invcm=200,

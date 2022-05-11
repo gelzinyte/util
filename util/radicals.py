@@ -5,7 +5,7 @@ import numpy as np
 from ase import neighborlist
 from wfl.utils.misc import atoms_to_list
 
-from wfl.generate_configs.utils import config_type_append
+from wfl.generate.utils import config_type_append
 
 from util import smiles, configs
 
@@ -61,7 +61,7 @@ def abstract_sp3_hydrogen_atoms(inputs, label_config_type=True,
     Parameters
     ----------
 
-    inputs: Atoms / list(Atoms) / ConfigSet_in
+    inputs: Atoms / list(Atoms) / ConfigSet
         structure to remove sp3 hydrogen atoms from
     outputs: ConfigSet_out:
         where to write structures to

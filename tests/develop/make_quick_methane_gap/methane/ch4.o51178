@@ -1,7 +1,7 @@
 Tue 27 Apr 15:15:37 BST 2021
 /opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:31: UserWarning: No universal_SOAPs, some functionality will not be available
   warnings.warn('No universal_SOAPs, some functionality will not be available')
-ConfigSet_in:
+ConfigSet:
    input files: mol_rad_nms.xyz @ :
 ConfigSet_out:
    output files: : methane_sample.xyz

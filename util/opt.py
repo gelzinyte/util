@@ -2,8 +2,8 @@ import logging
 
 from ase import Atoms
 
-from wfl.generate_configs import minim
-from wfl.pipeline.base import iterable_loop
+from wfl.generate import optimize
+from wfl.autoparallelize.base import iterable_loop
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ def optimise(inputs, outputs, calculator, prop_prefix,  chunksize=1,
                          prop_prefix=prop_prefix, npool=npool)
 
 
-def optimise_op(atoms, calculator, prop_prefix, traj_step_interval=None):
+def optimise_autopara_wrappable(atoms, calculator, prop_prefix, traj_step_interval=None):
     """traj_step_interval: if None, only the last converged config will be
     taken. Otherwise take all that get sampled. + the last
 
@@ -32,7 +32,7 @@ def optimise_op(atoms, calculator, prop_prefix, traj_step_interval=None):
     if traj_step_interval is not None:
         opt_kwargs['traj_step_interval'] = traj_step_interval
 
-    all_trajs = minim.run_op(atoms=atoms, calculator=calculator,
+    all_trajs = optimize.run_autopara_wrappable(atoms=atoms, calculator=calculator,
                              keep_symmetry=False, update_config_type=False,
                              results_prefix=prop_prefix,
                              fmax=1e-2, **opt_kwargs)

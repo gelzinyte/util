@@ -26,7 +26,7 @@ def test_gap():
 
     mod_gap_calc = util.calculators.gap.PopGAP(gap_filename=gap_fname,
                                               orca_kwargs=default_kw['orca'],
-                                              base_rundir='orca_base_rundir',
+                                              workdir_root='orca_workdir_root',
                               keep_files=['orca.inp', 'orca.out'])
 
     original_gap_energy = orig_at.info['gap_energy']

@@ -15,7 +15,7 @@ opt_fn="opt_mol_rad.xyz"
 nm_fn='mol_rad_nms.xyz'
 
 scratch_path=/scratch-ssd/eg475
-opt_base_rundir=orca_opt
+opt_workdir_root=orca_opt
 orca_simple_input="UKS B3LYP def2-SV(P) def2/J D3BJ"
 smearing=5000
 opt_calc_kwargs="task=opt smearing=${smearing}"
@@ -36,7 +36,7 @@ export AUTOPARA_NPOOL=${NSLOTS}
 #
 #conda activate py3.8
 #echo 'optimising'
-#wfl -v ref-method orca-eval --output-prefix 'dft_' --orca-simple-input "${orca_simple_input}" --calc-kwargs "${opt_calc_kwargs}" --scratch-path $scratch_path --base-rundir $opt_base_rundir  --output-file ${opt_fn}  ${mol_rad_non_opt_fn}
+#wfl -v ref-method orca-eval --output-prefix 'dft_' --orca-simple-input "${orca_simple_input}" --calc-kwargs "${opt_calc_kwargs}" --scratch-path $scratch_path --base-rundir $opt_workdir_root  --output-file ${opt_fn}  ${mol_rad_non_opt_fn}
 #
 #
 #conda activate wo
@@ -47,7 +47,7 @@ export AUTOPARA_NPOOL=${NSLOTS}
 wfl -v generate-configs sample-normal-modes -n 50 -t 300 -p dft_ -i "smiles config_type" -o methane_sample.xyz $nm_fn
 
 conda activate py3.8
-wfl -v ref-method orca-eval --output-prefix 'dft_' --orca-simple-input "${orca_simple_input}" --calc-kwargs "smearing=${smearing}" --scratch-path $scratch_path --base-rundir $opt_base_rundir  --output-file methane_sample_dft.xyz methane_sample.xyz 
+wfl -v ref-method orca-eval --output-prefix 'dft_' --orca-simple-input "${orca_simple_input}" --calc-kwargs "smearing=${smearing}" --scratch-path $scratch_path --base-rundir $opt_workdir_root  --output-file methane_sample_dft.xyz methane_sample.xyz 
 
 
 

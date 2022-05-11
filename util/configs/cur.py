@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from wfl.select_configs import by_descriptor
+from wfl.select import by_descriptor
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def per_environment(inputs, outputs, num,
 
     Parameters
     ----------
-    inputs: ConfigSet_in
+    inputs: ConfigSet
         atomic configs to select from
     outputs: ConfigSet_out
         where to write output to
@@ -45,13 +45,13 @@ def per_environment(inputs, outputs, num,
 
     Returns
     -------
-        ConfigSet_in corresponding to configs that contain selected
+        ConfigSet corresponding to configs that contain selected
         environments
     """
 
     if outputs.is_done():
         logger.info('output is done, returning')
-        return outputs.to_ConfigSet_in()
+        return outputs.to_ConfigSet()
 
     logger.info('preparing descriptors')
 
@@ -93,7 +93,7 @@ def per_environment(inputs, outputs, num,
                              write_all_configs=write_all_configs
                              )
 
-    return outputs.to_ConfigSet_in()
+    return outputs.to_ConfigSet()
 
 def clean_and_write_selected(inputs, outputs, selected,
                              parent_at_idx, at_descs_key,
@@ -105,7 +105,7 @@ def clean_and_write_selected(inputs, outputs, selected,
 
     Parameters
     ----------
-    inputs: ConfigSet_in
+    inputs: ConfigSet
         input configuration set
     outputs: ConfigSet_out
         target for output of selected configurations
@@ -169,7 +169,7 @@ def leverage_scores_into_arrays(inputs, leverage_scores, selected,
 
     Parameters
     ----------
-    inputs: ConfigSet_in
+    inputs: ConfigSet
         all of the configs that went into cur
     leverage_scores: list(float)
         scores for selected environments
@@ -210,7 +210,7 @@ def prepare_descriptors(inputs, at_descs_key):
 
     Parameters
     ----------
-    inputs: ConfigSet_in
+    inputs: ConfigSet
         input configurations
     at_descs_key: str, default None
         key into Atoms.info dict for descriptor vector of each config

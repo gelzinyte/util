@@ -7,7 +7,7 @@ import pickle
 from util import natural_sort
 from pathlib import Path
 from wfl.calculators import generic
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 
 def save(base_dir, val_configs):
     base_dir = Path(base_dir)

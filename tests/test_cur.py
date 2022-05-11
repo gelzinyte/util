@@ -6,7 +6,7 @@ import numpy as np
 from ase.build import molecule
 from ase.io import read
 
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 
 from util.configs import cur
 
@@ -18,7 +18,7 @@ def ref_path():
 def test_preparing_descriptors():
 
     input_files = os.path.join(ref_path(), 'files/mols_soap.xyz')
-    inputs = ConfigSet_in(input_files=input_files)
+    inputs = ConfigSet(input_files=input_files)
     at_descs_key = 'SOAP-n4-l3-c2.4-g0.3'
 
     descriptors, parent_idx = cur.prepare_descriptors(inputs, at_descs_key)
@@ -41,7 +41,7 @@ def test_atomic_cur():
     # just check it works
 
     input_files = os.path.join(ref_path(), 'files/mols_soap.xyz')
-    inputs = ConfigSet_in(input_files=input_files)
+    inputs = ConfigSet(input_files=input_files)
     outputs = ConfigSet_out()
 
     at_descs_key = 'SOAP-n4-l3-c2.4-g0.3'

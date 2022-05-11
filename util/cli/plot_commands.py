@@ -167,7 +167,7 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 
     from util import error_table
 
-    inputs = ConfigSet_in(input_files=inputs)
+    inputs = ConfigSet(input_files=inputs)
 
     if calc_kwargs is not None:
 

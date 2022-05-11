@@ -1,13 +1,13 @@
 import pandas as pd
 import os
 import sys
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 try:
     from wfl.generate_configs import smiles, radicals
 except ImportError:
     from util import smiles, radicals
 from ase.optimize.precon import PreconLBFGS
-from wfl.pipeline import iterable_loop
+from wfl.autoparallelize import iterable_loop
 from wfl.utils.parallel import construct_calculator_picklesafe
 from wfl.utils.at_copy_spc import at_copy_SPC
 from wfl.utils.misc import atoms_to_list
@@ -26,7 +26,7 @@ from wfl.generate_configs import vib
 def testing_set_from_gap_normal_modes(iter_no, temperature, no_samples):
 
     nm_fname = f'xyzs/normal_modes_reference_{iter_no}.xyz'
-    inputs = ConfigSet_in(input_files=nm_fname)
+    inputs = ConfigSet(input_files=nm_fname)
     outputs = ConfigSet_out()
     info_to_keep = ['config_type', 'iter_no', 'minim_n_steps']
 

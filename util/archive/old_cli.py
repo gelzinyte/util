@@ -14,7 +14,7 @@ from ase import Atoms
 from ase.io import read, write
 
 
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 from wfl.calculators import orca
 from wfl.calculators import generic
 from wfl.generate_configs import vib
@@ -262,7 +262,7 @@ def generate_nm_reference(inputs, prop_prefix, outputs, dir_prefix):
     """Generates normal mode frequencies and displacements from a
      finite difference approximation of the mass-weighted Hessian matrix """
 
-    configset_in = ConfigSet_in(input_files=inputs)
+    ConfigSet = ConfigSet(input_files=inputs)
     configset_out = ConfigSet_out(output_files=outputs)
 
     calc_kwargs = {"orcasimpleinput" : 'UKS B3LYP def2-SV(P) def2/J D3BJ',
@@ -280,7 +280,7 @@ def generate_nm_reference(inputs, prop_prefix, outputs, dir_prefix):
                            'base_rundir':'orca_normal_mode_calc_outputs',
                            'dir_prefix':dir_prefix}
 
-    vib.generate_normal_modes_parallel_hessian(inputs=configset_in,
+    vib.generate_normal_modes_parallel_hessian(inputs=ConfigSet,
                                           outputs=configset_out,
                                           calculator=calc,
                                           prop_prefix=prop_prefix,
@@ -501,7 +501,7 @@ def hash_structures(input_fname, output_fname, prefix):
 @click.option('--dft-prop-prefix', '-p', default='dft_reopt_')
 def reoptimise_with_dft(input_filename, output_filename, dft_prop_prefix):
 
-    inputs = ConfigSet_in(input_files=input_filename)
+    inputs = ConfigSet(input_files=input_filename)
     outputs = ConfigSet_out(output_files=output_filename)
 
     bde.dft_optimise(inputs=inputs, outputs=outputs, dft_prefix=dft_prop_prefix)
@@ -538,7 +538,7 @@ def sample_normal_modes(input_fname, output_fname, temperature, sample_size,
                         prop_prefix, info_to_keep, arrays_to_keep):
 
     from util import normal_modes
-    inputs = ConfigSet_in(input_files=input_fname)
+    inputs = ConfigSet(input_files=input_fname)
     outputs = ConfigSet_out(output_files=output_fname)
     if info_to_keep is not None:
         info_to_keep = info_to_keep.split()
@@ -648,7 +648,7 @@ def atom_type_aromatic(in_fname, output, cutoff_multiplier, elements,
     """atom types aromatic vs not elements, based on neighbour count"""
 
     elements = elements.split(" ")
-    inputs = ConfigSet_in(input_files=in_fname)
+    inputs = ConfigSet(input_files=in_fname)
     outputs = ConfigSet_out(output_files=output, force=force)
     atom_types.assign_aromatic(inputs=inputs, outputs=outputs,
                                elements_to_type=elements,
@@ -718,7 +718,7 @@ def gap_optimise(gap_fname, output, traj_fname=None, start_dir=None, start_fname
 
     # optimise
     opt_trajectory = ConfigSet_out(output_files=traj_fname)
-    inputs = ConfigSet_in(input_files=dft_fnames)
+    inputs = ConfigSet(input_files=dft_fnames)
 
     calculator = (Potential, [], {'param_fliename':gap_fname})
 

@@ -1,4 +1,4 @@
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 import re
 import numpy as np
 from ase.io import read, write
@@ -218,7 +218,7 @@ def gap_optimise(start_fnames, gap_fnames, calculator):
     for in_fname, out_fname in zip(gap_tmp_fnames, traj_fnames):
         output_dict[in_fname] = out_fname
 
-    inputs = ConfigSet_in(input_files=gap_tmp_fnames)
+    inputs = ConfigSet(input_files=gap_tmp_fnames)
     outputs = ConfigSet_out(output_files=output_dict)
 
 

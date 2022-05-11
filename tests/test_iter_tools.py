@@ -8,7 +8,7 @@ import ace
 import pytest
 import shutil
 import pandas as pd
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 from ase.build import molecule
 from copy import deepcopy
 from ase.io import read
@@ -154,11 +154,11 @@ def test_filter_configs():
                      dft_prefix="ref_",
                      e_threshold_total=0.05, 
                      max_f_comp_threshold=0.1)
-    assert len([at for at in co_large.to_ConfigSet_in()]) ==2
-    assert len([at for at in co_small.to_ConfigSet_in()]) == 1
-    for at in co_large.to_ConfigSet_in():
+    assert len([at for at in co_large.to_ConfigSet()]) ==2
+    assert len([at for at in co_small.to_ConfigSet()]) == 1
+    for at in co_large.to_ConfigSet():
         assert at.info["test_config_type"] == "large_error"
-    for at in co_small.to_ConfigSet_in():
+    for at in co_small.to_ConfigSet():
         assert at.info["test_config_type"] == "small_error"
 
     ats_to_test = []
@@ -184,11 +184,11 @@ def test_filter_configs():
                      dft_prefix="ref_",
                      e_threshold_per_atom=0.05, 
                      max_f_comp_threshold=0.1)
-    assert len([at for at in co_large.to_ConfigSet_in()]) == 1
-    assert len([at for at in co_small.to_ConfigSet_in()]) == 1
-    for at in co_large.to_ConfigSet_in():
+    assert len([at for at in co_large.to_ConfigSet()]) == 1
+    assert len([at for at in co_small.to_ConfigSet()]) == 1
+    for at in co_large.to_ConfigSet():
         assert at.info["test_config_type"] == "large_error"
-    for at in co_small.to_ConfigSet_in():
+    for at in co_small.to_ConfigSet():
         assert at.info["test_config_type"] == "small_error"
 
 
@@ -253,18 +253,18 @@ def test_process_trajs():
     traj_2[2].set_distance(0, 1, 5)
     traj_2[3].set_distance(0, 1, 5)
 
-    ci = ConfigSet_in(input_configs=traj_1 + traj_2)
+    ci = ConfigSet(input_configs=traj_1 + traj_2)
     co_good_traj = ConfigSet_out()
     co_bad_traj_good_cfg = ConfigSet_out()
     co_bad_traj_bad_cfg = ConfigSet_out()
 
     it.process_trajs(ci, co_good_traj, co_bad_traj_bad_cfg, co_bad_traj_good_cfg, "last")
 
-    assert [at for at in co_good_traj.to_ConfigSet_in()][0].info["config_type"] == "last"
-    assert [at for at in co_good_traj.to_ConfigSet_in()][0].info["graph_name"] == "good_traj"
+    assert [at for at in co_good_traj.to_ConfigSet()][0].info["config_type"] == "last"
+    assert [at for at in co_good_traj.to_ConfigSet()][0].info["graph_name"] == "good_traj"
 
-    assert len([at for at in co_bad_traj_bad_cfg.to_ConfigSet_in()]) == 2
-    assert len([at for at in co_bad_traj_good_cfg.to_ConfigSet_in()]) == 2
+    assert len([at for at in co_bad_traj_bad_cfg.to_ConfigSet()]) == 2
+    assert len([at for at in co_bad_traj_good_cfg.to_ConfigSet()]) == 2
 
     # ~check that can get empty files~
     # actually I'm not writing to files...
@@ -277,14 +277,14 @@ def test_process_trajs():
     for at in traj_2:
         at.info["graph_name"] = "bad_traj"
 
-    ci = ConfigSet_in(input_configs=traj_1 + traj_2)
+    ci = ConfigSet(input_configs=traj_1 + traj_2)
     co_good_traj = ConfigSet_out()
     co_bad_traj_good_cfg = ConfigSet_out()
     co_bad_traj_bad_cfg = ConfigSet_out()
 
     it.process_trajs(ci, co_good_traj, co_bad_traj_bad_cfg, co_bad_traj_good_cfg, "last")
-    assert len([at for at in co_good_traj.to_ConfigSet_in()]) == 2
-    assert len([at for at in co_bad_traj_good_cfg.to_ConfigSet_in()]) == 0
+    assert len([at for at in co_good_traj.to_ConfigSet()]) == 2
+    assert len([at for at in co_bad_traj_good_cfg.to_ConfigSet()]) == 0
 
 
 

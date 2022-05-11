@@ -5,7 +5,7 @@ try:
 except ModuleNotFoundError:
     pass
 import os
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 from ase.io import read, write
 
 
@@ -44,7 +44,7 @@ def opt_and_normal_modes(dft_dir, gap_fnames, output_dir):
 def optimise(gap_fname, input_fnames, traj_fname, output_fname):
     calculator = (Potential, [], {'param_filename': gap_fname})
 
-    inputs = ConfigSet_in(input_files=input_fnames)
+    inputs = ConfigSet(input_files=input_fnames)
     outputs = ConfigSet_out(output_files=traj_fname)
 
     it.run_opt(inputs=inputs,
@@ -64,7 +64,7 @@ def derive_normal_modes_parallel_atoms(opt_fname, gap_fname, output_fname):
 
     print(output_fname)
 
-    inputs = ConfigSet_in(input_files=opt_fname)
+    inputs = ConfigSet(input_files=opt_fname)
     outputs = ConfigSet_out(output_files=output_fname)
     vib.generate_normal_modes_parallel_atoms(inputs=inputs,
                          outputs=outputs,

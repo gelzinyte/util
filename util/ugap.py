@@ -21,8 +21,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-from wfl.generate_configs import minim
-from wfl.pipeline import iterable_loop
+from wfl.generate import optimize
+from wfl.autoparallelize import iterable_loop
 
 from util import plot
 

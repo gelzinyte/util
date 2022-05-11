@@ -1,9 +1,9 @@
 import click
 from pathlib import Path
 from util.single_use import md_test
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 from ase.io import read, write
-from wfl.generate_configs import md
+from wfl.generate import md
 from util import configs
 
 try:
@@ -49,7 +49,7 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
     at = read(xyz, ":")
     assert len(at) == 1
 
-    ci = ConfigSet_in(input_files=xyz)
+    ci = ConfigSet(input_files=xyz)
     co = ConfigSet_out(
         output_files=output, 
         force=True, 

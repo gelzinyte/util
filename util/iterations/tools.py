@@ -25,12 +25,12 @@ from util.calculators import pyjulip_ace
 
 from quippy.potential import Potential
 
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 import wfl.fit.gap_simple
 import wfl.fit.ace
 from wfl.calculators import generic
 from wfl.calculators import orca
-from wfl.generate_configs import md
+from wfl.generate import md
 
 import util
 from util import radicals
@@ -64,7 +64,7 @@ def prepare_0th_dataset(ci, co):
 
     if co.is_done():
         logger.info(f"initial dataset is preapared {co.output_files[0].name}")
-        return co.to_ConfigSet_in()
+        return co.to_ConfigSet()
 
     logger.info(f"preparing initial dataset {co.output_files[0].name}")
 
@@ -76,7 +76,7 @@ def prepare_0th_dataset(ci, co):
 
         co.write(at)
     co.end_write()
-    return co.to_ConfigSet_in()
+    return co.to_ConfigSet()
 
 
 def make_structures(
@@ -90,7 +90,7 @@ def make_structures(
 
     if outputs.is_done():
         logger.info(f"outputs ({outputs} from {smiles_csv.name}) are done, returning")
-        return outputs.to_ConfigSet_in()
+        return outputs.to_ConfigSet()
 
     atoms_out = []
     logger.info(f"writing new structures from {smiles_csv} to {outputs.output_files}")
@@ -114,7 +114,7 @@ def make_structures(
         outputs.write(at)
 
     outputs.end_write()
-    return outputs.to_ConfigSet_in()
+    return outputs.to_ConfigSet()
 
 
 def filter_configs_by_geometry(inputs, outputs_good, outputs_bad):
@@ -134,7 +134,7 @@ def filter_configs_by_geometry(inputs, outputs_good, outputs_bad):
     else:
         raise RuntimeError("one output is done, but not the other. ")
 
-    return outputs_good.to_ConfigSet_in()
+    return outputs_good.to_ConfigSet()
 
 
 def filter_configs(
@@ -152,7 +152,7 @@ def filter_configs(
 
     if outputs_large_error.is_done() and outputs_small_error.is_done():
         logger.info("both outputs are done, not filtering configs by energy/force error")
-        return outputs_large_error.to_ConfigSet_in()
+        return outputs_large_error.to_ConfigSet()
 
     elif not outputs_large_error.is_done() and not outputs_small_error.is_done():
         pass
@@ -202,7 +202,7 @@ def filter_configs(
     if not have_large_errors:
         return None
     else:
-        return outputs_large_error.to_ConfigSet_in()
+        return outputs_large_error.to_ConfigSet()
 
 
 def do_gap_fit(fit_dir, idx, ref_type, train_set_fname, fit_params_base, gap_fit_path):
@@ -217,7 +217,7 @@ def do_gap_fit(fit_dir, idx, ref_type, train_set_fname, fit_params_base, gap_fit
         gap_params = deepcopy(fit_params_base)
         gap_params["gap_file"] = fit_fname
 
-        fit_inputs = ConfigSet_in(input_files=train_set_fname)
+        fit_inputs = ConfigSet(input_files=train_set_fname)
 
         wfl.fit.gap_simple.run_gap_fit(
             fitting_configs=fit_inputs,
@@ -334,7 +334,7 @@ def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
     tests_wdir.mkdir(exist_ok=True)
 
     all_ats = read(train_set_fname, ':')
-    ci = ConfigSet_in(input_configs=random.choices(all_ats, k=2))
+    ci = ConfigSet(input_configs=random.choices(all_ats, k=2))
     co = ConfigSet_out()
     inputs = orca.evaluate(
         inputs=ci,
@@ -342,7 +342,7 @@ def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
         orca_kwargs=orca_kwargs,
         output_prefix='dft_recalc_',
         keep_files='default',
-        base_rundir=tests_wdir / "orca_wdir")
+        workdir_root=tests_wdir / "orca_wdir")
 
     write(tests_wdir/"all_dft_check.xyz", [at for at in inputs])
 
@@ -426,8 +426,8 @@ def process_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_g
             count_good_traj += 1
         else:
             # some of the trajectory is unreasonable
-            good_cfgs = [at for at in co_good.to_ConfigSet_in()]
-            bad_cfgs = [at for at in co_bad.to_ConfigSet_in()]
+            good_cfgs = [at for at in co_good.to_ConfigSet()]
+            bad_cfgs = [at for at in co_bad.to_ConfigSet()]
             bad_traj_bad_cfg_co.write(bad_cfgs)
             bad_traj_good_cfg_co.write(good_cfgs)
             count_bad_traj_good_cfg += len(good_cfgs)
@@ -447,14 +447,14 @@ def process_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_g
 
 def cotl(co):
     """configset_out to configset in to list"""
-    return [at for at in co.to_ConfigSet_in()]
+    return [at for at in co.to_ConfigSet()]
 
 
 def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pred_prop_prefix):
 
     if co.is_done():
         logger.info("Sub-sampling is already done, returning")
-        return co.to_ConfigSet_in()
+        return co.to_ConfigSet()
 
     dft_dir = cycle_dir / "sample_failed_traj_DFT"
     dft_dir.mkdir(exist_ok=True)
@@ -468,13 +468,13 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
     for label, traj in trajs.items():
         found_good = False
         logger.info(f"{label}: checking first couple of configs from trajectory")
-        dft_sample_ci = ConfigSet_in(input_configs=[at.copy() for at in traj[0:10]])
+        dft_sample_ci = ConfigSet(input_configs=[at.copy() for at in traj[0:10]])
         dft_sample_co = ConfigSet_out(output_files= dft_dir / f"{label}.dft.xyz")
         orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
                       orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
-                      keep_files=False, base_rundir=dft_dir/"orca_wdir")        
+                      keep_files=False, workdir_root=dft_dir/"orca_wdir")        
 
-        cfgs = [at for at in dft_sample_co.to_ConfigSet_in()]
+        cfgs = [at for at in dft_sample_co.to_ConfigSet()]
         for idx, at in enumerate(cfgs):
             if found_good:
                 break
@@ -497,13 +497,13 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
             if found_good:
                 break
             at_group = [at for at in at_group if at is not None]
-            dft_sample_ci = ConfigSet_in(input_configs=at_group)
+            dft_sample_ci = ConfigSet(input_configs=at_group)
             dft_sample_co = ConfigSet_out(output_files= dft_dir / f"{label}.{group_idx}.dft.xyz")
             orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
                         orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
-                        keep_files=False, base_rundir=dft_dir/"orca_wdir")        
+                        keep_files=False, workdir_root=dft_dir/"orca_wdir")        
                 
-            for at in dft_sample_co.to_ConfigSet_in():
+            for at in dft_sample_co.to_ConfigSet():
                 is_accurate = check_accuracy(at, dft_prop_prefix, pred_prop_prefix)
                 if is_accurate:
                     logger.info(f"Picked this one!: {at.info}")
@@ -515,7 +515,7 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
     
     co.end_write()
 
-    return co.to_ConfigSet_in()
+    return co.to_ConfigSet()
 
 
 def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
@@ -588,7 +588,7 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
     doneness = sum([outputs_to_fit.is_done(), outputs_traj.is_done(), outputs_rerun.is_done(), outputs_good_md.is_done()])
     if doneness == 4:
         logger.info("outputs_are_done, not re-splitting the full trajectories ")
-        return outputs_to_fit.to_ConfigSet_in()
+        return outputs_to_fit.to_ConfigSet()
     elif doneness != 0:
         pass
         # raise RuntimeError("some outputs done, but not all!")
@@ -636,7 +636,7 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
 
     # TODO resample the done trajectories so fewer configs are kept
 
-    return outputs_to_fit.to_ConfigSet_in()
+    return outputs_to_fit.to_ConfigSet()
 
 
 def select_at_from_failed_md(traj, pred_prop_prefix='ace_'):

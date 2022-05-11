@@ -10,10 +10,10 @@ except ModuleNotFoundError:
     pass
 
 from wfl.generate_configs import minim
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 from wfl.calculators import generic
 from wfl.calculators import orca
-from wfl.pipeline import iterable_loop
+from wfl.autoparallelize import iterable_loop
 
 from util import smiles  # TODO change to wfl smiles once merged
 from util import radicals  # TODO change to wfl once merged
@@ -71,7 +71,7 @@ def gap_prepare_bde_structures(molecules, calculator, gap_prop_prefix,
 
 
         # gap-optimise
-        mol_and_rads = gap_optimise(mol_and_rads.to_ConfigSet_in(),
+        mol_and_rads = gap_optimise(mol_and_rads.to_ConfigSet(),
                                               calculator)
 
 

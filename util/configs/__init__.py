@@ -2,8 +2,8 @@ from ase.io import read, write
 import logging
 import pandas as pd
 from util import smiles
-from wfl.configset import ConfigSet_in, ConfigSet_out
-from wfl.generate_configs.vib import Vibrations
+from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.generate.vib import Vibrations
 from ase import units
 from ase import Atoms
 import warnings
@@ -76,12 +76,12 @@ def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
 #         smi_names += [name] * repeat
 #
 #     smiles.run(outputs=outputs, smiles=smiles_to_convert)
-#     for at, name in zip(outputs.to_ConfigSet_in(), smi_names):
+#     for at, name in zip(outputs.to_ConfigSet(), smi_names):
 #         at.info['config_type'] = name
 #         at.info['compound'] = name
 #         at.cell = [50, 50, 50]
 #
-#     return outputs.to_ConfigSet_in()
+#     return outputs.to_ConfigSet()
 
 
 

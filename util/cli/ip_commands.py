@@ -7,7 +7,7 @@ from ase.io import read, write
 
 from quippy.potential import Potential
 
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 from wfl.calculators import generic
 
 
@@ -27,7 +27,7 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 
     calculator = (Potential, [], {'param_filename':gap_fname})
 
-    inputs = ConfigSet_in(input_files=config_file)
+    inputs = ConfigSet(input_files=config_file)
     outputs_gap_energies = ConfigSet_out(output_files=output_fname,
                                          force=force,
                                          all_or_none=all_or_none)

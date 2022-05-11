@@ -22,7 +22,7 @@ echo $HOSTNAME
 tmp_dir=/scratch-ssd/eg475
 mkdir -p $tmp_dir
 
-opt_base_rundir=orca_base_rundir
+opt_workdir_root=orca_workdir_root
 orca_simple_input="UKS B3LYP def2-SV(P) def2/J D3BJ PAL4"
 smearing=5000
 orca_additional_blocks="%scf Convergence Tight SmearTemp ${smearing} end "
@@ -36,7 +36,7 @@ output="bde_mols_and_rads.dft_opt.xyz"
 
 start=`date +%s`
 
-wfl -v ref-method orca-eval -tmp ${tmp_dir} --base-rundir $opt_base_rundir --output-prefix "${output_prefix}" --calc-kwargs "${calc_kwargs}" --orca-simple-input "${orca_simple_input}" --orca-additional-blocks "${orca_additional_blocks}" --orca-command "${orca_command}" --output-file $output --keep-files default $input 
+wfl -v ref-method orca-eval -tmp ${tmp_dir} --base-rundir $opt_workdir_root --output-prefix "${output_prefix}" --calc-kwargs "${calc_kwargs}" --orca-simple-input "${orca_simple_input}" --orca-additional-blocks "${orca_additional_blocks}" --orca-command "${orca_command}" --output-file $output --keep-files default $input 
 
 
 end=`date +%s`

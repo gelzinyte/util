@@ -1,12 +1,12 @@
 from util import opt
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 
 # input input fixtures from conftest.py
 def test_optimise(atoms, calculator):
 
     atoms.set_distance(0, 1, 1.3)
 
-    inputs = ConfigSet_in(input_configs=[atoms])
+    inputs = ConfigSet(input_configs=[atoms])
     outputs = ConfigSet_out()
 
 
@@ -17,7 +17,7 @@ def test_optimise(atoms, calculator):
                  prop_prefix='gappy_')
 
     # returned full trajectory
-    assert len([at for at in outputs.to_ConfigSet_in()]) == 6
+    assert len([at for at in outputs.to_ConfigSet()]) == 6
 
     outputs = ConfigSet_out()
     opt.optimise(inputs=inputs,
@@ -28,4 +28,4 @@ def test_optimise(atoms, calculator):
 
 
     # returned only last config
-    assert len([at for at in outputs.to_ConfigSet_in()]) == 1
+    assert len([at for at in outputs.to_ConfigSet()]) == 1

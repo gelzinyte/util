@@ -9,8 +9,8 @@ from pathlib import Path
 from ase.io import read, write
 
 from wfl.calculators import orca, generic
-from wfl.configset import ConfigSet_in, ConfigSet_out
-from wfl.generate_configs import md
+from wfl.configset import ConfigSet, ConfigSet_out
+from wfl.generate import md
 import wfl.calc_descriptor
 
 from util import remove_energy_force_containing_entries
@@ -174,7 +174,7 @@ def fit(
     #     it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, orca_kwargs=orca_kwargs, tests_wdir=wdir/"dft_check_wdir")
 
     # prepare 0th dataset
-    ci = ConfigSet_in(input_files=base_train_fname)
+    ci = ConfigSet(input_files=base_train_fname)
     co = ConfigSet_out(output_files=initial_train_fname, force=True, all_or_none=True,
                        set_tags={"dataset_type": "train"})
     it.prepare_0th_dataset(ci, co)
@@ -340,7 +340,7 @@ def fit(
             orca_kwargs=orca_kwargs,
             output_prefix=dft_prop_prefix,
             keep_files=False,
-            base_rundir=cycle_dir / "orca_wdir_on_extra_train",
+            workdir_root=cycle_dir / "orca_wdir_on_extra_train",
         )
 
         # 14. do summary plots
