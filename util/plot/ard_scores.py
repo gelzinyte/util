@@ -10,7 +10,10 @@ def plot_ard_scores(fname):
     # xs = [x for x, v in zip(xs, vals) if v]
 
     plt.figure()
-    plt.plot(xs[-200:], vals[-200:])
+    plt.plot(xs[-1000:], vals[-1000:])
     plt.grid(color='lightgrey')
     plt.yscale("log")
+    plt.xlabel("lml maximisations step")
+    plt.ylabel("log marginal likelihood score")
+    plt.tight_layout()
     plt.savefig(fname+'.png', dpi=300)

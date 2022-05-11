@@ -74,7 +74,10 @@ def plot_dimer(ip_fname, ip_type, train_fname, ref_isolated_fname, ref_prefix,
     logger.info(f"filenames: {info_fnames}")
 
     train_ats = read(train_fname, ':')
-    ref_isolated_ats = read(ref_isolated_fname, ':')
+    if ref_isolated_fname is not None:
+        ref_isolated_ats = read(ref_isolated_fname, ':')
+    else:
+        ref_isolated_ats = [at for at in train_ats if len(at) == 1]
 
     if pred_label is None:
         pred_label = ip_type + '_'
@@ -93,7 +96,6 @@ def plot_dimer(ip_fname, ip_type, train_fname, ref_isolated_fname, ref_prefix,
             calc = pyjulip.ACE(fname)
 
         title = Path(fname).stem
-
 
         calc_on_dimer(calc=calc,
                       train_ats=train_ats,
