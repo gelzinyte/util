@@ -2,6 +2,7 @@ import os
 import random
 import logging
 from pathlib import Path
+from copy import deepcopy
 
 from os.path import join as pj
 
@@ -13,6 +14,7 @@ from ase import Atoms
 from wfl.configset import ConfigSet, OutputSpec
 from wfl.calculators import generic
 from wfl.calculators import orca
+from wfl.calculators import generic
 from wfl.generate import optimize
 
 from util.util_config import Config
@@ -26,7 +28,7 @@ cfg = Config.load()
 scratch_dir = cfg['scratch_path']
 
 
-def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, outputs,
+def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_prefix, outputs,
                    wdir='ip_bde_wdir'):
 
     dft_h = Atoms('H', positions=[(0, 0, 0)])
@@ -36,24 +38,24 @@ def ip_isolated_h(calculator, dft_prop_prefix, ip_prop_prefix, outputs,
 
     inputs = ConfigSet(input_configs=dft_h)
     interim_outputs = OutputSpec()
-    orca_kwargs = setup_orca_kwargs()
-    inputs = orca.evaluate(inputs=inputs,
-                  outputs=interim_outputs,
-                  workdir_root=pj(wdir, 'orca_outputs'),
-                  orca_kwargs=orca_kwargs,
-                  output_prefix=dft_prop_prefix)
+    generic.run(inputs=inputs
+                outputs=interim_outputs, 
+                calculator=dft_calculator, 
+                properties=["energy", "forces"],
+                output_prefix=dft_prefix,
+                chunksize=1)
 
     generic.run(inputs=inputs,
                 outputs=outputs,
-                calculator=calculator, properties=['energy'],
+                calculator=pred_calculator, properties=['energy'],
                 output_prefix=ip_prop_prefix,
-                npool=0)
+                npool=None)
 
     return outputs.to_ConfigSet() 
 
 
 
-def everything(calculator, dft_bde_filename,
+def everything(pred_calculator, dft_calculator, dft_bde_filename,
                dft_prop_prefix, ip_prop_prefix, wdir='ip_bde_wdir',
                chunksize=10, output_dir='.'):
     """
@@ -82,7 +84,7 @@ def everything(calculator, dft_bde_filename,
 
     Parameters
     ----------
-    calculator - (calculator, calc_args, calc_kwargs) construct for wfl
+    pred_calculator - (calculator, calc_args, calc_kwargs) construct for wfl
 
     """
     dft_bde_filename = Path(dft_bde_filename)
@@ -91,11 +93,19 @@ def everything(calculator, dft_bde_filename,
     assert f'{dft_prop_prefix}opt_mol_positions_hash' in random_at.info.keys()
     assert 'bde_config_type' in random_at.info.keys() and random_at.info['bde_config_type'] == f'{dft_prop_prefix}optimised'
     assert f'{dft_prop_prefix}opt_positions_hash' in random_at.info.keys()
-
+    assert isinstance(dft_calculator, tuple)
+    assert len(dft_calculator) == 3
+    
 
     # deal with needed paths
     wdir = Path(wdir)
     wdir.mkdir(parents=True, exist_ok=True)
+
+    #set calculator path 
+    calc_kwargs = deepcopy(dft_calculator[2])
+    calc_kwargs["workdir_root"] = pj(wdir, 'orca_outputs')
+    dft_calculator = (dft_calculator[0], dft_calculator[1], calc_kwargs)
+
 
     stem = Path(dft_bde_filename).stem
     dft_bde_with_ip_fname = wdir / (stem + '.' + ip_prop_prefix[:-1] + '.xyz')
@@ -111,77 +121,62 @@ def everything(calculator, dft_bde_filename,
     #           dft_opt_bde_fname, ip_reopt_bde_fname, summary_file]:
     #     print(p)
 
-    for _ in range(30):
-        try:
-            # 1. evaluate structures with calculator
-            logger.info("evaluating IP on dft-optimised structures")
-            inputs = ConfigSet(input_files=dft_bde_filename)
-            outputs = OutputSpec(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
-            inputs = generic.run(inputs=inputs,
-                                outputs=outputs,
-                                calculator=calculator,
-                                properties=['energy', 'forces'],
-                                output_prefix=ip_prop_prefix,
-                                npool=0)
-        except:
-            continue
-        break
+    # 1. evaluate structures with pred_calculator
+    logger.info("evaluating IP on dft-optimised structures")
+    inputs = ConfigSet(input_files=dft_bde_filename)
+    outputs = OutputSpec(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
+    inputs = generic.run(inputs=inputs,
+                        outputs=outputs,
+                        calculator=pred_calculator,
+                        properties=['energy', 'forces'],
+                        output_prefix=ip_prop_prefix,
+                        npool=None)
 
 
     # 2. Duplicate and relabel structures in-memory
     outputs = OutputSpec()
     inputs = _prepare_structures(inputs, outputs)
 
-    for _ in range(30):
-        try:
-            # 3. Optimise with interatomic potential
-            logger.info('IP-optimising DFT structures')
-            outputs = OutputSpec(output_files=ip_reopt_fname,
-                                    force=True, all_or_none=True,
-                                    set_tags={'bde_config_type': f"{ip_prop_prefix}optimised",
-                                            'dataset_type': f"bde_{ip_prop_prefix}reoptimised"})
-            inputs = opt.optimise(inputs=inputs,
-                                outputs=outputs,
-                                calculator=calculator,
-                                prop_prefix=ip_prop_prefix,
-                                chunksize=chunksize,
-                                npool=0)
-        except:
-            continue
-        break
+    # 3. Optimise with interatomic potential
+    logger.info('IP-optimising DFT structures')
+    outputs = OutputSpec(output_files=ip_reopt_fname,
+                            force=True, all_or_none=True,
+                            set_tags={'bde_config_type': f"{ip_prop_prefix}optimised",
+                                    'dataset_type': f"bde_{ip_prop_prefix}reoptimised"})
+    inputs = opt.optimise(inputs=inputs,
+                        outputs=outputs,
+                        calculator=pred_calculator,
+                        prop_prefix=ip_prop_prefix,
+                        chunksize=chunksize,
+                        npool=None)
 
 
-    for _ in range(30):
-        try:
-            # 3.1 evaluate with interatomic potential
-            outputs = OutputSpec(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
-            inputs = generic.run(inputs=inputs,
-                                outputs=outputs,
-                                calculator=calculator,
-                                properties=['energy', 'forces'],
-                                output_prefix=ip_prop_prefix,
-                                npool=0)
-        except:
-            continue
-        break
+    # 3.1 evaluate with interatomic potential
+    outputs = OutputSpec(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
+    inputs = generic.run(inputs=inputs,
+                        outputs=outputs,
+                        calculator=pred_calculator,
+                        properties=['energy', 'forces'],
+                        output_prefix=ip_prop_prefix,
+                        npool=None)
 
 
     # 4. evaluate with DFT
     logger.info('Re-evaluating ip-optimised structures with DFT')
     outputs = OutputSpec(output_files=ip_reopt_with_dft_fname,
                                   force=True, all_or_none=True)
-    orca_kwargs = setup_orca_kwargs()
-    orca.evaluate(inputs=inputs,
-                  outputs=outputs,
-                  workdir_root=pj(wdir, 'orca_outputs'),
-                  orca_kwargs=orca_kwargs,
-                  output_prefix=dft_prop_prefix ,
-                  keep_files=False)
+    generic.run(inputs=inputs, 
+                outputs=outputs,
+                calculator=dft_calculator,
+                prop_prefix=dft_prop_prefix, 
+                properteis=["energy", "forces"]
+                cunksize=1)
 
     # 5. construct isolated atom 
     logger.info("Constructing isolated_h")
     outputs = OutputSpec(output_files=isolated_h_fname, force=True, all_or_none=True)
-    ip_isolated_h(calculator=calculator,
+    ip_isolated_h(pred_calculator=pred_calculator,
+                  dft_calculator=dft_calculator,
                   dft_prop_prefix=dft_prop_prefix, 
                   ip_prop_prefix=ip_prop_prefix, 
                   outputs=outputs,
