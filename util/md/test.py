@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from ase.io import read, write
@@ -10,14 +11,17 @@ from util.calculators import pyjulip_ace
 
 
 def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval, 
-        pred_prop_prefix):
+        pred_prop_prefix, remote_info):
 
     workdir_root = Path(workdir_root) 
     workdir_root.mkdir(exist_ok=True)
 
     tags = {"temp":int(str(temp))}
 
+
     ci, co = prepare_inputs(in_ats, info_label, workdir_root, tags)
+
+    os.environ["WFL_DETERMINISTIC_HACK"] = "true"
 
     md_params = {
         "steps": steps,
@@ -29,11 +33,12 @@ def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval,
         "reuse_momenta": False,
         "update_config_type": False}
 
-    md.saple(
+    md.sample(
         inputs=ci, 
         outputs=co,
         calculator=calc,
         verbose=False,
+        remote_info=remote_info,
         **md_params
         )
 
@@ -46,8 +51,8 @@ def prepare_inputs(ats, info_label, workdir_root, tags):
     for at in ats:
         hash = configs.hash_atoms(at)
         label = at.info[info_label] + hash
-        fname_in = workdir_root / label + "in.xyz"
-        fname_out = workdir_root / label + "out.xyz"
+        fname_in = workdir_root / (label + "_in.xyz")
+        fname_out = workdir_root / (label + "_out.xyz")
         input_files.append(fname_in)
         output_files[fname_in] = fname_out
         write(fname_in, at)
