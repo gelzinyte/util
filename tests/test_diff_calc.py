@@ -16,7 +16,7 @@ def test_calculator():
     ref_at = molecule('CH4')
     gap_fname = os.path.join(ref_path(), 'files/tiny_gap.xml')
 
-    diff_calc = xtb_plus_gap(gap_filename=gap_fname)
+    diff_calc = xtb2_plus_gap(gap_filename=gap_fname)
     at = ref_at.copy()
     at.calc = diff_calc
     pred_energy = at.get_potential_energy()
