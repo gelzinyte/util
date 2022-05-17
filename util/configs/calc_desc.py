@@ -1,6 +1,6 @@
 import yaml
-import wfl.calc_descriptor
 from wfl.configset import ConfigSet, OutputSpec
+from wfl.descriptors import quippy
 
 
 def from_param_yaml(input, gap_fit_param_yaml):
@@ -9,7 +9,7 @@ def from_param_yaml(input, gap_fit_param_yaml):
     descriptors = gap_fit_params.pop('_gap')
     inputs = ConfigSet(input_configs=input)
     outputs = OutputSpec()
-    wfl.calc_descriptor.calc(inputs=inputs, outputs=outputs,
+    quippy.calc(inputs=inputs, outputs=outputs,
                              descs=descriptors, key='soap',
                         local=True, verbose=True)
 
