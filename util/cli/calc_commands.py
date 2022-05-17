@@ -144,25 +144,6 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
 
     calc = (pyjulip_ace, [ace_fname], {})
 
-    # import pyjulip
-    # calc = (pyjulip.ACE1, [ace_fname], {})
-
-    # generic.run(inputs=inputs, outputs=outputs, calculator=calc,
-    #             properties=['energy', 'forces'], output_prefix=prop_prefix)
-
-    # import ace
-    # calc = ace.ACECalculator(jsonpath=ace_fname, ACE_version=1)
-
-    # logger.info('loaded up ace calculator')
-    # for at in tqdm(inputs):
-    #     calc.reset()
-    #     at.calc = calc
-    #     at.calc.atoms = at
-    #     at.info[f'{prop_prefix}energy'] = calc.get_potential_energy()
-    #     at.arrays[f'{prop_prefix}forces'] = calc.get_forces()
-    #     outputs.write(at)
-    # outputs.end_write()
-
     generic.run(inputs=inputs, outputs=outputs, calculator=calc, properties=["energy", "forces"],
                 output_prefix=prop_prefix)
 

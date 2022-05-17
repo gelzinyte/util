@@ -5,14 +5,6 @@ from ase.io import read, write
 from util import configs    
 from util import qm
 
-# @click.command("check-geometry")
-# @click.option("--inputs", "-i")
-# @click.option("--outputs", "-o")
-# def check_geometry(inputs, outputs):
-#     ats = read(inputs, ":")
-#     results = configs.filter_insane_geometries(ats, mark_elements=True)
-#     write(outputs, results["bad_geometries"])
-
 @click.command("color-by-array")
 @click.option('--input', '-i', help='intput xyz')
 @click.option('--output', '-o', help='output xyz')
@@ -36,7 +28,6 @@ def remove_old_calc_results(input_fname, output_fname):
     write(output_fname, ats, write_results=False)
 
 
-
 @click.command('hash')
 @click.argument('input-fname')
 @click.option('--output-fname', '-o')
@@ -49,7 +40,6 @@ def hash_structures(input_fname, output_fname, prefix):
         at.info[f'{prefix}hash'] = configs.hash_atoms(at)
 
     write(output_fname, atoms)
-
 
 
 @click.command('assign-diff')
@@ -87,21 +77,6 @@ def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
                        outputs=outputs, num_rads_per_mol=num_rads_per_mol,
                        smiles_col=smiles_col, name_col=name_col)
 
-#
-# @click.command('csv-to-mols')
-# @click.argument('smiles-csv')
-# @click.option('--num-repeats', '-n', default=1, type=click.INT)
-# @click.option('--output-fname', '-o')
-# @click.option("--smiles-col", default="smiles", help="column name in csv")
-# @click.option("--name-col", default='zinc_id')
-# def smiles_to_molecules(smiles_csv, num_repeats, output_fname, smiles_col,
-                        # name_col):
-#
-#     from util import configs
-#
-#     outputs = OutputSpec(output_files=output_fname)
-#     configs.smiles_csv_to_molecules(smiles_csv,
-#         outputs, repeat=num_repeats, smiles_col=smiles_col, name_col=name_col)
 
 @click.command('distribute')
 @click.argument('in-fname')
