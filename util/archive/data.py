@@ -16,7 +16,7 @@ opt_fn="opt_mol_rad.xyz"
 nm_fn='mol_rad_nms.xyz'
 
 scratch_path=/tmp/eg475
-opt_base_rundir=orca_opt
+opt_workdir_root=orca_opt
 orca_simple_input="UKS B3LYP def2-SV(P) def2/J D3BJ"
 smearing=5000
 opt_calc_kwargs="task=opt smearing=${smearing}"
@@ -40,7 +40,7 @@ wfl -v generate-configs remove-sp3-Hs -o ${mol_rad_non_opt_fn} ${mol_non_opt_fn}
 optimise_str = """
 conda activate py3.8
 echo 'optimising'
-wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "${opt_calc_kwargs}" --scratch-path $scratch_path --base-rundir $opt_base_rundir  --output-file ${opt_fn}  ${mol_rad_non_opt_fn}
+wfl -v ref-method orca-eval --output-prefix 'dft_' --calc-kwargs "${opt_calc_kwargs}" --scratch-path $scratch_path --base-rundir $opt_workdir_root  --output-file ${opt_fn}  ${mol_rad_non_opt_fn}
 """
 
 

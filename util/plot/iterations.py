@@ -1,10 +1,10 @@
-from wfl.generate_configs import vib
+from wfl.generate import vib
 from ase.units import invcm
 from matplotlib import gridspec
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from wfl.configset import ConfigSet_in
+from wfl.configset import ConfigSet
 from util import error_table as et
 import matplotlib as mpl
 from util import bde
@@ -64,8 +64,8 @@ def learning_curves(train_fnames, test_fnames, ref_prefix='dft_', pred_prefix=No
 
     for train_fname, test_fname, pred_prefix in zip(train_fnames, test_fnames,  pred_prefix_list):
 
-        cfg_train = ConfigSet_in(input_files=train_fname)
-        cfg_test = ConfigSet_in(input_files=test_fname)
+        cfg_train = ConfigSet(input_files=train_fname)
+        cfg_test = ConfigSet(input_files=test_fname)
 
         with suppress_stdout_stderr():
             err_train = et.plot(cfg_train, ref_prefix, pred_prefix)

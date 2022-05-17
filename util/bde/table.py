@@ -375,7 +375,7 @@ def add_H_data(t, isolated_h, pred_prop_prefix, dft_prefix):
 
 
 def align_structures(atoms):
-    """aligns structures to minimise RMSD and gives back the max displacement"""
+    """aligns structures to optimizeise RMSD and gives back the max displacement"""
     pass
 
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from ase.io import read, write
 
 from wfl.calculators import orca, generic
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 from wfl.generate_configs import md
 import wfl.calc_descriptor
 
@@ -92,7 +92,7 @@ def fit(
     * make sure dataset and config types are correctly assinged
     * check that wherever I am using configset out, outputs are skipped if done.
     * will md run remotely?
-    * what happens if ConfigSet_out is done, so action isn't performed and then I try to access co.to_ConfigSet_in()
+    * what happens if ConfigSet_out is done, so action isn't performed and then I try to access co.to_ConfigSet()
     * do configs have unique identifier?
     * 2b plot 
 
@@ -194,13 +194,13 @@ def fit(
         it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, orca_kwargs=orca_kwargs, tests_wdir=wdir/"dft_check_wdir")
 
     # prepare 0th dataset
-    ci = ConfigSet_in(input_files=base_train_fname)
+    ci = ConfigSet(input_files=base_train_fname)
     co = ConfigSet_out(output_files=initial_train_fname, force=True, all_or_none=True,
                        set_tags={"dataset_type":"train"})
     it.prepare_0th_dataset(ci, co)
 
     initial_test_fname = train_set_dir / "test_for_fit_0.xyz"
-    ci = ConfigSet_in(input_files=base_test_fname)
+    ci = ConfigSet(input_files=base_test_fname)
     co = ConfigSet_out(output_files=initial_test_fname, force=True, all_or_none=True,
                        set_tags={"dataset_type":"test"})
     it.prepare_0th_dataset(ci, co)
@@ -395,7 +395,7 @@ def fit(
 
         # 7. slight digression - sub-sample the good geometries from geometry-failed trajectory
         if os.stat(bad_opt_traj_good_configs_fn).st_size != 0:
-            bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_opt_traj_good_configs_fn)
+            bad_traj_good_cfgs_ci = ConfigSet(input_files=bad_opt_traj_good_configs_fn)
             sample_co = ConfigSet_out(output_files=bad_opt_traj_good_configs_sample_for_train,
                                             force=True, all_or_none=True)
             it.sample_failed_trajectory(ci=bad_traj_good_cfgs_ci, co=sample_co, orca_kwargs=orca_kwargs, 
@@ -405,7 +405,7 @@ def fit(
         # 8. evaluate DFT
         logger.info("evaluatig dft on optimised structures")
         outputs = ConfigSet_out(output_files=good_opt_for_md_w_dft_fn, force=True, all_or_none=True)
-        inputs = ConfigSet_in(input_files=good_opt_for_md_fname)
+        inputs = ConfigSet(input_files=good_opt_for_md_fname)
         inputs = orca.evaluate(
             inputs=inputs,
             outputs=outputs,
@@ -446,7 +446,7 @@ def fit(
             logger.info("removing energy&force entries pre-md")
             sanitised_ats = [remove_energy_force_containing_entries(at) for at in inputs]
             write(full_md_fname_sanitised, sanitised_ats)
-        inputs = ConfigSet_in(input_files=full_md_fname_sanitised)
+        inputs = ConfigSet(input_files=full_md_fname_sanitised)
 
         for _ in range(30): 
             try:
@@ -507,7 +507,7 @@ def fit(
             
         #     write(full_md_fname, sample)
 
-        # inputs = ConfigSet_in(input_files=full_md_fname)
+        # inputs = ConfigSet(input_files=full_md_fname)
 
         # # 10. Filter/check for bad geometries
         # outputs_good = ConfigSet_out(output_files=full_md_good_geometries_fname, force=True, all_or_none=True)
@@ -518,8 +518,8 @@ def fit(
         # if os.stat(full_md_bad_geometries_fname).st_size == 0:
         #     logger.info("all configs from md are good")
         # else:
-        #     num_bad_configs = len([at for at in outputs_bad.to_ConfigSet_in()])
-        #     num_good_configs = len([at for at in outputs_good.to_ConfigSet_in()])
+        #     num_bad_configs = len([at for at in outputs_bad.to_ConfigSet()])
+        #     num_good_configs = len([at for at in outputs_good.to_ConfigSet()])
         #     if num_bad_configs / (num_bad_configs + num_good_configs) > 0.1:
         #         # raise RuntimeWarning("Too many bad geometries from MD")
         #         logger.warning("Many bad geometries from MD!!!!")
@@ -545,7 +545,7 @@ def fit(
 
         # 12. slight digression - sub-sample the good geometries from geometry-failed trajectory
         if os.stat(bad_md_good_configs_fn).st_size !=0: 
-            bad_traj_good_cfgs_ci = ConfigSet_in(input_files=bad_md_good_configs_fn)
+            bad_traj_good_cfgs_ci = ConfigSet(input_files=bad_md_good_configs_fn)
             sample_co = ConfigSet_out(output_files=bad_md_good_configs_sample_train_fn,
                                             force=True, all_or_none=True)
             it.sample_failed_trajectory(ci=bad_traj_good_cfgs_ci, co=sample_co, orca_kwargs=orca_kwargs, 
@@ -554,7 +554,7 @@ def fit(
 
         # 13. Calculate soap descriptor
         logger.info("Calculating SOAP descriptor")
-        inputs = ConfigSet_in(input_files=good_md_to_sample_fn)
+        inputs = ConfigSet(input_files=good_md_to_sample_fn)
         outputs = ConfigSet_out(output_files=md_with_soap_fname, force=True, all_or_none=True)
         inputs = wfl.calc_descriptor.calc(
             inputs=inputs,
@@ -589,7 +589,7 @@ def fit(
         logger.info("evaluatig dft structures selected for next training set")
         
         # first: test set
-        inputs = ConfigSet_in(input_files=test_md_selection_fname)
+        inputs = ConfigSet(input_files=test_md_selection_fname)
         outputs = ConfigSet_out(output_files=test_extra_fname_dft, force=True, all_or_none=True, 
                                 set_tags={"dataset_type": "next_test"})
         orca.evaluate(
@@ -611,7 +611,7 @@ def fit(
             os.stat(bad_md_good_configs_sample_train_fn).st_size != 0:
             input_files.append(bad_md_good_configs_sample_train_fn)
 
-        inputs = ConfigSet_in(input_files=input_files)
+        inputs = ConfigSet(input_files=input_files)
         outputs = ConfigSet_out(output_files=train_extra_fname_dft,
             force=True, all_or_none=True, set_tags={"dataset_type": "next_train"})
 

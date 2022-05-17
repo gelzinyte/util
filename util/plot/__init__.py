@@ -376,7 +376,7 @@ def evec_plot(param_fname,  dft_eq_fname, smiles_to_opt=None, at_fname_to_opt=No
     if not os.path.exists('xyzs'):
         os.makedirs('xyzs')
 
-    dft_eq_fname = os.path.join(db_path, 'dft_minima', dft_eq_fname)
+    dft_eq_fname = os.path.join(db_path, 'dft_optimizea', dft_eq_fname)
     if at_fname_to_opt=='dft':
         at_fname_to_opt = dft_eq_fname
 
@@ -405,7 +405,7 @@ def evec_plot(param_fname,  dft_eq_fname, smiles_to_opt=None, at_fname_to_opt=No
 
     dft_atoms = read(dft_eq_fname)
     dft_name = dft_atoms.info['name']
-    shutil.copy(os.path.join(db_path, f'dft_minima/normal_modes/{dft_name}.all.pckl'), '.')
+    shutil.copy(os.path.join(db_path, f'dft_optimizea/normal_modes/{dft_name}.all.pckl'), '.')
     vib_dft = Vibrations(dft_atoms, name=dft_name)
     vib_dft.summary()
 

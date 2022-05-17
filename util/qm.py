@@ -17,7 +17,7 @@ def read_orca_output(orca_label, input_xyz, prop_prefix="dft_"):
         at = read(input_xyz)
     else:
         at = read_geom_orcainp(orca_label + '.inp')
-    calc = orca.ExtendedORCA()
+    calc = orca.ORCA()
     calc.label=orca_label
     calc.read_energy()
     at.info[f'{prop_prefix}energy'] = calc.results['energy']

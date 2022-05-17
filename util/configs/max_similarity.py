@@ -5,8 +5,8 @@ from ase.io import read
 from ase import Atoms
 from tqdm import tqdm
 import logging
-from wfl.configset import ConfigSet_out, ConfigSet_in
-from wfl.pipeline import iterable_loop
+from wfl.configset import OutputSpec, ConfigSet
+from wfl.autoparallelize import autoparallelize
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +60,8 @@ def main(train_set, set_to_eval, output_fname, zeta=1,
                 f'output fname {output_fname}, descriptors key '
                 f'{descriptor_arrays_key}')
 
-    outputs=ConfigSet_out(output_files=output_fname)
-    inputs = ConfigSet_in(input_files=set_to_eval)
+    outputs=OutputSpec(output_files=output_fname)
+    inputs = ConfigSet(input_files=set_to_eval)
     ats_train = read(train_set, ':')
 
     train_descs = get_descriptor_matrix(ats_train, descriptor_arrays_key)
@@ -80,7 +80,7 @@ def main(train_set, set_to_eval, output_fname, zeta=1,
 def assign_max_similarity(inputs, outputs, train_descs, zeta,
                           descriptor_arrays_key, max_similarity_key,
                           remove_descriptor):
-    return iterable_loop(iterable=inputs, configset_out=outputs,
+    return autoparallelize(iterable=inputs, OutputSpec=outputs,
                          op=assign_max_similarity_op,
                          train_descs=train_descs,
                          zeta=zeta,
@@ -89,7 +89,7 @@ def assign_max_similarity(inputs, outputs, train_descs, zeta,
                          remove_descriptor=remove_descriptor)
 
 
-def assign_max_similarity_op(atoms, train_descs, zeta,
+def assign_max_similarity_autopara_wrappable(atoms, train_descs, zeta,
                             descriptor_arrays_key, max_similarity_key,
                             remove_descriptor):
 

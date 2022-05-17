@@ -11,7 +11,7 @@ from wfl.calculators import orca
 class PopGAP(Calculator):
     implemented_properties = ['energy', 'forces']
 
-    def __init__(self, gap_filename, orca_kwargs=None, base_rundir=None,
+    def __init__(self, gap_filename, orca_kwargs=None, workdir_root=None,
                  dir_prefix='popGAP_ORCA_', output_prefix='dft_',
                  keep_files='default', **kwargs):
         super().__init__(**kwargs)
@@ -21,7 +21,7 @@ class PopGAP(Calculator):
              calc_args="atom_gaussian_weight_name=atom_gaussian_weight")
 
         self.orca_kwargs = orca_kwargs
-        self.base_rundir = base_rundir
+        self.workdir_root = workdir_root
         self.dir_prefix=dir_prefix
         self.output_prefix=output_prefix
         self.keep_files=keep_files
@@ -37,8 +37,8 @@ class PopGAP(Calculator):
         Calculator.calculate(self, atoms=atoms, properties=properties,
                              system_changes=system_changes)
 
-        atoms = orca.evaluate_op(atoms=self.atoms.copy(),
-                                 base_rundir=self.base_rundir,
+        atoms = orca.evaluate_autopara_wrappable(atoms=self.atoms.copy(),
+                                 workdir_root=self.workdir_root,
                                  keep_files=self.keep_files,
                                  orca_kwargs=self.orca_kwargs,
                                  output_prefix=self.output_prefix,

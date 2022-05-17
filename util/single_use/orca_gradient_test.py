@@ -25,7 +25,7 @@ def do_orca_grad_test(atoms):
 
     tmp_dir = tempfile.mkdtemp(dir=scratch_dir, prefix='orca_tmp_rundir')
 
-    calc = orca.ExtendedORCA(orca_command=orca_command,
+    calc = orca.ORCA(orca_command=orca_command,
                              orcasimpleinput = default_kw['orca'][
                                  'orcasimpleinput'],
                              orcablocks = default_kw['orca']['orcablocks'],
