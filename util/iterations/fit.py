@@ -1,25 +1,17 @@
 import os
-import shutil
 import yaml
 import logging
-import random
 
 from pathlib import Path
 
 from ase.io import read, write
 
 from wfl.calculators import orca, generic
-from wfl.configset import ConfigSet_in, ConfigSet_out
-from wfl.generate_configs import md
-import wfl.calc_descriptor
+from wfl.configset import ConfigSet, OutputSpec
 
-from util import remove_energy_force_containing_entries
-from util import opt
 from util.util_config import Config
 from util.iterations import tools as it
 from util.iterations import plots as ip
-from util.configs import cur
-from util import error_table
 import util
 
 logger = logging.getLogger(__name__)
@@ -174,8 +166,8 @@ def fit(
     #     it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, orca_kwargs=orca_kwargs, tests_wdir=wdir/"dft_check_wdir")
 
     # prepare 0th dataset
-    ci = ConfigSet_in(input_files=base_train_fname)
-    co = ConfigSet_out(output_files=initial_train_fname, force=True, all_or_none=True,
+    ci = ConfigSet(input_files=base_train_fname)
+    co = OutputSpec(output_files=initial_train_fname, force=True, all_or_none=True,
                        set_tags={"dataset_type": "train"})
     it.prepare_0th_dataset(ci, co)
 
@@ -274,7 +266,7 @@ def fit(
 
         # 4. Generate actual structures for md 
         logger.info("generating structures to work with")
-        outputs = ConfigSet_out(
+        outputs = OutputSpec(
             output_files=extra_md_starts_fname,
             force=True,
             all_or_none=True,
@@ -303,19 +295,19 @@ def fit(
             write(combined_md_starts_fname, structs_to_rerun + extra_md_starts)
     
         # 6. Run MD and select needed configs 
-        outputs_to_fit = ConfigSet_out(output_files=selected_for_train_fn,
+        outputs_to_fit = OutputSpec(output_files=selected_for_train_fn,
                                 force=True, 
                                 all_or_none=True,
                                 set_tags={"fit_config_type": f"selected_from_{pred_prop_prefix}md"})
-        outputs_traj = ConfigSet_out(output_files=md_traj_fn, 
+        outputs_traj = OutputSpec(output_files=md_traj_fn, 
                                      force=True, 
                                      all_or_none=True,
                                      set_tags={"fit_config_type":f"{pred_prop_prefix}md"})
-        outputs_rerun = ConfigSet_out(output_files=bad_mds_to_rerun_fn, 
+        outputs_rerun = OutputSpec(output_files=bad_mds_to_rerun_fn, 
                                      force=True, 
                                      all_or_none=True,
                                      set_tags={"fit_config_type":f"md_to_restart"})
-        outputs_good_md = ConfigSet_out(output_files=good_mds_starts_fn,
+        outputs_good_md = OutputSpec(output_files=good_mds_starts_fn,
                                         force=True,
                                         all_or_none=True,
                                         set_tags={"fit_config_type":f"ok_md"})
@@ -331,7 +323,7 @@ def fit(
             md_params=md_params)
     
 
-        outputs = ConfigSet_out(output_files=selected_for_train_fn_dft,
+        outputs = OutputSpec(output_files=selected_for_train_fn_dft,
             force=True, all_or_none=True, set_tags={"dataset_type": "train", "iter_no": cycle_idx + 1})
 
         inputs = orca.evaluate(
@@ -340,7 +332,7 @@ def fit(
             orca_kwargs=orca_kwargs,
             output_prefix=dft_prop_prefix,
             keep_files=False,
-            base_rundir=cycle_dir / "orca_wdir_on_extra_train",
+            workdir_root=cycle_dir / "orca_wdir_on_extra_train",
         )
 
         # 14. do summary plots

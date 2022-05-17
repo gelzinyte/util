@@ -7,7 +7,7 @@ from ase.io import read, write
 
 from quippy.potential import Potential
 
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 from wfl.calculators import generic
 
 
@@ -17,8 +17,8 @@ from wfl.calculators import generic
 @click.option('--output-fname', '-o')
 @click.option('--gap-prop-prefix', '-p',
               help='prefix for gap properties in xyz')
-@click.option('--force', is_flag=True, help='for configset_out')
-@click.option('--all_or_none', is_flag=True, help='for configset_out')
+@click.option('--force', is_flag=True, help='for OutputSpec')
+@click.option('--all_or_none', is_flag=True, help='for OutputSpec')
 def evaluate_ip(config_file, gap_fname, output_fname,
                 gap_prop_prefix, force, all_or_none):
 
@@ -27,8 +27,8 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 
     calculator = (Potential, [], {'param_filename':gap_fname})
 
-    inputs = ConfigSet_in(input_files=config_file)
-    outputs_gap_energies = ConfigSet_out(output_files=output_fname,
+    inputs = ConfigSet(input_files=config_file)
+    outputs_gap_energies = OutputSpec(output_files=output_fname,
                                          force=force,
                                          all_or_none=all_or_none)
     generic.run(inputs=inputs, outputs=outputs_gap_energies, calculator=calculator,

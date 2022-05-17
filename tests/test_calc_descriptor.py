@@ -11,4 +11,3 @@ def test_calculate_descriptor():
     atoms = molecule('CH4')
     calc_desc.from_param_yaml(atoms, param_fname)
 
-    assert False

@@ -20,8 +20,8 @@ except ModuleNotFoundError:
     pass
 from quippy.potential import Potential
 
-from wfl.configset import ConfigSet_in, ConfigSet_out
-import wfl.fit.gap_simple
+from wfl.configset import ConfigSet, OutputSpec
+import wfl.fit.gap.simple
 import wfl.fit.ace
 from wfl.calculators import generic
 from wfl.calculators import orca
@@ -57,8 +57,8 @@ def run_tests(
     val_evaled = tests_wdir / f"{pred_prop_prefix}on_{validation_fname.name}"
 
     # evaluate on training and test sets
-    ci = ConfigSet_in(input_files=[train_set_fname, validation_fname])
-    co = ConfigSet_out(output_files={train_set_fname: train_evaled, validation_fname: val_evaled},
+    ci = ConfigSet(input_files=[train_set_fname, validation_fname])
+    co = OutputSpec(output_files={train_set_fname: train_evaled, validation_fname: val_evaled},
                        force=True, all_or_none=True)
 
     generic.run(
@@ -127,7 +127,7 @@ def run_tests(
     )
 
     # ip bde absolute error vs ip energy absolute error
-    co = ConfigSet_out(
+    co = OutputSpec(
         output_files=tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz",
         force=True,
         all_or_none=True,
@@ -158,14 +158,14 @@ def run_tests(
             co.write(at)
         co.end_write()
     else:
-        logger.info("Not re-assigning bde errors, because ConfigSet_out is done")
+        logger.info("Not re-assigning bde errors, because OutputSpec is done")
 
     rmse_scatter_evaled.scatter_plot(
         ref_energy_name=f"{pred_prop_prefix}absolute_error_on_{pred_prop_prefix}opt",
         pred_energy_name=f"{pred_prop_prefix}bde_absolute_error",
         ref_force_name=None,
         pred_force_name=None,
-        all_atoms=co.to_ConfigSet_in(),
+        all_atoms=co.to_ConfigSet(),
         output_dir=tests_wdir,
         prefix=f"{pred_prop_prefix}error_on_{pred_prop_prefix}opt_vs_{pred_prop_prefix}bde_error",
         color_info_name="bde_type",
@@ -179,7 +179,7 @@ def run_tests(
         pred_energy_name=f"{pred_prop_prefix}bde_absolute_error",
         ref_force_name=None,
         pred_force_name=None,
-        all_atoms=co.to_ConfigSet_in(),
+        all_atoms=co.to_ConfigSet(),
         output_dir=tests_wdir,
         prefix=f"{pred_prop_prefix}error_on_{dft_prop_prefix}opt_vs_{pred_prop_prefix}bde_error",
         color_info_name="bde_type",

@@ -1,15 +1,15 @@
 Tue 27 Apr 15:20:29 BST 2021
 /opt/womble/miniconda3/user_envs/eg475/wo/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:31: UserWarning: No universal_SOAPs, some functionality will not be available
   warnings.warn('No universal_SOAPs, some functionality will not be available')
-ConfigSet_in:
+ConfigSet:
    input files: mol_rad_nms.xyz @ :
-ConfigSet_out:
+OutputSpec:
    output files: : methane_sample.xyz
 Keeping info: ['smiles', 'config_type']
 Keeping_arrays: []
-ConfigSet_in:
+ConfigSet:
    input files: methane_sample.xyz @ :
-ConfigSet_out:
+OutputSpec:
    output files: : methane_sample_dft.xyz
 ORCA calculation parameters:  {'smearing': 5000, 'scratch_path': '/scratch-ssd/eg475', 'orcasimpleinput': 'UKS B3LYP def2-SV(P) def2/J D3BJ'}
 /opt/womble/miniconda3/user_envs/eg475/py3.8/lib/python3.8/site-packages/wfl/fit/gap_multistage.py:30: UserWarning: No universal_SOAPs, some functionality will not be available

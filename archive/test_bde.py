@@ -7,7 +7,7 @@ import os
 import pytest
 from quippy.potential import Potential
 from util import smiles
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 
 
 
@@ -227,7 +227,7 @@ def test_orca_kwargs():
 def test_orca_reopt():
 
     start = read(os.path.join(ref_path(), 'files/rattled_methane.xyz'), ':')
-    inputs = ConfigSet_in(input_configs=start)
+    inputs = ConfigSet(input_configs=start)
     outputs = ConfigSet_out()
     bde.dft_reoptimise(inputs, outputs, 'test_dft_')
 

@@ -4,7 +4,7 @@ import numpy as np
 from ase.io import write
 
 from wfl.calculators import generic
-from wfl.configset import ConfigSet_out
+from wfl.configset import OutputSpec
 
 import pandas as pd
 
@@ -148,7 +148,7 @@ def evaluate_data(data, calculator, pred_prefix, output_fname=None, chunksize=50
 
     """
 
-    output = ConfigSet_out()
+    output = OutputSpec()
     properties = ['energy', 'forces']
     generic.run(inputs=data, outputs=output, calculator=calculator, properties=properties,
                 chunksize=chunksize, output_prefix=pred_prefix)

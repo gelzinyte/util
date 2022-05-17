@@ -5,7 +5,7 @@ from ase.io import read, write
 
 from quippy.potential import Potential
 
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, OutputSpec
 from wfl.calculators import generic
 
 logger = logging.getLogger(__name__)

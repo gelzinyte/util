@@ -9,7 +9,7 @@ except ModuleNotFoundError:
     pass
 from wfl.calculators import orca, generic
 from util import ugap
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 from util import iter_tools as it
 import util
 from util import bde
@@ -211,7 +211,7 @@ def fit(no_cycles,
             if not os.path.exists(opt_fname):
                 logger.info(f'gap-optimising {opt_starts_fname} to {opt_fname}')
 
-                opt_inputs = ConfigSet_in(input_files=opt_starts_fname)
+                opt_inputs = ConfigSet(input_files=opt_starts_fname)
                 opt_outputs = ConfigSet_out(output_files=opt_traj_fname)
                 opt_wdir='xyzs'
 
@@ -227,7 +227,7 @@ def fit(no_cycles,
             if not os.path.exists(opt_fname_w_dft):
                 logger.info(f'Calculating dft energies')
                 dft_evaled_opt_mols_rads = ConfigSet_out(output_files=opt_fname_w_dft)
-                inputs = ConfigSet_in(input_files=opt_fname)
+                inputs = ConfigSet(input_files=opt_fname)
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
                                                          outputs=dft_evaled_opt_mols_rads,
                                                          orca_kwargs=orca_kwargs, output_prefix='dft_',
@@ -237,7 +237,7 @@ def fit(no_cycles,
             # evaluate optimised with gap
             if not os.path.exists(opt_fname_w_dft_and_gap):
                 logger.info('Reevaluating extra data with gap')
-                inputs = ConfigSet_in(input_files=opt_fname_w_dft)
+                inputs = ConfigSet(input_files=opt_fname_w_dft)
                 outputs = ConfigSet_out(output_files=opt_fname_w_dft_and_gap)
 
                 no_cores = int(os.environ['WFL_AUTOPARA_NPOOL'])
@@ -270,7 +270,7 @@ def fit(no_cycles,
 
                 # generate normal mode reference
                 if not os.path.exists(nm_ref_fname):
-                    inputs = ConfigSet_in(input_files=structures_to_derive_normal_modes)
+                    inputs = ConfigSet(input_files=structures_to_derive_normal_modes)
                     outputs = ConfigSet_out(output_files=nm_ref_fname)
                     vib.generate_normal_modes_parallel_atoms(inputs=inputs,
                                          outputs=outputs, 
@@ -284,7 +284,7 @@ def fit(no_cycles,
                     sampled_configs_train = []
                     sampled_configs_test = []
                     for nm_temp in nm_temperatures:
-                        inputs = ConfigSet_in(input_files=nm_ref_fname)
+                        inputs = ConfigSet(input_files=nm_ref_fname)
                         outputs = ConfigSet_out()
                         info_to_keep = ['config_type', 'iter_no', 'minim_n_steps']
 
@@ -315,7 +315,7 @@ def fit(no_cycles,
             if not os.path.exists(extra_data_with_dft):
                 logger.info(f'Calculating train set dft energies')
                 dft_evaled_opt_mols_rads = ConfigSet_out(output_files=extra_data_with_dft)
-                inputs = ConfigSet_in(input_files=file_for_dft)
+                inputs = ConfigSet(input_files=file_for_dft)
                 dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
                                                          outputs=dft_evaled_opt_mols_rads,
                                                          orca_kwargs=orca_kwargs, output_prefix='dft_',
@@ -326,7 +326,7 @@ def fit(no_cycles,
             # if not os.path.exists(nm_sample_fname_for_test_w_dft):
             #     logger.info(f'Calculating test set dft energies')
             #     dft_evaled_opt_mols_rads = ConfigSet_out(output_files=nm_sample_fname_for_test_w_dft)
-            #     inputs = ConfigSet_in(input_files=file_for_dft)
+            #     inputs = ConfigSet(input_files=file_for_dft)
             #     dft_evaled_opt_mols_rads = orca.evaluate(inputs=inputs,
             #                                              outputs=dft_evaled_opt_mols_rads,
             #                                              orca_kwargs=orca_kwargs,
@@ -338,7 +338,7 @@ def fit(no_cycles,
 
             if not os.path.exists(extra_data_with_dft_and_gap):
                 logger.info('Reevaluating extra data with gap')
-                inputs = ConfigSet_in(input_files=extra_data_with_dft)
+                inputs = ConfigSet(input_files=extra_data_with_dft)
                 outputs = ConfigSet_out(output_files=extra_data_with_dft_and_gap)
 
                 no_cores = int(os.environ['WFL_AUTOPARA_NPOOL'])

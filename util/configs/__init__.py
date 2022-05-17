@@ -2,8 +2,8 @@ from ase.io import read, write
 import logging
 import pandas as pd
 from util import smiles
-from wfl.configset import ConfigSet_in, ConfigSet_out
-from wfl.generate_configs.vib import Vibrations
+from wfl.configset import ConfigSet, OutputSpec
+from wfl.generate.vib import Vibrations
 from ase import units
 from ase import Atoms
 import warnings
@@ -60,29 +60,6 @@ def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
         atoms = atoms[0]
 
     return atoms
-
-
-
-#
-# def smiles_csv_to_molecules(smiles_csv, outputs, repeat=1,
-#                             smiles_col='smiles',
-#                             name_col='zinc_id'):
-#
-#     df = pd.read_csv(smiles_csv, delim_whitespace=True)
-#     smi_names = []
-#     smiles_to_convert = []
-#     for smi, name in zip(df[smiles_col], df[name_col]):
-#         smiles_to_convert += [smi] * repeat
-#         smi_names += [name] * repeat
-#
-#     smiles.run(outputs=outputs, smiles=smiles_to_convert)
-#     for at, name in zip(outputs.to_ConfigSet_in(), smi_names):
-#         at.info['config_type'] = name
-#         at.info['compound'] = name
-#         at.cell = [50, 50, 50]
-#
-#     return outputs.to_ConfigSet_in()
-
 
 
 

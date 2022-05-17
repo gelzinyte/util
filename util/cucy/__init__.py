@@ -56,7 +56,7 @@ def assign_energies(opt_xyzs_dir, outputs_dir, output_fname):
 
 
 def read_energy(out_label):
-    calc = orca.ExtendedORCA()
+    calc = orca.ORCA()
     calc.label = out_label
     calc.read_energy()
     return calc.results['energy']

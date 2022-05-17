@@ -14,7 +14,7 @@ except ModuleNotFoundError:
     pass
 
 from wfl.calculators import orca, generic
-from wfl.configset import ConfigSet_in, ConfigSet_out
+from wfl.configset import ConfigSet, ConfigSet_out
 import wfl.fit.gap_simple
 from wfl.generate_configs import vib
 
@@ -122,7 +122,7 @@ def fit(num_cycles,
     initial_train_fname = 'xyzs/train_for_gap_0.xyz'
     if not os.path.isfile(initial_train_fname):
         logger.info('preparing initial dataset')
-        ci = ConfigSet_in(input_files=given_train_fname)
+        ci = ConfigSet(input_files=given_train_fname)
         co = ConfigSet_out(output_files=initial_train_fname,
                            force=True, all_or_none=True)
         gap_inputs = it.prepare_0th_dataset(ci,co,
@@ -191,7 +191,7 @@ def fit(num_cycles,
             gap_params = deepcopy(gap_fit_base_params)
             gap_params['gap_file'] = gap_fname
             if cycle_idx > 0:
-                gap_inputs = ConfigSet_in(input_files=train_set_fname)
+                gap_inputs = ConfigSet(input_files=train_set_fname)
 
             if "energy_parameter_name" in gap_params and \
                 gap_params["energy_parameter_name"] != \
@@ -235,7 +235,7 @@ def fit(num_cycles,
                                num_smi_repeat=num_smiles_opt,
                                outputs=outputs)
         else:
-            inputs = ConfigSet_in(input_files=opt_starts_fname)
+            inputs = ConfigSet(input_files=opt_starts_fname)
 
 
         # 3 optimise structures with current GAP and re-evaluate them
@@ -318,7 +318,7 @@ def fit(num_cycles,
             nm_temperatures = np.random.randint(1, 800, num_nm_temps)
             logger.info(f'sampling {nm_ref_fname} at temperatures '
                         f'{nm_temperatures} K')
-            inputs = ConfigSet_in(input_files=nm_ref_fname)
+            inputs = ConfigSet(input_files=nm_ref_fname)
             for temp in nm_temperatures:
                 outputs = ConfigSet_out()
                 nm.sample_downweighted_normal_modes(inputs=inputs,
@@ -327,7 +327,7 @@ def fit(num_cycles,
                                 prop_prefix=calc_predicted_prop_prefix,
                                 info_to_keep=info_to_keep)
 
-                for idx, at in enumerate(outputs.to_ConfigSet_in()):
+                for idx, at in enumerate(outputs.to_ConfigSet()):
                     at.cell = [50, 50, 50]
                     at.info['normal_modes_temp'] = f'{temp:.2f}'
                     if idx % 2 == 0:
@@ -337,9 +337,9 @@ def fit(num_cycles,
 
             outputs_train.end_write()
             outputs_test.end_write()
-            inputs = outputs_train.to_ConfigSet_in()
+            inputs = outputs_train.to_ConfigSet()
         else:
-            inputs = ConfigSet_in(input_files=nm_sample_fname_for_train)
+            inputs = ConfigSet(input_files=nm_sample_fname_for_train)
 
         # evaluate DFT
         if not os.path.exists(nm_sample_fname_for_train_with_dft):
