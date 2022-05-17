@@ -26,7 +26,7 @@ from util.calculators import pyjulip_ace
 from quippy.potential import Potential
 
 from wfl.configset import ConfigSet, OutputSpec
-import wfl.fit.gap_simple
+import wfl.fit.gap.simple
 import wfl.fit.ace
 from wfl.calculators import generic
 from wfl.calculators import orca
@@ -219,7 +219,7 @@ def do_gap_fit(fit_dir, idx, ref_type, train_set_fname, fit_params_base, gap_fit
 
         fit_inputs = ConfigSet(input_files=train_set_fname)
 
-        wfl.fit.gap_simple.run_gap_fit(
+        wfl.fit.gap.simple.run_gap_fit(
             fitting_configs=fit_inputs,
             fitting_dict=gap_params,
             stdout_file=gap_out_fname,
@@ -329,20 +329,20 @@ def parse_cutoffs(key, cutoffs_mb):
     return [float(val) for val in vals.strip("()").split(',')]
 
 
-def check_dft(train_set_fname, dft_prop_prefix, orca_kwargs, tests_wdir):
+def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir):
 
     tests_wdir.mkdir(exist_ok=True)
 
     all_ats = read(train_set_fname, ':')
     ci = ConfigSet(input_configs=random.choices(all_ats, k=2))
     co = OutputSpec()
-    inputs = orca.evaluate(
+    inputs = generic.run(
         inputs=ci,
         outputs=co,
-        orca_kwargs=orca_kwargs,
+        properties=["energy", "forces"],
         output_prefix='dft_recalc_',
-        keep_files='default',
-        workdir_root=tests_wdir / "orca_wdir")
+        calculator=dft_calc
+    )
 
     write(tests_wdir/"all_dft_check.xyz", [at for at in inputs])
 

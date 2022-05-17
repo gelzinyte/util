@@ -1,8 +1,6 @@
 import os
-import shutil
 import yaml
 import logging
-import random
 
 from pathlib import Path
 
@@ -10,16 +8,10 @@ from ase.io import read, write
 
 from wfl.calculators import orca, generic
 from wfl.configset import ConfigSet, OutputSpec
-from wfl.generate import md
-import wfl.calc_descriptor
 
-from util import remove_energy_force_containing_entries
-from util import opt
 from util.util_config import Config
 from util.iterations import tools as it
 from util.iterations import plots as ip
-from util.configs import cur
-from util import error_table
 import util
 
 logger = logging.getLogger(__name__)

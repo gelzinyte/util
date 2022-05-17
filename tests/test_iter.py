@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def ref_path():
     return Path(__file__).parent.resolve()
 
-
+@pytest.mark.skip()
 def test_iterfit(tmp_path):
     """
     TODO

@@ -21,7 +21,7 @@ except ModuleNotFoundError:
 from quippy.potential import Potential
 
 from wfl.configset import ConfigSet, OutputSpec
-import wfl.fit.gap_simple
+import wfl.fit.gap.simple
 import wfl.fit.ace
 from wfl.calculators import generic
 from wfl.calculators import orca

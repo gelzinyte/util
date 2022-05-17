@@ -5,9 +5,9 @@ load_dbfile:
 save_dbfile:  
 r0: 1.1
 cutoffs_mb: 
-  "(:C, :H)": "(1.6, 4.4)"
-  "(:C, :C)": "(0.8, 4.4)"
-  "(:H, :H)": "(1.0, 4.4)"
+  "(C, H)": "(1.6, 4.4)"
+  "(C, C)": "(0.8, 4.4)"
+  "(H, H)": "(1.0, 4.4)"
 cutoff_pair: 5.5
 correlation_order: 3
 degree:
