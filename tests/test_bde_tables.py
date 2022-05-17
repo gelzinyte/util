@@ -80,11 +80,11 @@ def test_assign_bde_info(ats_for_bde):
        # hasn't mixed up the order
        assert ats_in[0].info["mol_or_rad"] == "rad"
        # got the correct bde
-       assert ats_in[0].info["fake_bde"] == 2
+       assert ats_in[0].info["fake_bde_energy"] == 2
 
 def test_bde_table(fake_atoms, fake_isolated_h):
 
-    t = table.bde_table(fake_atoms, gap_prefix='gap_',
+    t = table.bde_table(fake_atoms, pred_prop_prefix='gap_',
                             isolated_h=fake_isolated_h,
                             dft_prefix='dft_',
                             printing=True)
@@ -96,40 +96,40 @@ def test_bde_table(fake_atoms, fake_isolated_h):
 
     assert np.all(t.index == expected_idx)
 
-    assert approx(t.loc[:, 'energy_absolute_error']) == \
+    assert approx(t.loc[:, 'E_abs_at_err']) == \
            [500.0, 400.0, 250.0, 750.0]
 
-    assert approx(t.loc[:, 'force_rmse']) == \
+    assert approx(t.loc[:, 'F_rmse']) == \
            [np.pi, 100, 100, 100]
 
-    assert approx(t.loc[:, 'max_abs_force_error']) == \
+    assert approx(t.loc[:, 'max_abs_F_err']) == \
            [np.pi, 100, 100, 100]
 
     # assert rmsd
 
-    assert approx(t.loc[:, 'dft_energy_difference']) == \
+    assert approx(t.loc[:, 'dft_E_diff']) == \
         [np.pi, 14000, 12000, 16000]
 
-    assert approx(t.loc[:, 'absolute_bde_error']) == \
+    assert approx(t.loc[:, 'abs_bde_err']) == \
         [np.pi, np.pi, 500, 1500]
 
     assert approx(t.loc[:, 'dft_bde']) == \
         [np.pi, np.pi, -1.25, 2.75]
 
-    assert approx(t.loc[:, 'gap_bde']) == \
+    assert approx(t.loc[:, 'ip_bde']) == \
            [np.pi, np.pi, -0.75, 1.25]
 
-    assert approx(t.loc[:, 'dft_opt_dft_energy']) == \
+    assert approx(t.loc[:, 'dft_opt_dft_E']) == \
            [0.750, 24, 22, 26]
 
-    assert approx(t.loc[:, 'dft_opt_gap_energy']) == \
+    assert approx(t.loc[:, 'dft_opt_ip_E']) == \
            [np.pi, 20, 20, 20]
 
 
-    assert approx(t.loc[:, 'gap_opt_gap_energy']) == \
+    assert approx(t.loc[:, 'ip_opt_ip_E']) == \
            [0.250, 12, 11, 13]
 
-    assert approx(t.loc[:, 'gap_opt_dft_energy']) == \
+    assert approx(t.loc[:, 'ip_opt_dft_E']) == \
            [np.pi, 10, 10, 10]
 
 
