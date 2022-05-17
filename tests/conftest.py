@@ -23,7 +23,7 @@ def ref_path():
 
 
 @pytest.fixture()
-def calculator(gap_filename):
+def gap_calculator(gap_filename):
     return (Potential, [], {"param_filename": str(gap_filename)})
 
 
@@ -64,12 +64,15 @@ def ace_params():
         params = yaml.safe_load(f)
     return params
 
+@pytest.fixture()
+def ace_calculator():
+    return 
 
 @pytest.fixture()
-def dft_calculator(tmp_dir):
+def dft_calculator(tmp_path):
     orca_kwargs = util.default_orca_params()
-    orca_kwargs["workdir_root"] = tmp_dir / "orca_wdir"
+    orca_kwargs["workdir_root"] = tmp_path / "orca_wdir"
     orca_kwargs["keep_files"] = False
-    return (ORCA, [], orca_kwargs})
+    return (ORCA, [], orca_kwargs)
 
 

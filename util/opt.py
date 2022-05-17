@@ -9,16 +9,16 @@ from wfl.autoparallelize.base import autoparallelize
 logger = logging.getLogger(__name__)
 
 
-def optimise(inputs, outputs, calculator, prop_prefix,  chunksize=1,
+def optimise(inputs, outputs, calculator, output_prefix,  chunksize=1,
              traj_step_interval=None,npool=None):
-    return autoparallelize(iterable=inputs, OutputSpec=outputs,
-                         calculator=calculator, op=optimise_op,
+    return autoparallelize(iterable=inputs, outputspec=outputs,
+                         calculator=calculator, op=optimise_autopara_wrappable,
                          chunksize=chunksize,
                          traj_step_interval=traj_step_interval,
-                         prop_prefix=prop_prefix, npool=npool)
+                         output_prefix=output_prefix, npool=npool)
 
 
-def optimise_autopara_wrappable(atoms, calculator, prop_prefix, traj_step_interval=None):
+def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_interval=None):
     """traj_step_interval: if None, only the last converged config will be
     taken. Otherwise take all that get sampled. + the last
 
@@ -34,7 +34,7 @@ def optimise_autopara_wrappable(atoms, calculator, prop_prefix, traj_step_interv
 
     all_trajs = optimize.run_autopara_wrappable(atoms=atoms, calculator=calculator,
                              keep_symmetry=False, update_config_type=False,
-                             results_prefix=prop_prefix,
+                             results_prefix=output_prefix,
                              fmax=1e-2, **opt_kwargs)
 
     return all_trajs

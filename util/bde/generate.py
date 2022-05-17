@@ -38,12 +38,14 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
 
     inputs = ConfigSet(input_configs=dft_h)
     interim_outputs = OutputSpec()
-    generic.run(inputs=inputs
+
+    inputs = generic.run(inputs=inputs,
                 outputs=interim_outputs, 
                 calculator=dft_calculator, 
-                properties=["energy", "forces"],
-                output_prefix=dft_prefix,
+                properties=["energy"],
+                output_prefix=dft_prop_prefix,
                 chunksize=1)
+
 
     generic.run(inputs=inputs,
                 outputs=outputs,
@@ -115,7 +117,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     isolated_h_fname = wdir / (ip_prop_prefix + "isolated_H.xyz")
     dft_opt_bde_fname =  wdir / (dft_bde_with_ip_fname.stem + '.bde.xyz') 
     ip_reopt_bde_fname = wdir / (ip_reopt_with_dft_fname.stem + '.bde.xyz')
-    summary_file = Path(output_dir) / dft_bde_filename.parent / (stem + '.' + ip_prop_prefix + "bde.xyz")
+    summary_file = Path(output_dir) / Path(dft_bde_filename).parent / (stem + '.' + ip_prop_prefix + "bde.xyz")
 
     # for p in [dft_bde_with_ip_fname, ip_reopt_fname, ip_reopt_with_dft_fname, isolated_h_fname,
     #           dft_opt_bde_fname, ip_reopt_bde_fname, summary_file]:
@@ -146,7 +148,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     inputs = opt.optimise(inputs=inputs,
                         outputs=outputs,
                         calculator=pred_calculator,
-                        prop_prefix=ip_prop_prefix,
+                        output_prefix=ip_prop_prefix,
                         chunksize=chunksize,
                         npool=None)
 
@@ -168,9 +170,9 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     generic.run(inputs=inputs, 
                 outputs=outputs,
                 calculator=dft_calculator,
-                prop_prefix=dft_prop_prefix, 
-                properteis=["energy", "forces"]
-                cunksize=1)
+                output_prefix=dft_prop_prefix, 
+                properties=["energy", "forces"],
+                chunksize=1)
 
     # 5. construct isolated atom 
     logger.info("Constructing isolated_h")

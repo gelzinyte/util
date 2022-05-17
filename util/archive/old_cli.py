@@ -272,7 +272,7 @@ def generate_nm_reference(inputs, prop_prefix, outputs, dir_prefix):
     scratch_path = cfg['other_paths']['scratch']
 
 
-    calc = (orca.ExtendedORCA, [], calc_kwargs)
+    calc = (orca.ORCA, [], calc_kwargs)
 
     generic_calc_kwargs = {'use_wdir':True,
                            'scratch_path':scratch_path,

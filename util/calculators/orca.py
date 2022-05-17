@@ -1,4 +1,4 @@
-from wfl.calculators.orca import ExtendedORCA
+from wfl.calculators.orca import ORCA
 from ase.calculators.calculator import Calculator
 from ase import Atoms
 

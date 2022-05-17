@@ -35,13 +35,15 @@ def calculator(gap_filename):
     print(gap_filename)
     return (Potential, [], {'param_filename': str(gap_filename)})
 
-def test_making_isolated_H(tmp_path, calculator):
+def test_making_isolated_H(tmp_path, gap_calculator, dft_calculator):
 
     wdir = tmp_path / 'bde_wdir'
+    wdir.mkdir(exist_ok=True)
     output_fname = wdir / "gappy_isolated_h.xyz"
 
     outputs=OutputSpec(output_files=output_fname)
-    util.bde.generate.ip_isolated_h(calculator=calculator, 
+    util.bde.generate.ip_isolated_h(pred_calculator=gap_calculator, 
+                                    dft_calculator=dft_calculator,
                                     dft_prop_prefix='dft_',
                                     ip_prop_prefix="gappy_",
                                     outputs=outputs, 
@@ -49,11 +51,13 @@ def test_making_isolated_H(tmp_path, calculator):
 
     at = read(output_fname)
     assert at.info["bde_config_type"] == "H"
-    assert pytest.approx(at.info["dft_energy"] == -13.547458419057222 )
-    assert pytest.approx(at.info["gappy_energy"] == -13.547479108102433)
+    assert pytest.approx(at.info["dft_energy"]) == -13.547458419057222 
+    assert pytest.approx(at.info["gappy_energy"]) == -13.547479108102433
 
 
-def test_generate(at, calculator, tmp_path):
+def test_generate(at, gap_calculator, dft_calculator, tmp_path):
+
+    os.environ["OMP_NUM_THREADS"] = "1"
 
     dft_bde_fname = tmp_path / 'input_atoms.xyz'
     at1 = at.copy()
@@ -68,7 +72,8 @@ def test_generate(at, calculator, tmp_path):
     gap_prop_prefix='gappy_'
     wdir = tmp_path / 'bde_wdir'
 
-    util.bde.generate.everything(calculator=calculator,
+    util.bde.generate.everything(pred_calculator=gap_calculator,
+                                 dft_calculator=dft_calculator,
                                  dft_bde_filename=dft_bde_fname,
                                  dft_prop_prefix=dft_prop_prefix,
                                  ip_prop_prefix=gap_prop_prefix,
@@ -95,13 +100,13 @@ def test_generate(at, calculator, tmp_path):
     assert ats[0].info["bde_config_type"] == "dft_optimised"
     # same as isolated atom energy here, because my test atoms are really 
     # molecule and molecule
-    assert approx(ats[1].info["gappy_bde_energy"] == -13.54747910810238)
-    assert approx(ats[1].info["dft_bde_energy"] == -13.547458419057193)
+    assert approx(ats[1].info["gappy_bde_energy"]) == -13.54747910810238
+    assert approx(ats[1].info["dft_bde_energy"]) == -13.547458419057193
 
     ats = read(wdir / "input_atoms.gappy_reoptimised.dft.bde.xyz", ':')
     assert ats[0].info["bde_config_type"] == "gappy_optimised"
-    assert approx(ats[1].info["gappy_bde_energy"] == -13.54747910810238)
-    assert approx(ats[1].info["dft_bde_energy"] == -13.547458419057193)
+    assert approx(ats[1].info["gappy_bde_energy"]) == -13.54747910810238
+    assert approx(ats[1].info["dft_bde_energy"]) == -13.547458419057193
 
     # check final file is there
     assert (tmp_path / "input_atoms.gappy_bde.xyz").exists()
