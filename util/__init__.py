@@ -44,7 +44,7 @@ def default_orca_params():
     default_kw = Config.from_yaml(Path(__file__).parent /  "default_kwargs.yml")
     orca_kwargs = default_kw["orca"]
     orca_kwargs["orca_command"] = cfg["orca_path"]
-    orca_kwargs["scratch_path"] = cfg["scratch_path"] 
+    orca_kwargs["workdir_root"] = cfg["scratch_path"] 
     return orca_kwargs
 
 def remove_energy_force_containing_entries(at):
