@@ -47,10 +47,18 @@ def default_orca_params():
     orca_kwargs["workdir_root"] = cfg["scratch_path"] 
     return orca_kwargs
 
-def remove_energy_force_containing_entries(at):
+def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None):
     "remove info keys with 'energy' in label and arrays keys with 'force' in label"
+
+    if keep_info is None:
+        keep_info = []
+    if keep_arrays is None:
+        keep_arrays = []
+
     info_keys_to_remove = [key for key in at.info.keys() if ('energy' in key or "dipole" in key)]
+    info_keys_to_remove = [key for key in info_keys_to_remove if key not in keep_info]
     arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key or "charge" in key]
+    arrays_keys_to_remove = [key for key in arrays_keys_to_remove if key not in keep_arrays]
 
     for key in info_keys_to_remove:
         del at.info[key]

@@ -20,11 +20,13 @@ def color_atoms_by_array(input, output, key, cmap, vmax):
 @click.command("remove-calc-results")
 @click.argument("input-fname")
 @click.option('--output-fname', '-o')
-def remove_old_calc_results(input_fname, output_fname):
+@click.option('--keep-info', '-i', multiple=True, help='info keys to keep')
+@click.option('--keep-arrays', '-a', multiple=True, help='arrays keys to keep')
+def remove_old_calc_results(input_fname, output_fname, keep_info, keep_arrays):
     """removes entries that have "energy" or "forces" in the label"""
     ats = read(input_fname, ':')
     for at in ats:
-        util.remove_energy_force_containing_entries(at)
+        util.remove_energy_force_containing_entries(at, keep_info=keep_info, keep_arrays=keep_arrays)
     write(output_fname, ats, write_results=False)
 
 
