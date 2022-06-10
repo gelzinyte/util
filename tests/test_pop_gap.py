@@ -10,7 +10,7 @@ from util.util_config import Config
 def ref_path():
     return os.path.abspath(os.path.dirname(__file__))
 
-@pytest.mark.skip(reson="missing file, fix with pop-gap project")
+@pytest.mark.skip(reason="missing file, fix with pop-gap project")
 def test_gap():
 
     cfg = Config.load()
