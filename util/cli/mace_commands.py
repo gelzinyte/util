@@ -8,4 +8,4 @@ from util.plot import mace_loss
 @click.option('--x-log-scale', is_flag=True, help="plot x in log scale")
 @click.argument("in-fnames", nargs=-1)
 def plot_loss(fig_name, in_fnames, skip_first_n, x_log_scale):
-    mace_loss.plot_mace_train_summary(fig_name, in_fnames, skip_first_n, x_log_scale)
+    mace_loss.plot_mace_train_summary(in_fnames=in_fnames, fig_name=fig_name, skip_first_n=skip_first_n, x_log_scale=x_log_scale)

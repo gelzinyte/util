@@ -22,6 +22,9 @@ Parameters
 """
 def plot_mace_train_summary(in_fnames, fig_name="train_summary.png", skip_first_n=None, x_log_scale=False):
 
+    if isinstance(in_fnames, str):
+        in_fnames = [in_fnames]
+
     plt.figure(figsize=(18, 6))
     gs = gridspec.GridSpec(1, 3)
     axes = [plt.subplot(g) for g in gs]
@@ -120,11 +123,11 @@ def annotate(ax_loss, ax_e, ax_f, x_log_scale = False):
 
     ax_e.set_ylabel("energy rmse, meV")
     ax_e.set_title("total energy rmse")
-    ax_e.set_ylim(bottom=95)
+    # ax_e.set_ylim(bottom=95)
 
     ax_f.set_ylabel("force rmse, meV/A")
     ax_f.set_title("force rmse")
-    ax_f.set_ylim(bottom=9)
+    # ax_f.set_ylim(bottom=9)
 
     for idx, ax in enumerate([ax_loss, ax_e, ax_f]):
         if x_log_scale:
