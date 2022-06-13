@@ -1,7 +1,10 @@
 import pytest
 from ase.build import molecule
 from pathlib import Path
-from quippy.potential import Potential
+try:
+    from quippy.potential import Potential
+except ModuleNotFoundError:
+    pass
 import yaml
 import util
 from util.calculators.orca import ORCA
