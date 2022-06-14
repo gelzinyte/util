@@ -13,6 +13,17 @@ from ase.io import read, write
 
 logger = logging.getLogger(__name__)
 
+@click.command('quick-dimer')
+@click.argument("dimer-fns", nargs=-1)
+@click.option('--isolated-at-fn', help='isolated atoms filename')
+@click.option('--pred-prop-prefix')
+@click.option('--output-fn', default='dimer_curves.png', show_default=True)
+def plot_quick_dimer(dimer_fns, isolated_at_fn, pred_prop_prefix, output_fn):
+    from util.plot import quick_dimer
+    isolated_ats = read(isolated_at_fn, ":")
+    quick_dimer.main(dimer_fns=dimer_fns, isolated_ats=isolated_ats, pred_prop_prefix=pred_prop_prefix,
+                        output_fn=output_fn)
+
 @click.command('quick-md')
 @click.option("--root-dir", '-r', help='path to "md_trajs" or similar')
 @click.option('--ace-fname', '-a', default='ace.json')
@@ -51,10 +62,19 @@ def ace_2b(ace_fname, plot_type, cc_in, ch_in, hh_in):
 @click.option("--pred-prefix", default='ace_')
 @click.option("--rin", type=click.FLOAT)
 @click.option("--rout", type=click.FLOAT)
-def dissociate(fname, pred_prefix, rin, rout):
+@click.option('--isolated-at-fn')
+@click.option('--out-prefix', default='')
+def dissociate(fname, pred_prefix, rin, rout, isolated_at_fn, out_prefix):
     from util.plot import dissociate_h_test
     ats = read(fname, ':')
-    dissociate_h_test.curves_from_all_atoms(ats, pred_prefix, rin, rout)
+    if isolated_at_fn is not None:
+        isolated_ats = read(isolated_at_fn, ':')
+        isolated_ats = [at for at in isolated_ats if len(at) == 1]
+        isolated_at = [at for at in isolated_ats if list(at.symbols)[0] == "H"][0]
+    else:
+        isolated_at = None
+
+    dissociate_h_test.curves_from_all_atoms(ats, pred_prefix, isolated_at, rin, rout, out_prefix)
 
 
 @click.command("dimer-curve")
@@ -206,6 +226,8 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
               help='plot total energy, not binding energy per atom')
 @click.option('--binding-energy', '-be', 'energy_type', default=True,
               flag_value='binding_energy', help='Binding energy per atom')
+@click.option('--per-atom-energy', '-pae', 'energy_type',
+              flag_value='per_atom_energy', help='plot energy per atom (not binding energy per atom)')
 @click.option('--mean-shifted-energy', '-sft', 'energy_shift',is_flag=True,
               help='shift energies by the mean. ')
 @click.option('--no-legend', is_flag=True, help='doesn\'t plot the legend')

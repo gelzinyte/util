@@ -41,6 +41,9 @@ def prepare_data(ref_values, pred_values, labels):
 def read_energy(at, isolated_atoms, ref_prop_name):
     return at.info[ref_prop_name]
 
+def total_per_atom_energy(at, isolated_atoms, ref_prop_name):
+    return at.info[ref_prop_name] / len(at)
+
 def scatter_plot(ref_energy_name,
                 pred_energy_name,
                 ref_force_name,
@@ -101,6 +104,16 @@ def scatter_plot(ref_energy_name,
         y_energy_error_label = f'absolute mean shifted total energy error / meV'
         energy_correlation_title = 'mean shifted total energy correlation'
         energy_error_title = 'mean shifted total energy error'
+    elif energy_type == "per_atom_energy":
+        energy_getter_function = total_per_atom_energy
+        y_energy_correlation_label = f'Predicted per atom total (not binding)' \
+                                     f' {pred_energy_name} / eV'
+        x_energy_label = f'per atom total (not binding) {ref_energy_name} / eV'
+        y_energy_error_label = f'absolute per atom total (not binding) energy error / meV'
+        energy_correlation_title = 'per atom total (not binding) energy correlation'
+        energy_error_title = 'per atom total (not binding) energy error'
+
+        
     else:
         raise ValueError(f'"energy_type" must be one of "binding_energy", '
                          f'"total_energy" or "mean_shifted_energy", '
@@ -298,7 +311,7 @@ def scatter_plot(ref_energy_name,
         # prefix = os.path.basename(param_fname)
         # prefix = os.path.splitext(prefix)[0]
         prefix = ''
-    picture_fname = f'{prefix}_by_{color_info_name}_scatter.png'
+    picture_fname = f'{prefix}_{energy_type}_by_{color_info_name}_scatter.png'
     if output_dir:
         picture_fname = os.path.join(output_dir, picture_fname)
 
