@@ -230,6 +230,10 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
               flag_value='per_atom_energy', help='plot energy per atom (not binding energy per atom)')
 @click.option('--mean-shifted-energy', '-sft', 'energy_shift',is_flag=True,
               help='shift energies by the mean. ')
+@click.option('--scatter-absolute-error', 'error_scatter_type', default=True,
+              flag_value='absolute', help="scatter absolute error in the error plot")
+@click.option('--scatter-signed-error', 'error_scatter_type', 
+              flag_value='signed', help="scatter signed error in the error plot")
 @click.option('--no-legend', is_flag=True, help='doesn\'t plot the legend')
 @click.option('--error-type', default='rmse')
 @click.option('--xvals', help="values for x axis for multi-file plot")
@@ -240,7 +244,7 @@ def scatter(ref_energy_name, pred_energy_name, ref_force_name,
                atoms_filenames,
                output_dir, prefix, info_label, isolated_at_fname,
                energy_type, energy_shift, no_legend, error_type, xvals, xlabel,
-               skip):
+               skip, error_scatter_type):
     """Makes energy and force scatter plots and dimer curves"""
 
     from util.plot import rmse_scatter_evaled, multiple_error_files
@@ -274,7 +278,8 @@ def scatter(ref_energy_name, pred_energy_name, ref_force_name,
                                          energy_shift=energy_shift,
                                          no_legend=no_legend,
                                          error_type=error_type, 
-                                         skip_if_prop_not_present=skip)
+                                         skip_if_prop_not_present=skip,
+                                         error_scatter_type=error_scatter_type)
     else:
         if xvals is not None:
             xvals = [float(x) for x in xvals.split()]

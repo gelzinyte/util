@@ -52,7 +52,8 @@ def scatter_plot(ref_energy_name,
                 energy_type, energy_shift=False,
                  no_legend=False,
                  error_type='rmse', 
-                 skip_if_prop_not_present=False):
+                 skip_if_prop_not_present=False,
+                 error_scatter_type='absolute'):
 
     errors_to_return = {"energy": {}, "forces": {}}
 
@@ -83,41 +84,58 @@ def scatter_plot(ref_energy_name,
         energy_getter_function = util.get_binding_energy_per_at
         y_energy_correlation_label = f'Predicted binding {pred_energy_name} / eV/at'
         x_energy_label = f'Binding {ref_energy_name} / eV/at'
-        y_energy_error_label = f'absolute binding energy error / meV/at'
-        energy_correlation_title =  'Binding energy correlation'
-        energy_error_title = 'Binding energy error'
+        y_energy_error_label = f'binding energy error / meV/at'
+        energy_correlation_title =  'binding energy correlation'
+        energy_error_title = 'binding energy error'
+        e_error_units = 'meV/at'
 
     elif energy_type == 'total_energy':
         energy_getter_function = read_energy
         y_energy_correlation_label = f'Predicted total {pred_energy_name} ' \
                                      f'/ eV'
         x_energy_label = f'Total {ref_energy_name} / eV'
-        y_energy_error_label = f'absolute total energy error / meV'
-        energy_correlation_title = 'Total energy correlation'
-        energy_error_title = 'Total energy error'
+        y_energy_error_label = f'total energy error / meV'
+        energy_correlation_title = 'total energy correlation'
+        energy_error_title = 'total energy error'
+        e_error_units = 'meV'
 
     elif energy_type == 'mean_shifted_energy':
         energy_getter_function = read_energy
         y_energy_correlation_label = f'Predicted mean shifted total' \
                                      f' {pred_energy_name} / eV'
         x_energy_label = f'Mean shifted total {ref_energy_name} / eV'
-        y_energy_error_label = f'absolute mean shifted total energy error / meV'
+        y_energy_error_label = f'mean shifted total energy error / meV'
         energy_correlation_title = 'mean shifted total energy correlation'
         energy_error_title = 'mean shifted total energy error'
+        e_error_units = 'meV'
+
     elif energy_type == "per_atom_energy":
         energy_getter_function = total_per_atom_energy
         y_energy_correlation_label = f'Predicted per atom total (not binding)' \
-                                     f' {pred_energy_name} / eV'
-        x_energy_label = f'per atom total (not binding) {ref_energy_name} / eV'
-        y_energy_error_label = f'absolute per atom total (not binding) energy error / meV'
+                                     f' {pred_energy_name} / eV/at'
+        x_energy_label = f'per atom total (not binding) {ref_energy_name} / eV/at'
+        y_energy_error_label = f'per atom total (not binding) energy error / meV/at'
         energy_correlation_title = 'per atom total (not binding) energy correlation'
         energy_error_title = 'per atom total (not binding) energy error'
-
-        
+        e_error_units = 'meV/at'
     else:
         raise ValueError(f'"energy_type" must be one of "binding_energy", '
                          f'"total_energy" or "mean_shifted_energy", '
                          f'not "{energy_type}". ')
+
+    if error_scatter_type == 'absolute':
+        y_energy_error_label = f'absolute {y_energy_error_label}'
+        y_force_error_label = 'absolute force component error / meV/Å' 
+        energy_error_title = f'absolute {energy_error_title}'
+        forces_error_title = "absolute force component error"
+    elif error_scatter_type == 'signed':
+        y_energy_error_label = f'signed {y_energy_error_label}'
+        y_force_error_label = 'signed force component error / meV/Å' 
+        energy_error_title = f'signed {energy_error_title}'
+        forces_error_title = "signed force component error"
+
+    else:
+        raise ValueError(f'"error_scatter_type" must be one of "absolute" or "signed", not "{error_scatter_type}"')
 
     # ref_prefix = ref_energy_name.replace('energy', '')
     # pred_prefix = pred_energy_name.replace('energy', 'pred_prefix')
@@ -215,7 +233,16 @@ def scatter_plot(ref_energy_name,
 
         error = error_function(ref, pred) * 1e3
 
-        errors = np.abs(ref - pred) * 1e3
+        errors = (ref - pred) * 1e3
+        if error_scatter_type == "absolute":
+            errors = np.abs(errors)
+
+        if error_scatter_type == "absolute":
+            error_scatter_line = error
+            error_scatter_line_label = None
+        elif error_scatter_type == 'signed':
+            error_scatter_line = np.mean(errors) 
+            error_scatter_line_label = f'{label} mean: {error_scatter_line:.3f} {e_error_units}' 
         
         errors_to_return["energy"][label] = errors
 
@@ -223,15 +250,18 @@ def scatter_plot(ref_energy_name,
                        zorder=2, **marker_kwargs)
         ax_err.scatter(ref, errors, **marker_kwargs,
                        edgecolors=color, zorder=2)
-        ax_err.axhline(error, color=color, lw=0.8)
+        ax_err.axhline(error_scatter_line, color=color, lw=0.8, label=error_scatter_line_label)
 
     if not no_legend:
-        ax_corr.legend(title=f' {color_info_name}: {error_label} / meV/at',
+        ax_corr.legend(title=f' {color_info_name}: {error_label} / {e_error_units}',
                        **e_legend_kwargs)
+        if error_scatter_type == 'signed':
+            ax_err.legend()
         
     ax_corr.set_ylabel(y_energy_correlation_label)
     ax_err.set_ylabel(y_energy_error_label)
-    ax_err.set_yscale('log')
+    if error_scatter_type == "absolute": 
+        ax_err.set_yscale('log')
     ax_err.set_title(energy_error_title)
     ax_corr.set_title(energy_correlation_title)
 
@@ -252,9 +282,7 @@ def scatter_plot(ref_energy_name,
 
     ######################### force plots
 
-
     if ref_force_name is not None:
-
 
         ref_forces = [at.arrays[ref_force_name] for at in all_atoms if len(at)
                       != 1]
@@ -273,7 +301,19 @@ def scatter_plot(ref_energy_name,
             pred = data['predicted']
 
             error = error_function(ref, pred)*1e3
-            errors = np.abs(ref - pred)*1e3
+            # errors = np.abs(ref - pred)*1e3
+            errors = (ref - pred)*1e3
+            if error_scatter_type == "absolute":
+                errors = np.abs(errors)
+
+            
+            if error_scatter_type == "absolute":
+                error_scatter_line = error
+                error_scatter_line_label = None
+            elif error_scatter_type == 'signed':
+                error_scatter_line = np.mean(errors) 
+                error_scatter_line_label = f'{label} mean: {error_scatter_line:.3f} {e_error_units}' 
+            
 
             errors_to_return["forces"][label] = errors
 
@@ -282,16 +322,19 @@ def scatter_plot(ref_energy_name,
                             **marker_kwargs)
             ax_err.scatter(ref, errors , edgecolors=color,
             **marker_kwargs)
-            ax_err.axhline(error, color=color, lw=0.8)
+            ax_err.axhline(error_scatter_line, color=color, lw=0.8, label=error_scatter_line_label)
 
         if not no_legend:
             ax_corr.legend(title=f'F component {error_label} / meV/Å',
                            **f_legend_kwargs)
+            if error_scatter_type == 'signed':
+                ax_err.legend()  
 
         ax_corr.set_ylabel(f'Predicted {pred_force_name} / eV/Å')
-        ax_err.set_ylabel(f'absolute force component error / meV/Å')
-        ax_err.set_yscale('log')
-        ax_err.set_title('Force component error')
+        ax_err.set_ylabel(y_force_error_label)
+        if error_scatter_type == "absolute":
+            ax_err.set_yscale('log')
+        ax_err.set_title(forces_error_title)
         ax_corr.set_title('Force component correlation')
 
         for ax in [ax_f_err, ax_f_corr]:
@@ -308,8 +351,6 @@ def scatter_plot(ref_energy_name,
             ax.plot(lims, lims, c='k', linewidth=0.8)
 
     if not prefix:
-        # prefix = os.path.basename(param_fname)
-        # prefix = os.path.splitext(prefix)[0]
         prefix = ''
     picture_fname = f'{prefix}_{energy_type}_by_{color_info_name}_scatter.png'
     if output_dir:
