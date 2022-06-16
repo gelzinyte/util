@@ -117,7 +117,7 @@ def test_calculate_descriptor(at_in):
     at_in.arrays["atom_gaussian_weight"] = np.array([1.0, 1.0, 1.0, 0.5])
     d = Descriptor(args_str="soap l_max=6 n_max=12 cutoff=3 delta=1 covariance_type=dot_product zeta=4 "\
                    "n_sparse=100 sparse_method=cur_points atom_gaussian_width=0.3 cutoff_transition_width=0.5  "\
-                   "add_species=True", ase_to_quip_kwargs={'add_arrays':"atom_gaussian_weight"})
+                   "add_species=True")
     my_desc = d.calc(at_in,
                      args_str="atom_gaussian_weight_name=atom_gaussian_weight")
 
@@ -129,12 +129,11 @@ def test_quip_energies_forces():
 
     ats_in_fname = os.path.join(ref_path(),
                                 'files/atoms_for_modified_gap.xyz')
-    gap_fname = os.path.join(ref_path(), 'files/modified_gap.xml')
+    gap_fname = os.path.join(ref_path(), 'files/modified_gap/gap_pop.xml')
     quip_command = f'/home/eg475/dev/dev_QUIP/build' \
                    f'/linux_x86_64_gfortran_openmp/quip ' \
                    f'atoms_filename={ats_in_fname} param_filename={gap_fname} ' \
-                   f'calc_args={{atom_gaussian_weight_name=at_gaussian_weight}} E F'
-
+                   f'calc_args={{atom_gaussian_weight_name=atom_gaussian_weight}} E F'
 
     result = subprocess.run(quip_command, shell=True, capture_output=True,
                             text=True)
@@ -144,14 +143,13 @@ def test_quip_energies_forces():
 # @pytest.mark.xfail()
 def test_quippy_energies_forces():
 
-    gap_fname = os.path.join(ref_path(), 'files/modified_gap.xml')
-    gap = Potential(param_filename=gap_fname, add_arrays="at_gaussian_weight",
-                    calc_args="atom_gaussian_weight_name=at_gaussian_weight")
+    gap_fname = os.path.join(ref_path(), 'files/modified_gap/gap_pop.xml')
+    gap = Potential(param_filename=gap_fname, add_arrays='atom_gaussian_weight',
+                    calc_args="atom_gaussian_weight_name=atom_gaussian_weight")
 
-    at = read(os.path.join(ref_path(),
-                                'files/atoms_for_modified_gap.xyz'))
+    at = read(os.path.join(ref_path(), 'files/atoms_for_modified_gap.xyz'), "5")
 
-    quip_energy = at.info['gap_energy']
+    quip_energy = at.info['pop_gap_energy']
     at.calc = gap
     quippy_energy = at.get_potential_energy()
     assert pytest.approx(quippy_energy) == quip_energy
