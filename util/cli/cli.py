@@ -20,6 +20,12 @@ def cli(ctx, verbose):
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
+@cli.group("mace")
+def subcli_mace():
+    pass
+from util.cli.mace_commands import plot_loss
+subcli_mace.add_command(plot_loss)
+
 @cli.group("misc")
 @click.pass_context
 def subcli_misc(ctx):

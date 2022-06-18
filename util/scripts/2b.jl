@@ -28,9 +28,9 @@ function main()
     type = params["type"]
     title = replace(ip_fname, ".json"=>"") 
     if type == "2b"
-        title *= "_2b_ACE_only"
+        title *= ".2b_ACE_only"
     elseif type == "full"
-        title *= "_full_ACE_on_dimer"
+        title *= ".full_ACE"
     end
 
     IP = read_dict(load_dict(ip_fname)["IP"])
@@ -87,7 +87,7 @@ function main()
     ylabel!(p, "ev/atom")
     xlabel!(p, "separation, Å")
     title!(title, titlefontsize=8)
-    savefig(title*".2b.pdf")
+    savefig(title*".pdf")
 
 
 end
