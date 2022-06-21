@@ -20,6 +20,11 @@ def cli(ctx, verbose):
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
+@cli.group("mace")
+def subcli_mace():
+    pass
+subcli_mace.add_command(plot_loss)
+
 @cli.group("misc")
 @click.pass_context
 def subcli_misc(ctx):
@@ -79,7 +84,8 @@ def subcli_plot():
     pass
 from util.cli.plot_commands import plot_dataset, plot_error_table, scatter,  \
                 distance_autocorrelation, plot_mols, plot_dimer, dissociate, \
-                ace_2b, plot_ard_scores, md_test_summary
+                ace_2b, plot_ard_scores, md_test_summary, plot_mace_loss
+
 subcli_plot.add_command(plot_dataset)
 subcli_plot.add_command(plot_error_table)
 subcli_plot.add_command(scatter)
@@ -90,6 +96,7 @@ subcli_plot.add_command(dissociate)
 subcli_plot.add_command(ace_2b)
 subcli_plot.add_command(plot_ard_scores)
 subcli_plot.add_command(md_test_summary)
+subcli_plot.add_command(plot_mace_loss)
 
 
 @cli.group("track")
