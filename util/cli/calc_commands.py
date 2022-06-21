@@ -137,7 +137,8 @@ def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
 @click.option('--output-fname', '-o', help='output filename')
 @click.option('--ace-fname', '-a', help='ace json')
 @click.option('--prop-prefix', '-p', default='ace_', show_default=True)
-def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
+@click.option('--chunksize', '-c', default=100, show_default=True, help='chunksize for parallelisation')
+def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix, chunksize):
 
     inputs = ConfigSet(input_files=input_fname)
     outputs = OutputSpec(output_files=output_fname)
@@ -145,6 +146,6 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix):
     calc = (pyjulip_ace, [ace_fname], {})
 
     generic.run(inputs=inputs, outputs=outputs, calculator=calc, properties=["energy", "forces"],
-                output_prefix=prop_prefix)
+                output_prefix=prop_prefix, chunksize=chunksize)
 
 

@@ -22,6 +22,17 @@ logger = logging.getLogger(__name__)
 def plot_mace_loss(fig_name, in_fnames, skip_first_n, x_log_scale):
     mace_loss.plot_mace_train_summary(in_fnames=in_fnames, fig_name=fig_name, skip_first_n=skip_first_n, x_log_scale=x_log_scale)
 
+@click.command('quick-dimer')
+@click.argument("dimer-fns", nargs=-1)
+@click.option('--isolated-at-fn', help='isolated atoms filename')
+@click.option('--pred-prop-prefix')
+@click.option('--output-fn', default='dimer_curves.png', show_default=True)
+def plot_quick_dimer(dimer_fns, isolated_at_fn, pred_prop_prefix, output_fn):
+    from util.plot import quick_dimer
+    isolated_ats = read(isolated_at_fn, ":")
+    quick_dimer.main(dimer_fns=dimer_fns, isolated_ats=isolated_ats, pred_prop_prefix=pred_prop_prefix,
+                        output_fn=output_fn)
+
 @click.command('quick-md')
 @click.option("--root-dir", '-r', help='path to "md_trajs" or similar')
 @click.option('--ace-fname', '-a', default='ace.json')
@@ -60,10 +71,19 @@ def ace_2b(ace_fname, plot_type, cc_in, ch_in, hh_in):
 @click.option("--pred-prefix", default='ace_')
 @click.option("--rin", type=click.FLOAT)
 @click.option("--rout", type=click.FLOAT)
-def dissociate(fname, pred_prefix, rin, rout):
+@click.option('--isolated-at-fn')
+@click.option('--out-prefix', default='')
+def dissociate(fname, pred_prefix, rin, rout, isolated_at_fn, out_prefix):
     from util.plot import dissociate_h_test
     ats = read(fname, ':')
-    dissociate_h_test.curves_from_all_atoms(ats, pred_prefix, rin, rout)
+    if isolated_at_fn is not None:
+        isolated_ats = read(isolated_at_fn, ':')
+        isolated_ats = [at for at in isolated_ats if len(at) == 1]
+        isolated_at = [at for at in isolated_ats if list(at.symbols)[0] == "H"][0]
+    else:
+        isolated_at = None
+
+    dissociate_h_test.curves_from_all_atoms(ats, pred_prefix, isolated_at, rin, rout, out_prefix)
 
 
 @click.command("dimer-curve")
@@ -215,8 +235,14 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
               help='plot total energy, not binding energy per atom')
 @click.option('--binding-energy', '-be', 'energy_type', default=True,
               flag_value='binding_energy', help='Binding energy per atom')
+@click.option('--per-atom-energy', '-pae', 'energy_type',
+              flag_value='per_atom_energy', help='plot energy per atom (not binding energy per atom)')
 @click.option('--mean-shifted-energy', '-sft', 'energy_shift',is_flag=True,
               help='shift energies by the mean. ')
+@click.option('--scatter-absolute-error', 'error_scatter_type', default=True,
+              flag_value='absolute', help="scatter absolute error in the error plot")
+@click.option('--scatter-signed-error', 'error_scatter_type', 
+              flag_value='signed', help="scatter signed error in the error plot")
 @click.option('--no-legend', is_flag=True, help='doesn\'t plot the legend')
 @click.option('--error-type', default='rmse')
 @click.option('--xvals', help="values for x axis for multi-file plot")
@@ -227,7 +253,7 @@ def scatter(ref_energy_name, pred_energy_name, ref_force_name,
                atoms_filenames,
                output_dir, prefix, info_label, isolated_at_fname,
                energy_type, energy_shift, no_legend, error_type, xvals, xlabel,
-               skip):
+               skip, error_scatter_type):
     """Makes energy and force scatter plots and dimer curves"""
 
     from util.plot import rmse_scatter_evaled, multiple_error_files
@@ -261,7 +287,8 @@ def scatter(ref_energy_name, pred_energy_name, ref_force_name,
                                          energy_shift=energy_shift,
                                          no_legend=no_legend,
                                          error_type=error_type, 
-                                         skip_if_prop_not_present=skip)
+                                         skip_if_prop_not_present=skip,
+                                         error_scatter_type=error_scatter_type)
     else:
         if xvals is not None:
             xvals = [float(x) for x in xvals.split()]
