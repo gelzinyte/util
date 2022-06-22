@@ -23,8 +23,8 @@ def cli(ctx, verbose):
 @cli.group("mace")
 def subcli_mace():
     pass
-from util.cli.mace_commands import plot_loss
-subcli_mace.add_command(plot_loss)
+from util.cli.mace_commands import convert_to_cpu
+subcli_mace.add_command(convert_to_cpu)
 
 @cli.group("misc")
 @click.pass_context

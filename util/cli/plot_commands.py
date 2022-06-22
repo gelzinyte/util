@@ -14,7 +14,7 @@ from ase.io import read, write
 
 logger = logging.getLogger(__name__)
 
-@click.command("plot-loss")
+@click.command("mace-loss")
 @click.option('--fig-name', '-n', default="train_summary.png", show_default=True, help='filename/prefix to save figure to')
 @click.option('--skip-first-n', '-s', type=click.INT, help='how many epochs to skip and not plot')
 @click.option('--x-log-scale', is_flag=True, help="plot x in log scale")
