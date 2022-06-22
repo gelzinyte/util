@@ -5,7 +5,6 @@ from pathlib import Path
 from ase import Atoms
 from ase.io import read, write
 
-from quippy.potential import Potential
 
 from wfl.configset import ConfigSet, OutputSpec
 from wfl.calculators import generic
@@ -24,6 +23,8 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 
     # logger.info('Evaluating GAP on DFT structures')
 
+
+    from quippy.potential import Potential
 
     calculator = (Potential, [], {'param_filename':gap_fname})
 
