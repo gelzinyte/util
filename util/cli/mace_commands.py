@@ -1,11 +1,27 @@
 import click
-from util.plot import mace_loss 
+from pathlib import Path
+from util import mace
+
+@click.command('to-cpu')
+@click.argument('input-fnames', nargs=-1)
+def convert_to_cpu(input_fnames):
+    for fn_in in input_fnames:
+        fn_out = fn_in + '.cpu'
+        mace.to_cpu(fn_in, fn_out)
+
+@click.command('dir-to-cpu')
+@click.argument('dir_names', nargs=-1)
+def dir_convert_to_cpu(dir_names):
+    for dd in dir_names: 
+        dd = Path(dd)
+        for fns in dd.iterdir():
+            # if fns.
+            pass
+        
+
+    for fn_in in input_fnames:
+        fn_out = fn_in + '.cpu'
+        mace.to_cpu(fn_in, fn_out)
 
 
-@click.command("plot-loss")
-@click.option('--fig-name', '-n', default="train_summary.png", show_default=True, help='filename/prefix to save figure to')
-@click.option('--skip-first-n', '-s', type=click.INT, help='how many epochs to skip and not plot')
-@click.option('--x-log-scale', is_flag=True, help="plot x in log scale")
-@click.argument("in-fnames", nargs=-1)
-def plot_loss(fig_name, in_fnames, skip_first_n, x_log_scale):
-    mace_loss.plot_mace_train_summary(in_fnames=in_fnames, fig_name=fig_name, skip_first_n=skip_first_n, x_log_scale=x_log_scale)
+

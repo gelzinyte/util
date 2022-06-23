@@ -257,6 +257,7 @@ def scatter_plot(ref_energy_name,
                        **e_legend_kwargs)
         if error_scatter_type == 'signed':
             ax_err.legend()
+            ax_err.axhline(0, c='k', lw=0.8, ls='--')
         
     ax_corr.set_ylabel(y_energy_correlation_label)
     ax_err.set_ylabel(y_energy_error_label)
@@ -269,12 +270,12 @@ def scatter_plot(ref_energy_name,
     extend_axis = 0.1
     xmin -= extend_axis
     xmax += extend_axis
-    shade = 0.05
-    ax_e_corr.fill_between([xmin, xmax], [xmin - shade, xmax - shade],
-                           [xmin + shade, xmax + shade],
-                           color='lightgrey', alpha=0.25, zorder=3)
-    ax_e_err.fill_between([xmin, xmax], 0, shade*1e3, color='lightgrey',
-                          alpha=0.5, zorder=0)
+    shade = 0.005
+    # ax_e_corr.fill_between([xmin, xmax], [xmin - shade, xmax - shade],
+    #                        [xmin + shade, xmax + shade],
+    #                        color='lightgrey', alpha=0.25, zorder=3)
+    # ax_e_err.fill_between([xmin, xmax], 0, shade*1e3, color='lightgrey',
+    #                       alpha=0.5, zorder=0)
 
     for ax in [ax_e_corr, ax_e_err]:
         ax.set_xlabel(x_energy_label)
@@ -329,6 +330,7 @@ def scatter_plot(ref_energy_name,
                            **f_legend_kwargs)
             if error_scatter_type == 'signed':
                 ax_err.legend()  
+                ax_err.axhline(0, color='k', lw=0.8, ls='--')
 
         ax_corr.set_ylabel(f'Predicted {pred_force_name} / eV/Å')
         ax_err.set_ylabel(y_force_error_label)
