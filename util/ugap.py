@@ -31,8 +31,6 @@ logger = logging.getLogger(__name__)
 
 
 
-
-
 def make_descr_str(descr_dict):
     """ given dictionary of {"name":"desc_name", "param":"value", ...} converts to string "desc_name param=value ...", suitable for GAP"""
     descr_dict = deepcopy(descr_dict)

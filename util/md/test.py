@@ -7,7 +7,6 @@ from wfl.configset import ConfigSet_in, ConfigSet_out
 from wfl.generate_configs import md
 
 from util import configs
-from util.calculators import pyjulip_ace
 
 
 def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval, 

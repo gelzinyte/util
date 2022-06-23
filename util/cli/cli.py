@@ -20,6 +20,12 @@ def cli(ctx, verbose):
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
+@cli.group("gap")
+def subcli_gap():
+    pass
+from util.cli.gap_commands import estimate_mem
+subcli_gap.add_command(estimate_mem)
+
 @cli.group("mace")
 def subcli_mace():
     pass
