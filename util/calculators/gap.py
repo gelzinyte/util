@@ -6,7 +6,28 @@ try:
 except ModuleNotFoundError:
     pass
 
+import logging
 from wfl.calculators import orca
+
+logger = logging.getLogger(__name__)
+
+def at_wt_gap_calc(gap_fname, at_gaussian_weight=None):
+    if at_gaussian_weight is None:
+        logger.warn("no atom gaussian weight")
+        calc_args = None
+        add_arrays=None
+    else:
+        logger.warn(f"asking for at gaussian weight with name {at_gaussian_weight}")
+        calc_args = f"atom_gaussian_weight_name={at_gaussian_weight}" 
+        add_arrays = at_gaussian_weight
+
+    gap = Potential(param_filename=gap_fname, add_arrays=add_arrays, 
+                    calc_args=calc_args)
+    
+
+
+
+
 
 class PopGAP(Calculator):
     implemented_properties = ['energy', 'forces']

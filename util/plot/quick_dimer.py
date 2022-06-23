@@ -5,17 +5,27 @@ from util import configs
 import matplotlib.pyplot as plt
 
 
-def main(dimer_fns, isolated_ats, pred_prop_prefix, output_fn):
+def main(dimer_fns, isolated_ats, pred_prop_prefix, output_fn, isolated_at_prop_prefix=None):
+
+    dimer_ats = []
+    for dimer_fn in dimer_fns:
+        ats = read(dimer_fn, ':')
 
     for at in isolated_ats:
         assert len(at) == 1
         at.info["at_symbol"] = list(at.symbols)[0]
     isolated_ats = configs.into_dict_of_labels(isolated_ats, info_label="at_symbol")
 
+    plot_dimers(dimer_ats, isolated_ats, pred_prop_prefix, output_fn, isolated_at_prop_prefix)
+
+def plot_dimers(dimer_ats, isolated_ats, pred_prop_prefix, output_fn, isolated_at_prop_prefix=None):
+    
+    if isolated_at_prop_prefix is None:
+        isolated_at_prop_prefix = pred_prop_prefix
+
     plt.figure()
 
-    for dimer_fn in dimer_fns:
-        ats = read(dimer_fn, ":")
+    for ats in dimer_ats: 
         symbols = list(ats[0].symbols)
         ref_es = 0
         for sym in symbols:
