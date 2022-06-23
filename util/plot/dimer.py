@@ -13,17 +13,16 @@ from util import configs
 
 
 def do_dimers(pred_calc, species, out_prefix, pred_prop_prefix, ref_isolated_ats=None, isolated_at_prop_prefix='dft_'):
-    species.sort()
-    dimer_symbols = []
-    for sp1 in species:
-        for sp2 in species:
-            if f'{sp2}{sp1}' in dimer_symbols:
-                continue
-            dimer_symbols.append(f'{sp1}{sp2}')
+
 
     isolated_ats = parse_isolated_ats_e(pred_calc, ref_isolated_ats, pred_prop_prefix, out_prefix)
+
+    if isolated_at_prop_prefix != pred_prop_prefix:
+        for key, at in isolated_ats:
+            error = (at.info[f'{pred_prop_prefix}energy'] - at.info[f'{isolated_at_prop_prefix}']) * 1e3
+            print(f'{key} error: {error:.3f} meV')
     
-    dimer_ats = make_dimer_ats(dimer_symbols) 
+    dimer_ats = make_dimer_ats(species) 
 
     get_energies(dimer_ats, pred_calc, pred_prop_prefix, out_prefix)
 
@@ -50,7 +49,16 @@ def get_energies(dimer_ats, pred_calc, pred_prop_prefix, out_prefix):
         write(output_fname, ats)
 
 
-def make_dimer_ats(dimer_symbols):
+def make_dimer_ats(species):
+
+    species.sort()
+    dimer_symbols = []
+    for sp1 in species:
+        for sp2 in species:
+            if f'{sp2}{sp1}' in dimer_symbols:
+                continue
+            dimer_symbols.append(f'{sp1}{sp2}')
+
     distances = np.concatenate([np.arange(0.1, 0.5, 0.05), np.arange(0.5, 1.0, 0.02), np.arange(1.0, 6.1, 0.05)])
     dimer_ats = []
     for dimer in dimer_symbols:
