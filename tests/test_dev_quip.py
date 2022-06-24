@@ -11,9 +11,10 @@ def ref_path():
 
 @pytest.fixture
 def at_in():
-    return read('files/cu_quip_test.xyz')
+    #return read('files/cu_quip_test.xyz')
+    ats = read('files/atoms_for_modified_gap.xyz', ":")
+    return ats[0]
 
-# @pytest.mark.xfail()
 def calc_desc(at_in, q_list, quip_version='modified', cleanup=True):
     temp_fname = 'tmp.xyz'
     prep_at(at_in, q_list, temp_fname)
@@ -25,7 +26,6 @@ def calc_desc(at_in, q_list, quip_version='modified', cleanup=True):
     return desc
 
 
-# @pytest.mark.xfail()
 def do_desc(quip_version='modified'):
     if quip_version == 'modified':
         quip = '/home/eg475/dev/dev_QUIP/build/linux_x86_64_gfortran_openmp' \
@@ -77,32 +77,34 @@ def parse_output(output_fname):
 
 
 def prep_at(at, q_list, temp_fname):
+    print(f'len at: {len(at)}, len(q_list): {len(q_list)}')
     at.arrays["atom_gaussian_weight"] = q_list
     write(temp_fname, at)
 
 
 # @pytest.mark.xfail()
 def test_modified_quip_same_as_not(at_in):
-    original_quip_desc = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0]), quip_version='original')
-    modified_quip_desc = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0]), quip_version='modified')
+    print(at_in)
+    original_quip_desc = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0, 1.0]), quip_version='original')
+    modified_quip_desc = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0, 1.0]), quip_version='modified')
     assert np.all(original_quip_desc == modified_quip_desc)
 
 
 # @pytest.mark.xfail()
 def test_downweighting_all_gaussians_doesnt_do_anything(at_in):
-    modified_quip_desc_ones = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0]),
+    modified_quip_desc_ones = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
                                         quip_version='original')
     modified_quip_desc_halves = calc_desc(at_in,
-                                          np.array([1.0, 1.0, 1.0, 1.0])*0.5,
+                                          np.array([1.0, 1.0, 1.0, 1.0, 1.0]) * 0.5,
                                quip_version='modified', cleanup=False)
     assert np.all(modified_quip_desc_ones == modified_quip_desc_halves)
 
 
 # @pytest.mark.xfail()
 def test_downweigting_single_gaussian_changes_descriptor(at_in):
-    modified_quip_desc_ones = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0]),
+    modified_quip_desc_ones = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
                                         quip_version='original')
-    modified_quip_desc_halves = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 0.5]),
+    modified_quip_desc_halves = calc_desc(at_in, np.array([1.0, 1.0, 1.0, 1.0, 0.5]),
                                           quip_version='modified')
     assert not np.all(modified_quip_desc_ones == modified_quip_desc_halves)
 
@@ -111,10 +113,10 @@ def test_downweigting_single_gaussian_changes_descriptor(at_in):
 def test_calculate_descriptor(at_in):
 
     modified_quip_desc_halves = calc_desc(at_in,
-                                          np.array([1.0, 1.0, 1.0, 0.5]),
+                                          np.array([1.0, 1.0, 1.0, 1.0, 0.5]),
                                           quip_version='modified')
 
-    at_in.arrays["atom_gaussian_weight"] = np.array([1.0, 1.0, 1.0, 0.5])
+    at_in.arrays["atom_gaussian_weight"] = np.array([1.0, 1.0, 1.0, 1.0, 0.5])
     d = Descriptor(args_str="soap l_max=6 n_max=12 cutoff=3 delta=1 covariance_type=dot_product zeta=4 "\
                    "n_sparse=100 sparse_method=cur_points atom_gaussian_width=0.3 cutoff_transition_width=0.5  "\
                    "add_species=True")
