@@ -11,15 +11,18 @@ from util.plot import quick_dimer
 from util import configs
 
 
-
 def do_dimers(pred_calc, species, out_prefix, pred_prop_prefix, ref_isolated_ats=None, isolated_at_prop_prefix='dft_'):
 
 
     isolated_ats = parse_isolated_ats_e(pred_calc, ref_isolated_ats, pred_prop_prefix, out_prefix)
 
     if isolated_at_prop_prefix != pred_prop_prefix:
-        for key, at in isolated_ats:
-            error = (at.info[f'{pred_prop_prefix}energy'] - at.info[f'{isolated_at_prop_prefix}']) * 1e3
+        for key, at in isolated_ats.items():
+            assert len(at) == 1
+            at = at[0]
+            # if key == "C":
+                # import pdb; pdb.set_trace()
+            error = (at.info[f'{pred_prop_prefix}energy'] - at.info[f'{isolated_at_prop_prefix}energy']) * 1e3
             print(f'{key} error: {error:.3f} meV')
     
     dimer_ats = make_dimer_ats(species) 
@@ -30,7 +33,7 @@ def do_dimers(pred_calc, species, out_prefix, pred_prop_prefix, ref_isolated_ats
         dimer_ats=dimer_ats, 
         isolated_ats=isolated_ats,
         pred_prop_prefix=pred_prop_prefix,
-        output_fn=out_prefix,
+        output_fn=out_prefix + '.dimer_curve.png',
         isolated_at_prop_prefix=isolated_at_prop_prefix)
 
 
@@ -51,6 +54,7 @@ def get_energies(dimer_ats, pred_calc, pred_prop_prefix, out_prefix):
 
 def make_dimer_ats(species):
 
+    species = list(species)
     species.sort()
     dimer_symbols = []
     for sp1 in species:
@@ -62,10 +66,11 @@ def make_dimer_ats(species):
     distances = np.concatenate([np.arange(0.1, 0.5, 0.05), np.arange(0.5, 1.0, 0.02), np.arange(1.0, 6.1, 0.05)])
     dimer_ats = []
     for dimer in dimer_symbols:
-        dimer_ats[dimer] = []
+        this_dimer_ats = []
         for d in distances:
             at = Atoms(dimer, positions=[(0, 0, 0), (0, 0, d)])
-            dimer_ats.append(at)
+            this_dimer_ats.append(at)
+        dimer_ats.append(this_dimer_ats)
 
     return dimer_ats
 
@@ -73,6 +78,7 @@ def parse_isolated_ats_e(pred_calc, ref_isolated_ats, pred_prop_prefix, out_pref
     for at in ref_isolated_ats:
         assert len(at) == 1
         at.info["at_symbol"] = list(at.symbols)[0]
+        pred_calc.reset()
         at.calc = pred_calc
         e = at.get_potential_energy()
         at.info[f'{pred_prop_prefix}energy'] = e

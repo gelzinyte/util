@@ -11,7 +11,9 @@ from wfl.calculators import orca
 
 logger = logging.getLogger(__name__)
 
-def at_wt_gap_calc(gap_fname, at_gaussian_weight=None):
+def at_wt_gap_calc(gap_fname, at_gaussian_weight=None, type="calculator"):
+    assert type in ["calculator", "initialiser"]
+
     if at_gaussian_weight is None:
         logger.warn("no atom gaussian weight")
         calc_args = None
@@ -21,12 +23,13 @@ def at_wt_gap_calc(gap_fname, at_gaussian_weight=None):
         calc_args = f"atom_gaussian_weight_name={at_gaussian_weight}" 
         add_arrays = at_gaussian_weight
 
-    gap = Potential(param_filename=gap_fname, add_arrays=add_arrays, 
-                    calc_args=calc_args)
-    
+    if type == 'calculator':
+        gap = Potential(param_filename=gap_fname, add_arrays=add_arrays, 
+                        calc_args=calc_args)
+    else:
+        gap = (Potential, [], {"param_filename":gap_fname, "add_arrays":add_arrays, "calc_args":calc_args})
 
-
-
+    return gap
 
 
 class PopGAP(Calculator):

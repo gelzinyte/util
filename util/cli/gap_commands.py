@@ -1,7 +1,35 @@
 import click
+import os
+from wfl.calculators import generic
+from wfl.configset import ConfigSet, OutputSpec
 from ase.io import read, write 
 import numpy as np
 from util.plot import dimer
+
+@click.command('eval')
+@click.option('--gap-fname', '-g')
+@click.option('--at-gaussian-weight', help='key for atoms.array to use for weighting soap atom gaussians with')
+@click.option('--pred-prop-prefix', '-p')
+@click.option("--input-fn", '-i')
+@click.option("--output-fn", '-o')
+def eval_gap(gap_fname, at_gaussian_weight, pred_prop_prefix, input_fn, output_fn):
+    ci = ConfigSet(input_files=input_fn)
+    co = OutputSpec(output_files=output_fn)
+    import util.calculators.gap
+    gap_calc = util.calculators.gap.at_wt_gap_calc(gap_fname, at_gaussian_weight, type="initialiser")
+    wfl_num_threads = int(os.environ.get("WFL_AUTOPARA_NPOOL", 1))
+    n_ats = len(read(input_fn, ":"))
+    chunksize = int(n_ats / wfl_num_threads) + 1
+    generic.run(
+        inputs=ci, 
+        outputs=co,
+        calculator=gap_calc,
+        properties = ["energy", "forces"],
+        output_prefix=pred_prop_prefix, 
+        chunksize = chunksize)
+
+
+
 
 @click.command('mem')
 @click.option('--num-desc', '-nx', type=click.INT, help='number of descriptors', multiple=True)

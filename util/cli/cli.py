@@ -23,9 +23,10 @@ def cli(ctx, verbose):
 @cli.group("gap")
 def subcli_gap():
     pass
-from util.cli.gap_commands import estimate_mem, gap_dimer
+from util.cli.gap_commands import estimate_mem, gap_dimer, eval_gap
 subcli_gap.add_command(estimate_mem)
 subcli_gap.add_command(gap_dimer)
+subcli_gap.add_command(eval_gap)
 
 
 @cli.group("mace")

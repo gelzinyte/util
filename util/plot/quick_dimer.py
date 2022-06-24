@@ -43,8 +43,8 @@ def plot_dimers(dimer_ats, isolated_ats, pred_prop_prefix, output_fn, isolated_a
     plt.xlabel('distance, A')
     plt.ylabel('energy, eV')
     plt.legend()
-    plt.title(f"{pred_prop_prefix} dimer curves (shifted by mace predicted e0's)")
-    plt.ylim((-5, 10))
+    plt.title(f"{pred_prop_prefix} dimer curves (shifted by {isolated_at_prop_prefix} predicted e0's)")
+    plt.ylim((-10, 10))
     # plt.ylim(top=1000)
     plt.tight_layout()
 

@@ -27,11 +27,12 @@ def plot_mace_loss(fig_name, in_fnames, skip_first_n, x_log_scale):
 @click.option('--isolated-at-fn', help='isolated atoms filename')
 @click.option('--pred-prop-prefix')
 @click.option('--output-fn', default='dimer_curves.png', show_default=True)
-def plot_quick_dimer(dimer_fns, isolated_at_fn, pred_prop_prefix, output_fn):
+@click.option('--isolated-at-prop-prefix')
+def plot_quick_dimer(dimer_fns, isolated_at_fn, pred_prop_prefix, output_fn, isolated_at_prop_prefix):
     from util.plot import quick_dimer
     isolated_ats = read(isolated_at_fn, ":")
     quick_dimer.main(dimer_fns=dimer_fns, isolated_ats=isolated_ats, pred_prop_prefix=pred_prop_prefix,
-                        output_fn=output_fn)
+                        output_fn=output_fn, isolated_at_prop_prefix=isolated_at_prop_prefix)
 
 @click.command('quick-md')
 @click.option("--root-dir", '-r', help='path to "md_trajs" or similar')
@@ -239,9 +240,9 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
               flag_value='per_atom_energy', help='plot energy per atom (not binding energy per atom)')
 @click.option('--mean-shifted-energy', '-sft', 'energy_shift',is_flag=True,
               help='shift energies by the mean. ')
-@click.option('--scatter-absolute-error', 'error_scatter_type', default=True,
+@click.option('--scatter-absolute-error', 'error_scatter_type', 
               flag_value='absolute', help="scatter absolute error in the error plot")
-@click.option('--scatter-signed-error', 'error_scatter_type', 
+@click.option('--scatter-signed-error', 'error_scatter_type', default=True,
               flag_value='signed', help="scatter signed error in the error plot")
 @click.option('--no-legend', is_flag=True, help='doesn\'t plot the legend')
 @click.option('--error-type', default='rmse')
