@@ -32,8 +32,9 @@ subcli_gap.add_command(eval_gap)
 @cli.group("mace")
 def subcli_mace():
     pass
-from util.cli.mace_commands import convert_to_cpu
+from util.cli.mace_commands import convert_to_cpu, eval_mace
 subcli_mace.add_command(convert_to_cpu)
+subcli_mace.add_command(eval_mace)
 
 @cli.group("misc")
 @click.pass_context

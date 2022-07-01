@@ -10,6 +10,7 @@ def main(dimer_fns, isolated_ats, pred_prop_prefix, output_fn, isolated_at_prop_
     dimer_ats = []
     for dimer_fn in dimer_fns:
         ats = read(dimer_fn, ':')
+        dimer_ats.append(ats)
 
     for at in isolated_ats:
         assert len(at) == 1
@@ -24,6 +25,7 @@ def plot_dimers(dimer_ats, isolated_ats, pred_prop_prefix, output_fn, isolated_a
         isolated_at_prop_prefix = pred_prop_prefix
 
     plt.figure()
+
 
     for ats in dimer_ats: 
         symbols = list(ats[0].symbols)

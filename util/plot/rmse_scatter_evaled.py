@@ -155,7 +155,7 @@ def scatter_plot(ref_energy_name,
                 continue
             else:
                 print(at.info)
-                raise RuntimeError("did not found property in atoms")
+                raise RuntimeError(f"did not found property (either {ref_energy_name} or {pred_energy_name}) in atoms")
 
         ref_energies.append(energy_getter_function(at, isolated_atoms, ref_energy_name))
         pred_energies.append(energy_getter_function(at, isolated_atoms, pred_energy_name))
