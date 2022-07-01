@@ -164,8 +164,6 @@ def check_geometry(atoms, mult=1.2, mark_elements=False, skin=0):
                         if atoms[bad_idx].symbol == "H":
                             atoms[bad_idx].symbol = "Hg"
 
-                    # print(atoms.info["graph_name"], at_idx)
-                    # print(indices)
                 return False
 
         elif at.symbol == 'C':
@@ -178,8 +176,6 @@ def check_geometry(atoms, mult=1.2, mark_elements=False, skin=0):
                             atoms[bad_idx].symbol = "Hg"
                     atoms.info["bad_atom_id"] = at_idx
                     atoms.info["bad_atom_neighbrous"] = indices
-                    # print(atoms.info["graph_name"], at_idx)
-                    # print(indices)
                     at.symbol = "Ca"
                 return False
         elif at.symbol == 'O':
