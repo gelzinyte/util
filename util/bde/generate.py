@@ -51,7 +51,7 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
                 outputs=outputs,
                 calculator=pred_calculator, properties=['energy'],
                 output_prefix=ip_prop_prefix,
-                npool=None)
+                num_python_subprocesses=None)
 
     return outputs.to_ConfigSet() 
 
@@ -132,7 +132,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         calculator=pred_calculator,
                         properties=['energy', 'forces'],
                         output_prefix=ip_prop_prefix,
-                        npool=None)
+                        num_python_subprocesses=None)
 
 
     # 2. Duplicate and relabel structures in-memory
@@ -150,7 +150,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         calculator=pred_calculator,
                         output_prefix=ip_prop_prefix,
                         chunksize=chunksize,
-                        npool=None)
+                        num_python_subprocesses=None)
 
 
     # 3.1 evaluate with interatomic potential
@@ -160,7 +160,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         calculator=pred_calculator,
                         properties=['energy', 'forces'],
                         output_prefix=ip_prop_prefix,
-                        npool=None)
+                        num_python_subprocesses=None)
 
 
     # 4. evaluate with DFT

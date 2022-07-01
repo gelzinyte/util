@@ -79,7 +79,7 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
         outputs=co,
         calculator=calc,
         verbose=True,
-        npool=None,
+        num_python_subprocesses=None,
         traj_fname=traj_fname,
         **md_params)
 

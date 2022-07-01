@@ -10,12 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 def optimise(inputs, outputs, calculator, output_prefix,  chunksize=1,
-             traj_step_interval=None,npool=None):
+             traj_step_interval=None,num_python_subprocesses=None):
     return autoparallelize(iterable=inputs, outputspec=outputs,
                          calculator=calculator, op=optimise_autopara_wrappable,
                          chunksize=chunksize,
                          traj_step_interval=traj_step_interval,
-                         output_prefix=output_prefix, npool=npool)
+                         output_prefix=output_prefix, num_python_subprocesses=num_python_subprocesses)
 
 
 def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_interval=None):
