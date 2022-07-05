@@ -216,7 +216,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
 
 
     # 7. gather results in one file for comparison
-    logger.debug("gathering results to one file")
+    logger.info("gathering results to one file")
     dft_opt_ats = ConfigSet(input_files=dft_opt_bde_fname)
     ip_reopt_ats = ConfigSet(input_files=ip_reopt_bde_fname)
     outputs = OutputSpec(output_files=summary_file, force=True, all_or_none=True)

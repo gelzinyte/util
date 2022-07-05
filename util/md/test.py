@@ -37,8 +37,8 @@ def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval,
         calculator=calc,
         verbose=False,
         remote_info=remote_info,
-        num_inputs_per_python_subprocess=None
-        traj_fn_info_entry="md_traj_label"
+        num_inputs_per_python_subprocess=None,
+        traj_fn_info_entry="md_traj_label",
         **md_params,
         )
 
