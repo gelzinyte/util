@@ -37,7 +37,9 @@ def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval,
         calculator=calc,
         verbose=False,
         remote_info=remote_info,
-        **md_params
+        num_inputs_per_python_subprocess=None
+        traj_fn_info_entry="md_traj_label"
+        **md_params,
         )
 
 
@@ -49,6 +51,7 @@ def prepare_inputs(ats, info_label, workdir_root, tags):
     for at in ats:
         hash = configs.hash_atoms(at)
         label = at.info[info_label] + hash
+        at.info["md_traj_label"] = label
         fname_in = workdir_root / (label + "_in.xyz")
         fname_out = workdir_root / (label + "_out.xyz")
         input_files.append(fname_in)
