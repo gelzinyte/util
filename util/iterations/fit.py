@@ -262,7 +262,7 @@ def fit(
             it.select_extra_smiles(
                 all_extra_smiles_csv=all_extra_smiles_csv,
                 smiles_selection_csv=extra_smiles_for_this_cycle_csv,
-                chunksize=num_extra_smiles_per_cycle)
+                num_inputs_per_python_subprocess=num_extra_smiles_per_cycle)
 
         # 4. Generate actual structures for md 
         logger.info("generating structures to work with")

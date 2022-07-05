@@ -43,7 +43,7 @@ def xtb_normal_modes(input_fname, output_fname, parallel_hessian):
                                                  outputs=OutputSpec,
                                                  calculator=calc,
                                                  prop_prefix=prop_prefix,
-                                                 chunksize=1)
+                                                 num_inputs_per_python_subprocess=1)
 
 @click.command('dftb')
 @click.argument('input_fn')
@@ -137,8 +137,8 @@ def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
 @click.option('--output-fname', '-o', help='output filename')
 @click.option('--ace-fname', '-a', help='ace json')
 @click.option('--prop-prefix', '-p', default='ace_', show_default=True)
-@click.option('--chunksize', '-c', default=100, show_default=True, help='chunksize for parallelisation')
-def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix, chunksize):
+@click.option('--num_inputs_per_python_subprocess', '-c', default=100, show_default=True, help='num_inputs_per_python_subprocess for parallelisation')
+def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix, num_inputs_per_python_subprocess):
 
     inputs = ConfigSet(input_files=input_fname)
     outputs = OutputSpec(output_files=output_fname)
@@ -146,6 +146,6 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix, chunksize):
     calc = (pyjulip_ace, [ace_fname], {})
 
     generic.run(inputs=inputs, outputs=outputs, calculator=calc, properties=["energy", "forces"],
-                output_prefix=prop_prefix, chunksize=chunksize)
+                output_prefix=prop_prefix, num_inputs_per_python_subprocess=num_inputs_per_python_subprocess)
 
 

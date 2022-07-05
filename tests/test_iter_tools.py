@@ -94,7 +94,7 @@ def test_select_extra_smiles(tmp_path):
     assert len(df[df["has_been_used"]]) == 5 
     assert len(df[~df["has_been_used"]]) == 27 
 
-    it.select_extra_smiles(in_fname, out_fname, chunksize=10)
+    it.select_extra_smiles(in_fname, out_fname, num_inputs_per_python_subprocess=10)
 
     df = pd.read_csv(in_fname, delim_whitespace=True)
     assert len(df[df["has_been_used"]]) == 15 

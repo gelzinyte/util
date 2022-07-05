@@ -9,7 +9,7 @@ from wfl.configset import OutputSpec
 import pandas as pd
 
 
-def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, chunksize=10, precision=4, 
+def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, num_inputs_per_python_subprocess=10, precision=4, 
          info_key="config_type"):
     """Plots error table by config type
 
@@ -25,7 +25,7 @@ def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, chun
         Calculator to evaluate predicted energy & forces
     output_fname: str, default None
         Where to save data with predicted energy & forces, if at all
-    chunksize: int, default 10
+    num_inputs_per_python_subprocess: int, default 10
         How many structures to evaluate sequentially at calculators.generic.run
 
     Returns
@@ -36,7 +36,7 @@ def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, chun
 
     # Always evaluate configurations if calculator is given
     if calculator is not None:
-        data = evaluate_data(data, calculator, pred_prefix, output_fname, chunksize)
+        data = evaluate_data(data, calculator, pred_prefix, output_fname, num_inputs_per_python_subprocess)
 
     ref_data = read_energies_forces(data, ref_prefix, info_key)
     pred_data = read_energies_forces(data, pred_prefix, info_key)
@@ -126,7 +126,7 @@ def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, chun
     return table
 
 
-def evaluate_data(data, calculator, pred_prefix, output_fname=None, chunksize=500):
+def evaluate_data(data, calculator, pred_prefix, output_fname=None, num_inputs_per_python_subprocess=500):
     """Evaluates energies and forces
 
     Parameters
@@ -139,7 +139,7 @@ def evaluate_data(data, calculator, pred_prefix, output_fname=None, chunksize=50
         Calculator to evaluate predicted energy & forces
     output_fname: str, default None
         Where to save evaluated structures, if at all
-    chunksize: int, default 500
+    num_inputs_per_python_subprocess: int, default 500
         How many structures to evaluate sequentially at calculators.generic.run
 
     Returns
@@ -151,7 +151,7 @@ def evaluate_data(data, calculator, pred_prefix, output_fname=None, chunksize=50
     output = OutputSpec()
     properties = ['energy', 'forces']
     generic.run(inputs=data, outputs=output, calculator=calculator, properties=properties,
-                chunksize=chunksize, output_prefix=pred_prefix)
+                num_inputs_per_python_subprocess=num_inputs_per_python_subprocess, output_prefix=pred_prefix)
 
 
     if output_fname is not None:

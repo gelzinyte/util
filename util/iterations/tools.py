@@ -362,13 +362,13 @@ def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir):
     # logger.info("dft cyeck is done")
 
 
-def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, chunksize=10):
+def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, num_inputs_per_python_subprocess=10):
 
     df = pd.read_csv(all_extra_smiles_csv, delim_whitespace=True)
 
     free = df[~df["has_been_used"]]
 
-    selection = free[:chunksize]
+    selection = free[:num_inputs_per_python_subprocess]
     del selection["has_been_used"]
 
     selection.to_csv(smiles_selection_csv, sep=" ")
@@ -490,10 +490,10 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
             logger.info(f"{label}: going through the trajectory in reverse")
         # iterate in reverse until found first good one
         if "NSLOTS" in os.environ:
-            chunksize = int(os.environ["NSLOTS"])
+            num_inputs_per_python_subprocess = int(os.environ["NSLOTS"])
         else:
-            chunksize=8
-        for group_idx, at_group in enumerate(util.grouper(reversed(traj), chunksize)):
+            num_inputs_per_python_subprocess=8
+        for group_idx, at_group in enumerate(util.grouper(reversed(traj), num_inputs_per_python_subprocess)):
             if found_good:
                 break
             at_group = [at for at in at_group if at is not None]
@@ -609,7 +609,7 @@ def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, ou
                          calculator=calculator,
                          properties=["energy", "forces"],
                          output_prefix=pred_prop_prefix,
-                         chunksize=200)
+                         num_inputs_per_python_subprocess=200)
 
     # 3. select configs we need
     dict_of_trajs = configs.into_dict_of_labels([at for at in inputs], "graph_name")

@@ -191,8 +191,8 @@ def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff,
 @click.option("--calc_kwargs", "--kw", help='quippy.potential.Potential keyword arguments')
 @click.option("--output_fname", "-o",
               help="where to save calculator-evaluated configs for quick re-plotting")
-@click.option("--chunksize", type=click.INT, default=500, help='For calculators.generic.run')
-def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_fname, chunksize):
+@click.option("--num_inputs_per_python_subprocess", type=click.INT, default=500, help='For calculators.generic.run')
+def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_fname, num_inputs_per_python_subprocess):
     """Prints force and energy error by config_type"""
 
     from util import error_table
@@ -214,7 +214,7 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
     print('-' * 60)
 
     error_table.plot(data=inputs, ref_prefix=ref_prefix, pred_prefix=pred_prefix, calculator=calc,
-                     output_fname=output_fname, chunksize=chunksize)
+                     output_fname=output_fname, num_inputs_per_python_subprocess=num_inputs_per_python_subprocess)
 
 
 

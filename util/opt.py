@@ -9,22 +9,36 @@ from wfl.autoparallelize.base import autoparallelize
 logger = logging.getLogger(__name__)
 
 
-def optimise(inputs, outputs, calculator, output_prefix,  chunksize=1,
-             traj_step_interval=None,num_python_subprocesses=None):
+def optimise(inputs, outputs, calculator, output_prefix,  num_inputs_per_python_subprocess=1,
+             traj_step_interval=None,num_python_subprocesses=None, info_for_logfile=None):
     return autoparallelize(iterable=inputs, outputspec=outputs,
                          calculator=calculator, op=optimise_autopara_wrappable,
-                         chunksize=chunksize,
+                         num_inputs_per_python_subprocess=num_inputs_per_python_subprocess,
                          traj_step_interval=traj_step_interval,
-                         output_prefix=output_prefix, num_python_subprocesses=num_python_subprocesses)
+                         output_prefix=output_prefix, num_python_subprocesses=num_python_subprocesses, 
+                         info_for_logfile=info_for_logfile)
 
 
-def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_interval=None):
+def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_interval=None, info_for_logfile=None):
     """traj_step_interval: if None, only the last converged config will be
     taken. Otherwise take all that get sampled. + the last
 
     """
 
-    opt_kwargs = {'logfile': None, 'master': True, 'precon': None,
+
+    if info_for_logfile is not None:
+        if len(atoms) == 1:
+            logfile = atoms[0].info[info_for_logfile] + ".opt_log"
+        elif isinstance(atoms, Atoms):
+            logfile = atoms.info[info_for_logfile] + ".opt_log"
+        else:
+            logger.warn(f"got `info_for_logfile`, but have more than one Atoms object")
+            logfile = atoms[0].info[info_for_logfile] + ".opt_log"
+    else:
+        logfile = None
+
+
+    opt_kwargs = {'logfile': logfile, 'master': True, 'precon': None,
                   'use_armijo': False, 'steps':500}
 
     if traj_step_interval is None:

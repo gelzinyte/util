@@ -1,6 +1,6 @@
 import os
 try:
-    from LieACE.tools.calculator import MACECalculator
+    from mace.calculators.mace import MACECalculator
 except:
     pass
 from ase.build import molecule
@@ -12,8 +12,8 @@ def ref_path():
 
 
 def test_mace_ase_calculator():
-    mace_fname = os.path.join(ref_path(), 'files/mace_default_params_run-123.model')
-    mace = MACECalculator(mace_fname, r_max=5.0, device='cpu', atomic_numbers=[1,6])
+    mace_fname = os.path.join(ref_path(), 'files/mace_run-123.model.cpu')
+    mace = MACECalculator(mace_fname, r_max=3.0, device='cpu', atomic_numbers=[1,6], default_dtype="float64")
     at = molecule("CH4")
     at.calc = mace
     at.get_potential_energy()
@@ -27,8 +27,8 @@ def test_wfl_mace_calculator():
     inputs = ConfigSet(input_configs=ats)
     outputs = OutputSpec()
 
-    mace_fname = os.path.join(ref_path(), 'files/mace_default_params_run-123.model')
-    mace = (MACECalculator, [mace_fname], {"r_max": 5.0, "device": "cpu", "atomic_numbers": [1, 6]})
+    mace_fname = os.path.join(ref_path(), 'files/mace_run-123.model.cpu')
+    mace = (MACECalculator, [mace_fname], {"r_max": 3.0, "device": "cpu", "atomic_numbers": [1, 6], "default_dtype":"float64"})
 
     generic.run(
         inputs=inputs, 

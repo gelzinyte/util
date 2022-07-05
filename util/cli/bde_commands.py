@@ -78,11 +78,11 @@ def assign_bdes(all_evaled_atoms_fname, isolated_h_fname, prop_prefix,
 @click.option('--calculator-name',
               type=click.Choice(["gap", "gap_plus_xtb2", 'ace', 'xtb2']),
                     default='gap')
-@click.option('--chunksize', type=click.INT, default=10,
-              help='chunksize for IP optimisation and re-evaluation.')
+@click.option('--num_inputs_per_python_subprocess', type=click.INT, default=10,
+              help='num_inputs_per_python_subprocess for IP optimisation and re-evaluation.')
 def generate_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_prefix,
                       dft_prop_prefix, ip_prop_prefix, wdir,
-                      calculator_name, chunksize):
+                      calculator_name, num_inputs_per_python_subprocess):
 
     from quippy.potential import Potential
     import util.bde.generate
@@ -122,7 +122,7 @@ def generate_bdes(ctx, dft_bde_file, ip_fname, iso_h_fname, output_fname_prefix,
                                  dft_prop_prefix=dft_prop_prefix,
                                  ip_prop_prefix=ip_prop_prefix,
                                  wdir=wdir,
-                                 chunksize=chunksize)
+                                 num_inputs_per_python_subprocess=num_inputs_per_python_subprocess)
 
 
 

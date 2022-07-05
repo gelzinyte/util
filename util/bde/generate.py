@@ -6,16 +6,12 @@ from copy import deepcopy
 
 from os.path import join as pj
 
-import numpy as np
 
 from ase.io import read, write
 from ase import Atoms
 
 from wfl.configset import ConfigSet, OutputSpec
 from wfl.calculators import generic
-from wfl.calculators import orca
-from wfl.calculators import generic
-from wfl.generate import optimize
 
 from util.util_config import Config
 from util import opt
@@ -44,7 +40,8 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
                 calculator=dft_calculator, 
                 properties=["energy"],
                 output_prefix=dft_prop_prefix,
-                chunksize=1)
+                num_inputs_per_python_subprocess=1
+                )
 
 
     generic.run(inputs=inputs,
@@ -59,7 +56,7 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
 
 def everything(pred_calculator, dft_calculator, dft_bde_filename,
                dft_prop_prefix, ip_prop_prefix, wdir='ip_bde_wdir',
-               chunksize=10, output_dir='.'):
+               num_inputs_per_python_subprocess=1, output_dir='.'):
     """
 
      1. evaluate dft structures with ip
@@ -149,7 +146,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         outputs=outputs,
                         calculator=pred_calculator,
                         output_prefix=ip_prop_prefix,
-                        chunksize=chunksize,
+                        num_inputs_per_python_subprocess=num_inputs_per_python_subprocess,
                         num_python_subprocesses=None)
 
 
@@ -172,7 +169,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                 calculator=dft_calculator,
                 output_prefix=dft_prop_prefix, 
                 properties=["energy", "forces"],
-                chunksize=1)
+                num_inputs_per_python_subprocess=1)
 
     # 5. construct isolated atom 
     logger.info("Constructing isolated_h")

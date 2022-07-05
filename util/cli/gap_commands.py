@@ -19,14 +19,14 @@ def eval_gap(gap_fname, at_gaussian_weight, pred_prop_prefix, input_fn, output_f
     gap_calc = util.calculators.gap.at_wt_gap_calc(gap_fname, at_gaussian_weight, type="initialiser")
     wfl_num_threads = int(os.environ.get("WFL_AUTOPARA_NPOOL", 1))
     n_ats = len(read(input_fn, ":"))
-    chunksize = int(n_ats / wfl_num_threads) + 1
+    num_inputs_per_python_subprocess = int(n_ats / wfl_num_threads) + 1
     generic.run(
         inputs=ci, 
         outputs=co,
         calculator=gap_calc,
         properties = ["energy", "forces"],
         output_prefix=pred_prop_prefix, 
-        chunksize = chunksize)
+        num_inputs_per_python_subprocess = num_inputs_per_python_subprocess)
 
 
 
