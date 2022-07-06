@@ -10,10 +10,13 @@ from util import configs
 
 
 def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval, 
-        pred_prop_prefix, remote_info):
+        pred_prop_prefix, remote_info, verbose=False):
 
     workdir_root = Path(workdir_root) 
     workdir_root.mkdir(exist_ok=True)
+
+    out_root = Path(str(workdir_root.resolve()) + '_out')
+    out_root.mkdir(exist_ok=True)
 
     tags = {"temp":int(str(temp))}
 
@@ -35,10 +38,11 @@ def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval,
         inputs=ci, 
         outputs=co,
         calculator=calc,
-        verbose=False,
+        verbose=verbose,
         remote_info=remote_info,
-        num_inputs_per_python_subprocess=None
-        traj_fn_info_entry="md_traj_label"
+        num_inputs_per_python_subprocess=1,
+        traj_fn_info_entry="md_traj_label",
+        wdir = out_root,
         **md_params,
         )
 
