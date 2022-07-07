@@ -32,22 +32,18 @@ def find_rad_c(mol, rad_num):
     return rad_c_num
 
 
-def find_rad_at_indices_byeond_cutoff(mol, rad, r):
-    rad_num = rad.info["rad_num"]
-    rad_c_num = find_rad_c(mol, rad_num)
-    if rad_num > rad_c_num: 
-        # deleting radical won't have affected the index of carbon
-        pass
-    elif rad_num < rad_c_num:
-        # deleting radical will have decreased the index of the carbon
-        rad_c_num -= 1
-    else:
-        raise RuntimeError("something went horribly wrong here")
-
+def find_rad_at_indices_byeond_cutoff(rad, r=None, bin=None):
+    assert r is None or bin is None
+    rad_c_num = rad.info["rad_c_num"]
     all_distances = rad.get_all_distances()
     rad_c_dists = all_distances[rad_c_num]
-
-    return np.argwhere(rad_c_dists > r).flatten()
+    
+    if r is not None:
+        return np.argwhere(rad_c_dists > r).flatten()
+    if bin is not None:
+        larger = list(np.argwhere(rad_c_dists > bin[0]).flatten())
+        smaller = list(np.argwhere(rad_c_dists < bin[1]).flatten())
+        return list(set(larger) & set(smaller)) 
 
 def cleanup_info_arrays(at, keep_info=None, keep_arrays=None):
     if keep_info is None:
@@ -64,15 +60,16 @@ def cleanup_info_arrays(at, keep_info=None, keep_arrays=None):
         del at.arrays[del_array]
 
 
-def get_abs_excess_charge_beyond_cutoff(r, pair, prop_arrays_key):
+def get_prop_diff_beyond_cutoff(pair, prop_arrays_key, r=None, bin=None):
     pair = configs.into_dict_of_labels(pair, "mol_or_rad")
     assert len(pair["rad"]) == 1
     assert len(pair["mol"]) == 1
     rad = pair["rad"][0]
     mol = pair['mol'][0]
-    indices_beyond_r = find_rad_at_indices_byeond_cutoff(mol, rad, r)
+    indices_beyond_r = find_rad_at_indices_byeond_cutoff(rad, r=r, bin=bin)
+    # print(indices_beyond_r)
     property_difference = get_property_difference(mol=mol, rad=rad, prop_arrays_key=prop_arrays_key)
-    assert len(property_difference.flatten()) == len(rad)
+    assert property_difference.shape[0] == len(rad)
     return property_difference[indices_beyond_r]
 
 
@@ -80,6 +77,6 @@ def get_property_difference(mol, rad, prop_arrays_key):
     rad_num = rad.info["rad_num"]
     rad_props = rad.arrays[prop_arrays_key]
     mol_props = mol.arrays[prop_arrays_key]
-    del mol_props[rad_num]
+    mol_props = np.delete(mol_props, (rad_num), axis=0)
     return rad_props - mol_props
 
