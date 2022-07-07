@@ -8,6 +8,16 @@ from ase import Atom, Atoms
 from ase.constraints import FixAtoms
 
 
+def set_constraints(ci, co, cutoff):
+    if co.is_done():
+        return co.to_ConfigSet()
+    
+    for at in ci:
+        at = set_constraint(at, cutoff)
+        co.write(at)
+    co.end_write()
+    return co.to_ConfigSet()
+
 def set_constraint(at, cutoff):
     at = at.copy()
     c_idx = at.info["rad_c_num"]
