@@ -43,7 +43,7 @@ def default_orca_params():
     # dft_prop_prefix = "dft_"
     default_kw = Config.from_yaml(Path(__file__).parent /  "default_kwargs.yml")
     orca_kwargs = default_kw["orca"]
-    orca_kwargs["orca_command"] = cfg["orca_path"]
+    orca_kwargs["orca_path"] = cfg["orca_path"]
     orca_kwargs["workdir_root"] = cfg["scratch_path"] 
     return orca_kwargs
 
