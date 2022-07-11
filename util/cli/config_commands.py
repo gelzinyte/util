@@ -1,9 +1,18 @@
 import click
 import util
-from wfl.configset import OutputSpec
+from wfl.configset import OutputSpec, ConfigSet
 from ase.io import read, write
 from util import configs    
 from util import qm
+
+@click.command("rads-from-mols")
+@click.option('--input', '-i', help='input filename')
+@click.option('--output', '-o', help='output filename')
+def rads_from_mols(input, output):
+    """make one radical from given"""
+    ci = ConfigSet(input_files=input)
+    co = OutputSpec(output_files=output)
+    configs.generate_radicals_from_optimsied_molecules(ci, co)
 
 @click.command("color-by-array")
 @click.option('--input', '-i', help='intput xyz')

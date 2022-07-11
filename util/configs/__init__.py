@@ -10,10 +10,41 @@ import warnings
 from ase import neighborlist
 import numpy as np
 from util import grouper
+import util
 import os
 import hashlib
+import random
+from util import radicals
 
 logger = logging.getLogger(__name__)
+
+def generate_radicals_from_optimsied_molecules(ci, co):
+
+    if co.is_done():
+        logger.info("returning because outputs are done")
+        return co.to_ConfigSet()
+
+    for at in ci:
+        # save molecule
+        at = util.remove_energy_force_containing_entries(at)
+        co.write(at)
+
+        #make a radical
+        rad = at.copy()
+        comp = rad.info["compound"]
+        sp3_Hs = radicals.get_sp3_h_numbers(rad.copy())
+        H_idx_to_del = random.choice(sp3_Hs)
+        del rad[H_idx_to_del]
+
+        rad.info["mol_or_rad"] = "rad"
+        rad.info["rad_num"] = H_idx_to_del
+        rad.info["graph_name"] = str(comp) + '_rad' + str(H_idx_to_del)
+
+        co.write(rad)
+
+    co.end_write()
+    return co.to_ConfigSet()
+
 
 def into_dict_of_labels(ats, info_label):
     if info_label == None:
@@ -60,8 +91,6 @@ def strip_info_arrays(atoms, info_to_keep, arrays_to_keep):
         atoms = atoms[0]
 
     return atoms
-
-
 
 
 def batch_configs(in_fname, num_tasks, batch_in_fname_prefix='in_',
