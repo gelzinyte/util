@@ -18,16 +18,17 @@ from util import radicals
 
 logger = logging.getLogger(__name__)
 
-def generate_radicals_from_optimsied_molecules(ci, co):
+def generate_radicals_from_optimsied_molecules(ci, co, copy_mol=True):
 
     if co.is_done():
         logger.info("returning because outputs are done")
         return co.to_ConfigSet()
 
     for at in ci:
-        # save molecule
-        at = util.remove_energy_force_containing_entries(at)
-        co.write(at)
+        if copy_mol:
+            # save molecule
+            at = util.remove_energy_force_containing_entries(at)
+            co.write(at)
 
         #make a radical
         rad = at.copy()

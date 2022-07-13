@@ -8,11 +8,16 @@ from util import qm
 @click.command("rads-from-mols")
 @click.option('--input', '-i', help='input filename')
 @click.option('--output', '-o', help='output filename')
-def rads_from_mols(input, output):
+@click.option('--no-mol', is_flag=True, help='If true, only radicals will be returned')
+def rads_from_mols(input, output, no_mol):
     """make one radical from given"""
     ci = ConfigSet(input_files=input)
     co = OutputSpec(output_files=output)
-    configs.generate_radicals_from_optimsied_molecules(ci, co)
+    if no_mol:
+        copy_mol = False
+    else:
+        copy_mol=True
+    configs.generate_radicals_from_optimsied_molecules(ci, co, copy_mol=copy_mol)
 
 @click.command("color-by-array")
 @click.option('--input', '-i', help='intput xyz')

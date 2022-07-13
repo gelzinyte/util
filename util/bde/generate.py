@@ -25,12 +25,22 @@ scratch_dir = cfg['scratch_path']
 
 
 def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_prefix, outputs,
-                   wdir='ip_bde_wdir'):
+                   wdir='ip_bde_wdir', remote_info=None):
 
     dft_h = Atoms('H', positions=[(0, 0, 0)])
     dft_h.info['bde_config_type'] = 'H'
     # for ACE
     dft_h.cell = [50, 50, 50]
+
+    if ip_prop_prefix=='mace_':
+        if outputs.is_done():
+            logger.info("isolated h is done")
+            return outputs.to_ConfigSet()
+        dft_h.info["dft_energy"] = -13.547478676206193
+        dft_h.info["mace_energy"] = -13.547478676206193
+        outputs.write(dft_h)
+        outputs.end_write()
+        return outputs.to_ConfigSet()
 
     inputs = ConfigSet(input_configs=dft_h)
     interim_outputs = OutputSpec()
@@ -40,15 +50,16 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
                 calculator=dft_calculator, 
                 properties=["energy"],
                 output_prefix=dft_prop_prefix,
-                num_inputs_per_python_subprocess=1
+                num_inputs_per_python_subprocess=None,
+                remote_info=remote_info
                 )
-
-
+    
     generic.run(inputs=inputs,
                 outputs=outputs,
-                calculator=pred_calculator, properties=['energy'],
+                calculator=pred_calculator, properties=['energy', 'forces'],
                 output_prefix=ip_prop_prefix,
-                num_python_subprocesses=None)
+                num_python_subprocesses=None,
+                remote_info=remote_info)
 
     return outputs.to_ConfigSet() 
 
@@ -56,7 +67,7 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
 
 def everything(pred_calculator, dft_calculator, dft_bde_filename,
                dft_prop_prefix, ip_prop_prefix, wdir='ip_bde_wdir',
-               num_inputs_per_python_subprocess=1, output_dir='.'):
+               num_inputs_per_python_subprocess=1, output_dir='.', remote_info=None):
     """
 
      1. evaluate dft structures with ip
@@ -94,6 +105,9 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     assert f'{dft_prop_prefix}opt_positions_hash' in random_at.info.keys()
     assert isinstance(dft_calculator, tuple)
     assert len(dft_calculator) == 3
+
+    if remote_info is not None:
+        orig_job_name = remote_info.job_name
     
 
     # deal with needed paths
@@ -121,6 +135,8 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     #     print(p)
 
     # 1. evaluate structures with pred_calculator
+    if remote_info is not None:
+        remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}ef'
     logger.info("evaluating IP on dft-optimised structures")
     inputs = ConfigSet(input_files=dft_bde_filename)
     outputs = OutputSpec(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
@@ -129,7 +145,8 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         calculator=pred_calculator,
                         properties=['energy', 'forces'],
                         output_prefix=ip_prop_prefix,
-                        num_python_subprocesses=None)
+                        num_python_subprocesses=None,
+                        remote_info=remote_info)
 
 
     # 2. Duplicate and relabel structures in-memory
@@ -137,6 +154,8 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     inputs = _prepare_structures(inputs, outputs)
 
     # 3. Optimise with interatomic potential
+    if remote_info is not None:
+        remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}opt'
     logger.info('IP-optimising DFT structures')
     outputs = OutputSpec(output_files=ip_reopt_fname,
                             force=True, all_or_none=True,
@@ -147,20 +166,26 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         calculator=pred_calculator,
                         output_prefix=ip_prop_prefix,
                         num_inputs_per_python_subprocess=num_inputs_per_python_subprocess,
-                        num_python_subprocesses=None)
+                        num_python_subprocesses=None,
+                        remote_info=remote_info)
 
 
     # 3.1 evaluate with interatomic potential
+    if remote_info is not None:
+        remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}ef'
     outputs = OutputSpec(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
     inputs = generic.run(inputs=inputs,
                         outputs=outputs,
                         calculator=pred_calculator,
                         properties=['energy', 'forces'],
                         output_prefix=ip_prop_prefix,
-                        num_python_subprocesses=None)
+                        num_python_subprocesses=None,
+                        remote_info=remote_info)
 
 
     # 4. evaluate with DFT
+    if remote_info is not None:
+        remote_info.job_name = orig_job_name + f'_{dft_prop_prefix}ef'
     logger.info('Re-evaluating ip-optimised structures with DFT')
     outputs = OutputSpec(output_files=ip_reopt_with_dft_fname,
                                   force=True, all_or_none=True)
@@ -169,17 +194,21 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                 calculator=dft_calculator,
                 output_prefix=dft_prop_prefix, 
                 properties=["energy", "forces"],
-                num_inputs_per_python_subprocess=1)
+                num_inputs_per_python_subprocess=1,
+                remote_info=remote_info)
 
     # 5. construct isolated atom 
     logger.info("Constructing isolated_h")
+    if remote_info is not None:
+        remote_info.job_name = orig_job_name + f'_H'
     outputs = OutputSpec(output_files=isolated_h_fname, force=True, all_or_none=True)
     ip_isolated_h(pred_calculator=pred_calculator,
                   dft_calculator=dft_calculator,
                   dft_prop_prefix=dft_prop_prefix, 
                   ip_prop_prefix=ip_prop_prefix, 
                   outputs=outputs,
-                  wdir=wdir)
+                  wdir=wdir, 
+                  remote_info=None)
 
 
     # 6. assign BDEs
