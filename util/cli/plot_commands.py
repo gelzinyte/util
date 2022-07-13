@@ -233,11 +233,11 @@ def plot_error_table(ctx, inputs, ref_prefix, pred_prefix, calc_kwargs, output_f
 @click.option('--isolated-at-fname')
 @click.option('--total-energy', '-te', 'energy_type',
               flag_value='total_energy',
-              help='plot total energy, not binding energy per atom')
-@click.option('--binding-energy', '-be', 'energy_type', default=True,
-              flag_value='binding_energy', help='Binding energy per atom')
+              help='plot total energy, not atomization energy per atom')
+@click.option('--atomization-energy', '-ae', 'energy_type', default=True,
+              flag_value='atomization_energy', help='Atomization energy per atom')
 @click.option('--per-atom-energy', '-pae', 'energy_type',
-              flag_value='per_atom_energy', help='plot energy per atom (not binding energy per atom)')
+              flag_value='per_atom_energy', help='plot energy per atom (not atomization energy per atom)')
 @click.option('--mean-shifted-energy', '-sft', 'energy_shift',is_flag=True,
               help='shift energies by the mean. ')
 @click.option('--scatter-absolute-error', 'error_scatter_type', 
