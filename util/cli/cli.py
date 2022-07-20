@@ -123,8 +123,9 @@ subcli_track.add_command(memory)
 def subcli_data():
     """gathering and otherwise workign with data"""
     pass
-from util.cli.data_commands import get_smiles_from_zinc
+from util.cli.data_commands import get_smiles_from_zinc, read_ani
 subcli_data.add_command(get_smiles_from_zinc)
+subcli_data.add_command(read_ani)
 
 
 @cli.group("configs")

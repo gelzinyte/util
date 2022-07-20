@@ -4,6 +4,7 @@ from wfl.configset import OutputSpec
 from ase.io import read, write
 from util import configs    
 from util import qm
+from pathlib import Path
 
 @click.command("color-by-array")
 @click.option('--input', '-i', help='intput xyz')
@@ -74,7 +75,7 @@ def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
     from util.iterations import tools as it
 
     outputs = OutputSpec(output_files=output_fname)
-
+    smiles_csv = Path(smiles_csv)
     it.make_structures(smiles_csv, num_smi_repeat=repeats,
                        outputs=outputs, num_rads_per_mol=num_rads_per_mol,
                        smiles_col=smiles_col, name_col=name_col)

@@ -55,9 +55,9 @@ def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None)
     if keep_arrays is None:
         keep_arrays = []
 
-    info_keys_to_remove = [key for key in at.info.keys() if ('energy' in key or "dipole" in key)]
+    info_keys_to_remove = [key for key in at.info.keys() if ('energy' in key or "dipole" in key or "stress" in key)]
     info_keys_to_remove = [key for key in info_keys_to_remove if key not in keep_info]
-    arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key or "charge" in key]
+    arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key or "charge" in key or "momenta" in key]
     arrays_keys_to_remove = [key for key in arrays_keys_to_remove if key not in keep_arrays]
 
     for key in info_keys_to_remove:
