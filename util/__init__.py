@@ -102,7 +102,7 @@ def sort_atoms_by_label(atoms, label):
 
     return dict_out
 
-def get_binding_energy_per_at(atoms, isolated_atoms, prop_name):
+def get_atomization_energy_per_at(atoms, isolated_atoms, prop_name):
 
     isolated_at_data = {}
     for at in isolated_atoms:
@@ -113,7 +113,7 @@ def get_binding_energy_per_at(atoms, isolated_atoms, prop_name):
     for symbol, count in counted_ats.items():
         full_energy -= count * isolated_at_data[symbol]
 
-    return full_energy / len(atoms)
+    return -full_energy / len(atoms)
 
 
 def shift0(my_list, by=None):

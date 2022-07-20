@@ -16,19 +16,13 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
                   group_compounds=False,
                   isolated_atoms=None, info_label='config_type', dir='.',
                   cmap="tab10"):
-    """TODO: do binding energy per atom"""
 
     if title is None:
        title = 'energy per atom vs index'
 
     if isolated_atoms is None:
         isolated_atoms = [at for at in atoms if len(at) == 1]
-    #
-    # isolated_at_data = {}
-    # for at in isolated_atoms:
-    #     print(at)
-    #     print(type(at))
-    #     isolated_at_data[list(at.symbols)[0]] = at.info[f'{prop_prefix}energy']
+    atoms = [at for at in atoms if len(at) != 1]
 
     data = {}
     for idx, at in enumerate(atoms):
@@ -50,30 +44,30 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
         colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
     
 
-    plt.figure(figsize=(20, 6))
+    plt.figure(figsize=(15, 4))
     global_idx = 0
     for idx, (cfg_type, configs) in enumerate(data.items()):
 
-        binding_energies_per_at = np.array([util.get_binding_energy_per_at(at, isolated_atoms, prop_prefix+"energy")
+        atomization_energies_per_at = np.array([util.get_atomization_energy_per_at(at, isolated_atoms, prop_prefix+"energy")
                                             for at in configs if len(at) != 1])
         indices = np.array([at.info['dset_idx'] for at in configs if len(at) != 1])
 
-        plt.scatter(indices, binding_energies_per_at, label=cfg_type, s=8, marker='x', color=colors[idx])
-        # plt.plot(range(global_idx, global_idx +len(binding_energies_per_at)), binding_energies_per_at, label=cfg_type)
-        # global_idx += len(binding_energies_per_at)
+        plt.scatter(indices, atomization_energies_per_at, label=cfg_type, s=8, marker='x', color=colors[idx])
+        # plt.plot(range(global_idx, global_idx +len(atomization_energies_per_at)), atomization_energies_per_at, label=cfg_type)
+        # global_idx += len(atomization_energies_per_at)
 
     plt.title(title)
     if len(data.keys()) < 11 or cmap != 'tab10':
         plt.legend()
     plt.xlabel('index in dataset')
-    plt.ylabel(f'{prop_prefix} binding energy / ev/atom')
+    plt.ylabel(f'{prop_prefix} atomization energy / ev/atom')
     plt.grid(color='lightgrey', linestyle=':')
 
     plt.tight_layout()
 
     fig_name = title.replace(' ', '_')
-    fig_name = Path(dir) / (fig_name + '.pdf')
-    plt.savefig(fig_name)
+    fig_name = Path(dir) / (fig_name + '.png')
+    plt.savefig(fig_name, dpi=300)
 
 def forces_by_idx(atoms, prop_prefix='dft_', title=None,
                   group_compounds=False, info_label='config_type',
@@ -104,7 +98,7 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
         colors = [cmap(idx) for idx in np.linspace(0, 1, 10)]
     
 
-    plt.figure(figsize=(20, 6))
+    plt.figure(figsize=(15, 4))
 
     for c_idx, (cfg_type, configs) in enumerate(data.items()):
         xs = []
@@ -130,8 +124,8 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
     plt.tight_layout()
 
     fig_name = title.replace(' ', '_')
-    fig_name = Path(dir) / (fig_name + '.pdf')
-    plt.savefig(fig_name)
+    fig_name = Path(dir) / (fig_name + '.png')
+    plt.savefig(fig_name, dpi=300)
 
 
 def group_data(data):

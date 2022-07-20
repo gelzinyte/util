@@ -57,7 +57,7 @@ def scatter_plot(ref_energy_name,
 
     errors_to_return = {"energy": {}, "forces": {}}
 
-    if isolated_atoms is None and energy_type=='binding_energy':
+    if isolated_atoms is None and energy_type=='atomization_energy':
         isolated_atoms = [at for at in all_atoms if len(at) == 1]
     all_atoms = [at for at in all_atoms if len(at) != 1]
 
@@ -80,13 +80,13 @@ def scatter_plot(ref_energy_name,
 
    ################### energy plots
 
-    if energy_type == 'binding_energy':
-        energy_getter_function = util.get_binding_energy_per_at
-        y_energy_correlation_label = f'Predicted binding {pred_energy_name} / eV/at'
-        x_energy_label = f'Binding {ref_energy_name} / eV/at'
-        y_energy_error_label = f'binding energy error / meV/at'
-        energy_correlation_title =  'binding energy correlation'
-        energy_error_title = 'binding energy error'
+    if energy_type == 'atomization_energy':
+        energy_getter_function = util.get_atomization_energy_per_at
+        y_energy_correlation_label = f'Predicted atomization {pred_energy_name} / eV/at'
+        x_energy_label = f'Atomization {ref_energy_name} / eV/at'
+        y_energy_error_label = f'atomization energy error / meV/at'
+        energy_correlation_title =  'atomization energy correlation'
+        energy_error_title = 'atomization energy error'
         e_error_units = 'meV/at'
 
     elif energy_type == 'total_energy':
@@ -111,15 +111,15 @@ def scatter_plot(ref_energy_name,
 
     elif energy_type == "per_atom_energy":
         energy_getter_function = total_per_atom_energy
-        y_energy_correlation_label = f'Predicted per atom total (not binding)' \
+        y_energy_correlation_label = f'Predicted per atom total (not atomization)' \
                                      f' {pred_energy_name} / eV/at'
-        x_energy_label = f'per atom total (not binding) {ref_energy_name} / eV/at'
-        y_energy_error_label = f'per atom total (not binding) energy error / meV/at'
-        energy_correlation_title = 'per atom total (not binding) energy correlation'
-        energy_error_title = 'per atom total (not binding) energy error'
+        x_energy_label = f'per atom total (not atomization) {ref_energy_name} / eV/at'
+        y_energy_error_label = f'per atom total (not atomization) energy error / meV/at'
+        energy_correlation_title = 'per atom total (not atomization) energy correlation'
+        energy_error_title = 'per atom total (not atomization) energy error'
         e_error_units = 'meV/at'
     else:
-        raise ValueError(f'"energy_type" must be one of "binding_energy", '
+        raise ValueError(f'"energy_type" must be one of "atomization_energy", '
                          f'"total_energy" or "mean_shifted_energy", '
                          f'not "{energy_type}". ')
 
