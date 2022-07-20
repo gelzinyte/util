@@ -168,7 +168,7 @@ def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff,
         title_energy = f'{fig_prefix}_{fname_stem}_by_{info}_energies'
         title_forces = f'{fig_prefix}_{fname_stem}_by_{info}_forces'
 
-    dists_fig_name = f'{fig_prefix}_{fname_stem}_distances_hist.pdf'
+    # dists_fig_name = f'{fig_prefix}_{fname_stem}_distances_hist.pdf'
 
 
     if not no_ef:
@@ -178,7 +178,7 @@ def plot_dataset(in_fname, fig_prefix, isolated_at_fname, cutoff,
         dataset.forces_by_idx(atoms, title=title_forces, info_label=info,
                               prop_prefix=prop_prefix, cmap=cmap)
 
-    dataset.pairwise_distances_hist(atoms, dists_fig_name)
+    # dataset.pairwise_distances_hist(atoms, dists_fig_name)
 
 
 
