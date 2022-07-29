@@ -25,7 +25,7 @@ scratch_dir = cfg['scratch_path']
 
 
 def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_prefix, outputs,
-                   wdir='ip_bde_wdir'):
+                   wdir='ip_bde_wdir', no_dft=False):
 
     dft_h = Atoms('H', positions=[(0, 0, 0)])
     dft_h.info['bde_config_type'] = 'H'
@@ -35,13 +35,14 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
     inputs = ConfigSet(input_configs=dft_h)
     interim_outputs = OutputSpec()
 
-    inputs = generic.run(inputs=inputs,
-                outputs=interim_outputs, 
-                calculator=dft_calculator, 
-                properties=["energy"],
-                output_prefix=dft_prop_prefix,
-                num_inputs_per_python_subprocess=1
-                )
+    if not no_dft:
+        inputs = generic.run(inputs=inputs,
+                    outputs=interim_outputs, 
+                    calculator=dft_calculator, 
+                    properties=["energy"],
+                    output_prefix=dft_prop_prefix,
+                    num_inputs_per_python_subprocess=1
+                    )
 
 
     generic.run(inputs=inputs,
@@ -56,7 +57,7 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
 
 def everything(pred_calculator, dft_calculator, dft_bde_filename,
                dft_prop_prefix, ip_prop_prefix, wdir='ip_bde_wdir',
-               num_inputs_per_python_subprocess=1, output_dir='.'):
+               num_inputs_per_python_subprocess=1, output_dir='.', no_dft=False):
     """
 
      1. evaluate dft structures with ip
@@ -128,8 +129,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         outputs=outputs,
                         calculator=pred_calculator,
                         properties=['energy', 'forces'],
-                        output_prefix=ip_prop_prefix,
-                        num_python_subprocesses=None)
+                        output_prefix=ip_prop_prefix)
 
 
     # 2. Duplicate and relabel structures in-memory
@@ -146,8 +146,7 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         outputs=outputs,
                         calculator=pred_calculator,
                         output_prefix=ip_prop_prefix,
-                        num_inputs_per_python_subprocess=num_inputs_per_python_subprocess,
-                        num_python_subprocesses=None)
+                        num_inputs_per_python_subprocess=num_inputs_per_python_subprocess)
 
 
     # 3.1 evaluate with interatomic potential
@@ -156,20 +155,19 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                         outputs=outputs,
                         calculator=pred_calculator,
                         properties=['energy', 'forces'],
-                        output_prefix=ip_prop_prefix,
-                        num_python_subprocesses=None)
+                        output_prefix=ip_prop_prefix)
 
-
-    # 4. evaluate with DFT
-    logger.info('Re-evaluating ip-optimised structures with DFT')
-    outputs = OutputSpec(output_files=ip_reopt_with_dft_fname,
-                                  force=True, all_or_none=True)
-    generic.run(inputs=inputs, 
-                outputs=outputs,
-                calculator=dft_calculator,
-                output_prefix=dft_prop_prefix, 
-                properties=["energy", "forces"],
-                num_inputs_per_python_subprocess=1)
+    if not no_dft:
+        # 4. evaluate with DFT
+        logger.info('Re-evaluating ip-optimised structures with DFT')
+        outputs = OutputSpec(output_files=ip_reopt_with_dft_fname,
+                                    force=True, all_or_none=True)
+        generic.run(inputs=inputs, 
+                    outputs=outputs,
+                    calculator=dft_calculator,
+                    output_prefix=dft_prop_prefix, 
+                    properties=["energy", "forces"],
+                    num_inputs_per_python_subprocess=1)
 
     # 5. construct isolated atom 
     logger.info("Constructing isolated_h")
@@ -179,7 +177,8 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                   dft_prop_prefix=dft_prop_prefix, 
                   ip_prop_prefix=ip_prop_prefix, 
                   outputs=outputs,
-                  wdir=wdir)
+                  wdir=wdir,
+                  no_dft=no_dft)
 
 
     # 6. assign BDEs
@@ -207,11 +206,12 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
                             prop_prefix=ip_prop_prefix, 
                             dft_prop_prefix=dft_prop_prefix, 
                             isolated_h=isolated_h)
-        ### dft bdes
-        table.assign_bde_info(all_atoms=all_atoms_ip_reopt,
-                            prop_prefix=dft_prop_prefix, 
-                            dft_prop_prefix=dft_prop_prefix, 
-                            isolated_h=isolated_h)
+        if not no_dft:
+            ### dft bdes
+            table.assign_bde_info(all_atoms=all_atoms_ip_reopt,
+                                prop_prefix=dft_prop_prefix, 
+                                dft_prop_prefix=dft_prop_prefix, 
+                                isolated_h=isolated_h)
         write(ip_reopt_bde_fname, all_atoms_ip_reopt)
 
 

@@ -20,6 +20,7 @@ def eval_gap(gap_fname, at_gaussian_weight, pred_prop_prefix, input_fn, output_f
     wfl_num_threads = int(os.environ.get("WFL_AUTOPARA_NPOOL", 1))
     n_ats = len(read(input_fn, ":"))
     num_inputs_per_python_subprocess = int(n_ats / wfl_num_threads) + 1
+    print(num_inputs_per_python_subprocess)
     generic.run(
         inputs=ci, 
         outputs=co,
