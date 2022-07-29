@@ -123,8 +123,9 @@ subcli_track.add_command(memory)
 def subcli_data():
     """gathering and otherwise workign with data"""
     pass
-from util.cli.data_commands import get_smiles_from_zinc
+from util.cli.data_commands import get_smiles_from_zinc, read_ani
 subcli_data.add_command(get_smiles_from_zinc)
+subcli_data.add_command(read_ani)
 
 
 @cli.group("configs")
@@ -134,7 +135,9 @@ def subcli_configs():
 from util.cli.config_commands import assign_differences, \
     smiles_to_molecules_and_rads, distribute_configs, \
     gather_configs, info_to_numbers, hash_structures, \
-    remove_old_calc_results, check_geometry, configs_summary, color_atoms_by_array
+    remove_old_calc_results, check_geometry, configs_summary, color_atoms_by_array, \
+    rads_from_mols 
+
 # smiles_to_molecules
 subcli_configs.add_command(assign_differences)
 subcli_configs.add_command(smiles_to_molecules_and_rads)
@@ -147,6 +150,7 @@ subcli_configs.add_command(remove_old_calc_results)
 subcli_configs.add_command(check_geometry)
 subcli_configs.add_command(configs_summary)
 subcli_configs.add_command(color_atoms_by_array)
+subcli_configs.add_command(rads_from_mols)
 
 
 @cli.group("calc")

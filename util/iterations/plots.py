@@ -361,8 +361,8 @@ def check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix):
     is_at = [at for at in ats if len(at) == 1]
     ats = [at for at in ats if len(at) != 1]
 
-    ref_e = [util.get_binding_energy_per_at(at, is_at, f'{dft_prop_prefix}energy') for at in ats]
-    pred_e = [util.get_binding_energy_per_at(at, is_at, f'{pred_prop_prefix}energy') for at in ats]
+    ref_e = [util.get_atomization_energy_per_at(at, is_at, f'{dft_prop_prefix}energy') for at in ats]
+    pred_e = [util.get_atomization_energy_per_at(at, is_at, f'{pred_prop_prefix}energy') for at in ats]
 
     errors = np.array([(ref - pred) * 1e3 for ref, pred in zip(ref_e, pred_e)])
     mean_error = np.mean(errors)

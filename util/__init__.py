@@ -43,7 +43,7 @@ def default_orca_params():
     # dft_prop_prefix = "dft_"
     default_kw = Config.from_yaml(Path(__file__).parent /  "default_kwargs.yml")
     orca_kwargs = default_kw["orca"]
-    orca_kwargs["orca_command"] = cfg["orca_path"]
+    orca_kwargs["orca_path"] = cfg["orca_path"]
     orca_kwargs["workdir_root"] = cfg["scratch_path"] 
     return orca_kwargs
 
@@ -55,9 +55,9 @@ def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None)
     if keep_arrays is None:
         keep_arrays = []
 
-    info_keys_to_remove = [key for key in at.info.keys() if ('energy' in key or "dipole" in key)]
+    info_keys_to_remove = [key for key in at.info.keys() if ('energy' in key or "dipole" in key or "stress" in key)]
     info_keys_to_remove = [key for key in info_keys_to_remove if key not in keep_info]
-    arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key or "charge" in key]
+    arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key or "charge" in key or "momenta" in key]
     arrays_keys_to_remove = [key for key in arrays_keys_to_remove if key not in keep_arrays]
 
     for key in info_keys_to_remove:
@@ -102,7 +102,7 @@ def sort_atoms_by_label(atoms, label):
 
     return dict_out
 
-def get_binding_energy_per_at(atoms, isolated_atoms, prop_name):
+def get_atomization_energy_per_at(atoms, isolated_atoms, prop_name):
 
     isolated_at_data = {}
     for at in isolated_atoms:
@@ -113,7 +113,7 @@ def get_binding_energy_per_at(atoms, isolated_atoms, prop_name):
     for symbol, count in counted_ats.items():
         full_energy -= count * isolated_at_data[symbol]
 
-    return full_energy / len(atoms)
+    return -full_energy / len(atoms)
 
 
 def shift0(my_list, by=None):

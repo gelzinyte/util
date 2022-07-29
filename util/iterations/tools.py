@@ -106,6 +106,8 @@ def make_structures(
                 atoms_out += mol_and_rads
             except RuntimeError:
                 logger.info(f"could not generate structure from {smi}")
+            except IndexError:
+                logger.info(f'could not generate structure from {smi}')
 
     logger.info(f"length of output atoms: {len(atoms_out)}")
 
