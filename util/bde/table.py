@@ -14,9 +14,9 @@ def atom_sorter(atoms, info_key='mol_or_rad'):
     return sorted(atoms, key=alphanum_key)
 
 
-def assign_bde_info(all_atoms, prop_prefix, dft_prop_prefix, h_energy=None, isolated_h=None):
+def assign_bde_info(all_atoms, prop_prefix, hash_label, h_energy=None, isolated_h=None):
     """prop_prefix - which prefix to use for energies for bdes
-        dft_prop_prefix - used to get dft_opt_mol_positions_hash"""
+        hash_label - used to get dft_opt_mol_positions_hash"""
 
     if h_energy is not None:
         assert isolated_h is None
@@ -24,7 +24,7 @@ def assign_bde_info(all_atoms, prop_prefix, dft_prop_prefix, h_energy=None, isol
         assert h_energy is None
         h_energy = isolated_h.info[f"{prop_prefix}energy"]
 
-    atoms_by_hash = get_atoms_by_hash_dict(all_atoms, dft_prop_prefix)
+    atoms_by_hash = get_atoms_by_hash_dict(all_atoms, hash_label)
 
     atoms_out = []
     for hash, atoms in atoms_by_hash.items():
@@ -115,13 +115,13 @@ def print_error_diff_table(data, compound):
             
 
 
-def get_atoms_by_hash_dict(atoms, dft_prefix):
+def get_atoms_by_hash_dict(atoms, hash_label):
     """returns dictionary of hash:[Atoms]"""
 
     # put everything into a dictionary 
     atoms_by_hash = {}
     for at in atoms:
-        hash = at.info[f'{dft_prefix}opt_mol_positions_hash']
+        hash = at.info[hash_label]
         if hash not in atoms_by_hash.keys():
             atoms_by_hash[hash] = []
         atoms_by_hash[hash].append(at)

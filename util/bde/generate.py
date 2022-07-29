@@ -220,12 +220,12 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
         ### ip bdes
         table.assign_bde_info(all_atoms=all_atoms_dft_opt,
                             prop_prefix=ip_prop_prefix, 
-                            dft_prop_prefix=dft_prop_prefix, 
+                            hash_label=f'{dft_prop_prefix}opt_mol_positions_hash', 
                             isolated_h=isolated_h)
         ### dft bdes
         table.assign_bde_info(all_atoms=all_atoms_dft_opt,
                             prop_prefix=dft_prop_prefix, 
-                            dft_prop_prefix=dft_prop_prefix, 
+                            hash_label=f'{dft_prop_prefix}opt_mol_positions_hash', 
                             isolated_h=isolated_h)
         write(dft_opt_bde_fname, all_atoms_dft_opt)
 
@@ -234,12 +234,12 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
         all_atoms_ip_reopt = read(ip_reopt_with_dft_fname, ':')
         table.assign_bde_info(all_atoms=all_atoms_ip_reopt,
                             prop_prefix=ip_prop_prefix, 
-                            dft_prop_prefix=dft_prop_prefix, 
+                            hash_label=f'{dft_prop_prefix}opt_mol_positions_hash', 
                             isolated_h=isolated_h)
         ### dft bdes
         table.assign_bde_info(all_atoms=all_atoms_ip_reopt,
                             prop_prefix=dft_prop_prefix, 
-                            dft_prop_prefix=dft_prop_prefix, 
+                            hash_label=f'{dft_prop_prefix}opt_mol_positions_hash', 
                             isolated_h=isolated_h)
         write(ip_reopt_bde_fname, all_atoms_ip_reopt)
 

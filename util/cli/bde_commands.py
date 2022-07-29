@@ -10,6 +10,8 @@ from wfl.calculators import generic
 logger = logging.getLogger(__name__)
 
 
+
+
 @click.command('dissociate-h')
 @click.argument('input_fname')
 @click.option('--output-fname', '-o')
@@ -32,12 +34,13 @@ def do_dissociate_h(input_fname, output_fname, h_idx, c_idx):
 @click.option('--isolated-h-fname',
               help='H with appropriate energy. Can have other isolated atoms')
 @click.option('--prop-prefix', help='prop prefix to get energies with')
-@click.option('--dft-prefix', help='for getting dft_opt_mol_positions_has')
+# @click.option('--dft-prefix', help='for getting dft_opt_mol_positions_has')
+@click.option('--hash-label', help='label by which molecules are grouped')
 @click.option('--output-fname',
               help='output filename for radicals with bond dissociation '
                    'energies')
 def assign_bdes(all_evaled_atoms_fname, isolated_h_fname, prop_prefix,
-                dft_prefix, output_fname):
+                hash_label, output_fname):
 
     import util.bde.table
 
@@ -55,7 +58,7 @@ def assign_bdes(all_evaled_atoms_fname, isolated_h_fname, prop_prefix,
     all_bde_ats = util.bde.table.assign_bde_info(all_atoms=all_atoms,
                                          h_energy=isolated_h_energy,
                                          prop_prefix=prop_prefix,
-                                         dft_prop_prefix=dft_prefix)
+                                         hash_label=hash_label)
 
     write(output_fname, all_bde_ats)
 

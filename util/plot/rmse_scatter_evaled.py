@@ -55,6 +55,17 @@ def scatter_plot(ref_energy_name,
                  skip_if_prop_not_present=False,
                  error_scatter_type='absolute'):
 
+    special_colors={
+        "zinc-train":'k',
+        "zinc-test":"tab:orange",
+        "comp6": "tab:red",
+        "ha22": "tab:green",
+        "tyzack": "tab:purple"
+    }
+    # labels_order = ["zinc-train", "zinc-test", "comp6", "ha22", "tyzack"]
+    labels_order = ["zinc-test", "comp6", "ha22", "tyzack"]
+
+
     errors_to_return = {"energy": {}, "forces": {}}
 
     if isolated_atoms is None and energy_type=='atomization_energy':
@@ -71,12 +82,7 @@ def scatter_plot(ref_energy_name,
         error_label = "MAE"
 
 
-    if color_info_name is not None:
-        info_entries = [at.info[color_info_name] if color_info_name in
-                                                    at.info.keys() else
-                        'no info' for at in all_atoms]
-    else:
-        info_entries = ['no label' for at in all_atoms if len(at) != 1]
+
 
    ################### energy plots
 
@@ -142,6 +148,7 @@ def scatter_plot(ref_energy_name,
 
     ref_energies = []
     pred_energies = []
+    info_entries = []
 
     number_of_skipped_configs=0
     for at in all_atoms:
@@ -159,6 +166,12 @@ def scatter_plot(ref_energy_name,
 
         ref_energies.append(energy_getter_function(at, isolated_atoms, ref_energy_name))
         pred_energies.append(energy_getter_function(at, isolated_atoms, pred_energy_name))
+
+        info_entry = "no label"
+        if color_info_name is not None:
+            if color_info_name in at.info.keys():
+                info_entry = at.info[color_info_name]
+        info_entries.append(info_entry)
 
     if number_of_skipped_configs > 0: 
         logger.warn(f'skipped {number_of_skipped_configs} configs, because one of {ref_energy_name} or {pred_energy_name} was not found.')
@@ -179,6 +192,7 @@ def scatter_plot(ref_energy_name,
                              pred_values=pred_energies, labels=info_entries)
 
 
+
     n_colors = len(all_plot_data)
     if n_colors < 11:
         cmap = plt.get_cmap('tab10')
@@ -188,6 +202,7 @@ def scatter_plot(ref_energy_name,
         colors = [cmap(idx) for idx in np.linspace(0, 1, n_colors)]
 
     marker_kwargs = {'marker': 'o', 'alpha': 1, 's': 10, 'facecolors':'none'}
+    # marker_kwargs = {'marker': 'x', 'alpha': 0.5, 's': 10}#, 'facecolors':'none'k
 
     num_columns = 2
     if ref_force_name is None:
@@ -226,7 +241,13 @@ def scatter_plot(ref_energy_name,
     ax_err = ax_e_err
     ax_corr = ax_e_corr
 
-    for color, (label, data) in zip(colors, all_plot_data.items()):
+    # for color, (label, data) in zip(colors, all_plot_data.items()):
+    # for label, data in all_plot_data.items():
+    for label in labels_order:
+        # print(all_plot_data.keys())
+        # print(len(all_plot_data[label]["predicted"]))
+        data = all_plot_data[label]
+        color = special_colors[label]
 
         ref = data['reference']
         pred = data['predicted']
@@ -246,23 +267,28 @@ def scatter_plot(ref_energy_name,
         
         errors_to_return["energy"][label] = errors
 
-        ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}', edgecolors=color,
+        ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}', 
+                        color=color,
+                        #edgecolors=color,
                        zorder=2, **marker_kwargs)
-        ax_err.scatter(ref, errors, **marker_kwargs,
-                       edgecolors=color, zorder=2)
+        ax_err.scatter(ref, errors, **marker_kwargs, 
+                        color=color,
+                        #edgecolors=color, 
+                        zorder=2)
         ax_err.axhline(error_scatter_line, color=color, lw=0.8, label=error_scatter_line_label)
 
     if not no_legend:
         ax_corr.legend(title=f' {color_info_name}: {error_label} / {e_error_units}',
                        **e_legend_kwargs)
-        if error_scatter_type == 'signed':
-            ax_err.legend()
-            ax_err.axhline(0, c='k', lw=0.8, ls='--')
+        # if error_scatter_type == 'signed':
+            # ax_err.legend()
+            # ax_err.axhline(0, c='k', lw=0.8, ls='--')
         
     ax_corr.set_ylabel(y_energy_correlation_label)
     ax_err.set_ylabel(y_energy_error_label)
-    if error_scatter_type == "absolute": 
-        ax_err.set_yscale('log')
+    # if error_scatter_type == "absolute": 
+        # ax_err.set_yscale('log')
+        # ax_err.set_ylim(bottom=0)
     ax_err.set_title(energy_error_title)
     ax_corr.set_title(energy_correlation_title)
 
@@ -296,7 +322,10 @@ def scatter_plot(ref_energy_name,
         ax_err = ax_f_err
         ax_corr = ax_f_corr
 
-        for color, (label, data) in zip(colors, all_plot_data.items()):
+        # for color, (label, data) in zip(colors, all_plot_data.items()):
+        for label in labels_order:
+            data = all_plot_data[label]
+            color = special_colors[label]
 
             ref = data['reference']
             pred = data['predicted']
@@ -319,23 +348,28 @@ def scatter_plot(ref_energy_name,
             errors_to_return["forces"][label] = errors
 
             ax_corr.scatter(ref, pred, label=f'{label}: {error:.3f}',
-                            edgecolors=color,
+                            color=color,
+                            # edgecolors=color,
                             **marker_kwargs)
-            ax_err.scatter(ref, errors , edgecolors=color,
-            **marker_kwargs)
+            ax_err.scatter(ref, errors ,
+                            color=color,
+                            # edgecolors=color,
+                        **marker_kwargs)
             ax_err.axhline(error_scatter_line, color=color, lw=0.8, label=error_scatter_line_label)
 
         if not no_legend:
             ax_corr.legend(title=f'F component {error_label} / meV/Å',
                            **f_legend_kwargs)
-            if error_scatter_type == 'signed':
-                ax_err.legend()  
-                ax_err.axhline(0, color='k', lw=0.8, ls='--')
+            # # # if error_scatter_type == 'signed':
+            # #     ax_err.legend()  
+            #     ax_err.axhline(0, color='k', lw=0.8, ls='--')
 
         ax_corr.set_ylabel(f'Predicted {pred_force_name} / eV/Å')
         ax_err.set_ylabel(y_force_error_label)
-        if error_scatter_type == "absolute":
-            ax_err.set_yscale('log')
+        # if error_scatter_type == "absolute":
+            # ax_err.set_yscale('log')
+            # ax_err.set_ylim(bottom=0)
+            
         ax_err.set_title(forces_error_title)
         ax_corr.set_title('Force component correlation')
 

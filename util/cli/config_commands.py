@@ -10,7 +10,8 @@ from pathlib import Path
 @click.option('--input', '-i', help='input filename')
 @click.option('--output', '-o', help='output filename')
 @click.option('--no-mol', is_flag=True, help='If true, only radicals will be returned')
-def rads_from_mols(input, output, no_mol):
+@click.option('--num-rads', type=click.INT, default=1, help="how many radicals to make")
+def rads_from_mols(input, output, no_mol, num_rads):
     """make one radical from given"""
     ci = ConfigSet(input_files=input)
     co = OutputSpec(output_files=output)
@@ -18,7 +19,7 @@ def rads_from_mols(input, output, no_mol):
         copy_mol = False
     else:
         copy_mol=True
-    configs.generate_radicals_from_optimsied_molecules(ci, co, copy_mol=copy_mol)
+    configs.generate_radicals_from_optimsied_molecules(ci, co, number_of_radicals=num_rads, copy_mol=copy_mol)
 
 @click.command("color-by-array")
 @click.option('--input', '-i', help='intput xyz')
