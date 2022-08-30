@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def ref_path():
     return Path(__file__).parent.resolve()
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_iterfit(tmp_path):
     """
     TODO
@@ -22,7 +22,7 @@ def test_iterfit(tmp_path):
     logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(message)s')
 
-    tmp_path = Path("/home/eg475/scripts/tests/iterations_wdir")
+    tmp_path = Path("/home/eg475/dev/scripties/tests/iterations_wdir")
     tmp_path.mkdir(exist_ok=True)
 
     # sort out train/test sets
@@ -45,19 +45,16 @@ def test_iterfit(tmp_path):
     util.iterations.fit.fit(
         num_cycles=1,
         base_train_fname=train_fname,
-        base_test_fname=test_fname, 
+        validation_fname=test_fname,
         fit_param_fname=fit_param_fname,
         all_extra_smiles_csv=all_extra_smiles_csv,
         md_temp=500.0,
-        # energy_error_per_atom_threshold=0.0002,
-        # energy_error_total_threshold=None,
-        # max_f_comp_error_threshold=None,
         wdir= tmp_path / "fits",
         ref_type='dft', 
         ip_type='ace',
-        bde_test_fname=bde_test_fname, 
-        soap_params_for_cur_fname=soap_params_for_cur,
-        num_train_environments_per_cycle=5,
-        num_test_environments_per_cycle=5,
+        # soap_params_for_cur_fname=soap_params_for_cur,
+        # num_train_environments_per_cycle=5,
+        # num_test_environments_per_cycle=5,
         num_extra_smiles_per_cycle=5,
+        md_steps=200,
     )

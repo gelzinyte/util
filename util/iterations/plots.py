@@ -25,6 +25,7 @@ import wfl.fit.gap.simple
 import wfl.fit.ace
 from wfl.calculators import generic
 from wfl.calculators import orca
+from wfl.autoparallelize.autoparainfo import AutoparaInfo
 
 import util
 from util import radicals
@@ -45,7 +46,7 @@ def run_tests(
     train_set_fname,
     tests_wdir,
     # bde_test_fname,
-    orca_kwargs,
+    # orca_kwargs,
     output_dir,
     validation_fname,
     quick = True,
@@ -67,7 +68,7 @@ def run_tests(
         calculator=calculator,
         properties=["energy", "forces"],
         output_prefix=pred_prop_prefix,
-        num_inputs_per_python_subprocess=200)
+        autopara_info=AutoparaInfo(num_inputs_per_python_subprocess=200))
 
     # check the offset is not there
     check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
@@ -200,7 +201,7 @@ def dimer_2b(calculator, tests_wdir, fit_params=None):
         ch_in = None, 
         hh_in = None,
     else:
-        cutoffs_mb = fit_params["basis"]["rpi_basis"]["transform"]["cutoffs"]        
+        cutoffs_mb = fit_params["basis"]["ace_basis"]["transform"]["cutoffs"]        
         cc_in = it.parse_cutoffs(f'(C, C)', cutoffs_mb)[0] 
         ch_in = it.parse_cutoffs(f'(C, H)', cutoffs_mb)[0]
         hh_in = it.parse_cutoffs(f'(H, H)', cutoffs_mb)[0]
