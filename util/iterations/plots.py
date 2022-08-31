@@ -62,14 +62,14 @@ def run_tests(
         calculator=pred_calculator,
         properties=["energy", "forces"],
         output_prefix=pred_prop_prefix,
-        autopara_info=AutoparaInfo(num_inputs_per_python_subprocess=200))
+        autopara_info=AutoparaInfo(num_inputs_per_python_subprocess=200, remote_label="mlip_eval"))
 
     # check the offset is not there
     logger.info('checking for the offset')
     check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
 
     logger.info("plotting dimer curves")
-    # dimer_2b(pred_calculator, fns["tests_dir"], fit_params)
+    dimer_2b(pred_calculator, fns["tests_dir"], fit_params)
 
     # training & validation set scatter plots
     ats_train = read(train_evaled, ":")

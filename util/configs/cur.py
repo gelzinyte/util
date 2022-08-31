@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(message)s')
 
-def per_environment(inputs, outputs, num,
+def per_environment_core(inputs, outputs, num,
                         at_descs_key=None, kernel_exp=None,
                         stochastic=True,
                         keep_descriptor_arrays=True, center=True,

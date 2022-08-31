@@ -32,6 +32,7 @@ from wfl.calculators import generic
 from wfl.calculators import orca
 from wfl.generate import md
 from wfl.autoparallelize import autoparainfo
+from wfl.autoparallelize.autoparainfo import AutoparaInfo
 from wfl.descriptors import quippy
 
 import util
@@ -199,7 +200,8 @@ def sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_no):
             outputs=os_soap,
             descs=soap_params,
             key="small_soap",  # where to store the descriptor
-            local=True)  
+            local=True,
+            remote_label='soap')  
     else:
         inputs = os_soap.to_ConfigSet()
 
@@ -408,7 +410,8 @@ def do_ace_fit(
         ace_fit_params=params,
         run_dir=fns["fit_dir"], 
         ace_fit_command=ace_fit_exec,
-        skip_if_present=True)
+        skip_if_present=True,
+        remote_label='ace_fit')
 
     # return (ace.ACECalculator, [], {"jsonpath": str(ace_fname), 'ACE_version':1})
     # return (ACE1, [str(ace_fname)], {})
@@ -444,19 +447,20 @@ def parse_cutoffs(key, cutoffs_mb):
     return [float(val) for val in vals.strip("()").split(',')]
 
 
-def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir):
+def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir, remote_info):
 
     tests_wdir.mkdir(exist_ok=True)
 
     all_ats = read(train_set_fname, ':')
-    cs = ConfigSet(input_configs=random.choices(all_ats, k=2))
+    cs = ConfigSet(input_configs=random.choices(all_ats, k=4))
     os = OutputSpec(output_files=tests_wdir/"all_dft_check.xyz")
     inputs = generic.run(
         inputs=cs,
         outputs=os,
         properties=["energy", "forces"],
         output_prefix='dft_recalc_',
-        calculator=dft_calc
+        calculator=dft_calc,
+        autopara_info=AutoparaInfo(remote_label="orca")
     )
 
     for at in inputs:
@@ -544,6 +548,7 @@ def run_md(calculator, inputs, outputs, md_params):
         calculator=calculator, 
         update_config_type=False,
         abort_check=md_stopper,
+        remote_label="mlip_md",
         **md_params)
     
     return inputs

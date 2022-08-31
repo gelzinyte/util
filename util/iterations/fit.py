@@ -14,8 +14,10 @@ from util.util_config import Config
 from util.iterations import tools as it
 from util.iterations import plots as ip
 import util
+from wfl.autoparallelize.autoparainfo import AutoparaInfo
 
 logger = logging.getLogger(__name__)
+
 
 
 def fit(
@@ -25,13 +27,14 @@ def fit(
     fit_param_fname=None,
     all_extra_smiles_csv=None,
     md_temp=500,
-    wdir="runs",
+    wdir="fits",
     ref_type="dft",
     ip_type="ace",
     num_extra_smiles_per_cycle=10,
     num_rads_per_mol=0, 
     cur_soap_params="cur_soap.yaml",
-    md_steps = 2000):
+    md_steps = 2000,
+    ):
     """ iteratively fits potetnials
 
     No files are created or modified in the original directory, everything's done in "wdir"
@@ -99,6 +102,7 @@ def fit(
     orca_kwargs["orca_command"] = cfg["orca_path"]
     orca_kwargs["scratch_path"] = scratch_dir
     orca_kwargs["keep_files"] = False
+    orca_kwargs["directory"] = wdir
     orca_calc = (orca.ORCA, [], orca_kwargs)
     logger.info(f"orca_kwargs: {orca_kwargs}")
 
@@ -106,7 +110,6 @@ def fit(
     # soap descriptor for cur params
     with open(cur_soap_params, "r") as f:
         cur_soap_params = yaml.safe_load(f)
-
 
     fit_to_prop_prefix = dft_prop_prefix
     pred_prop_prefix = ip_type + "_"
@@ -127,6 +130,7 @@ def fit(
     }
     logger.info(f"MD params: {md_params}")
  
+    # RemoteJob
     initial_train_fname = train_set_dir / f"00.train_for_{ip_type}_01.xyz"
     if not initial_train_fname.exists():
         it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, dft_calc=orca_calc, tests_wdir=wdir/"dft_check_wdir")
@@ -173,8 +177,7 @@ def fit(
 
 
         # 2. Run tests
-        # if not fns["tests"]["mlip_on_train"].exists():
-        if True:
+        if not fns["tests"]["mlip_on_train"].exists():
             logger.info("running_tests")
             with open(fns["model"]["params"]) as f:
                 fit_params = yaml.safe_load(f)
@@ -256,7 +259,8 @@ def fit(
                 inputs=inp, 
                 outputs=outp,
                 calculator=dft_calc,
-                output_prefix=dft_prop_prefix
+                output_prefix=dft_prop_prefix,
+                autopara_info=AutoparaInfo(remote_label="orca")
             )
 
 
