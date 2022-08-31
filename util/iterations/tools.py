@@ -31,6 +31,7 @@ import wfl.fit.ace
 from wfl.calculators import generic
 from wfl.calculators import orca
 from wfl.generate import md
+from wfl.autoparallelize import autoparainfo
 
 import util
 from util import radicals
@@ -40,8 +41,200 @@ from util.bde import generate
 from util.plot import dataset
 from util.plot import rmse_scatter_evaled, multiple_error_files
 from util.util_config import Config
+from util.md.stopper import BadGeometry
 
 logger = logging.getLogger(__name__)
+
+
+def get_filenames(no, wdir, ip, train_set_dir, val_fn):   
+
+    # cycle dir
+    cd = wdir / f"iteration_{cycle_idx:02d}"
+    cd.mkdir(exist_ok=True)
+
+    # fit dir
+    fd = cd / "fit_dir"
+    fd.mkdir(exist_ok=True)
+
+    # tests dir
+    td = cd / "tests"
+    td.mkdir(exist_ok=True)
+
+
+    if ip == "ace":
+        model = 'ace.json'
+    elif ip == 'gap':
+        moel = 'gap.xml'
+
+    fns = {}
+
+    fns["tests_dir"] = td
+    fns["cycle_dir"] = cd
+
+    fns["model"] = fd / model 
+
+    fns["val"] = val_fn 
+
+    fns["this_train"] = train_set_dir / f"{no-1:02d}.train_for_{ip}_{no:02.d}.xyz" 
+    fns["next_train"] = train_set_dir / f"{no:02d}.train_for_{ip}_{no+:02.d}.xyz" 
+
+    fns["smiles"] = cd / "01.extra_smiles.csv"
+
+    fns["md_starts"] = {}
+    fns["md_starts"]["all"] = cd / "02.0.rdkit_md_starts.all.xyz"
+    fns["md_starts"]["successful"] = cd / "02.1.rdkit_md_starts.successful.xyz"
+    fns["md_starts"]["failed"] = cd / "02.2.rdkit_md_starts.failed.xyz"
+
+    fns["md_traj"] = {}
+    fns["md_traj"]["all"] = cd / f"03.0.{ip}.md_traj.xyz"
+    fns["md_traj"]["failed"] = cd / f"03.1.{ip}.md_traj.failed.xyz"
+    fns["md_traj"]["successful"] = {}
+    fns["md_traj"]["successful"]["plain"]= cd / f"03.2.0.{ip}.md_traj.successful.xyz"
+    fns["md_traj"]["successful"]["soap"] = cd / f"03.2.1.{ip}.md_traj.successful.soap.xyz"
+    fns["md_traj"]["successful"]["cur"] = cd / f"03.2.2.{ip}.md_traj.successful.soap.cur.xyz"
+
+    fns["extra"] = {}
+    fns["extra"]["train"] = {}
+    fns["extra"]["validation"] = {}
+
+    fns["extra"]["validation"]["via_soap"] = cd / f"04.0.{ip}.md_traj.extra_test.soap_cur.xyz"
+    fns["extra"]["validation"]["dft"] = cd / f"04.1.{ip}.md_traj.extra_test.soap_cur.dft.xyz"
+
+    fns["extra"]["train"]["via_soap"] = cd / f"05.0.{ip}.md_traj.extra_train.soap_cur.xyz" 
+    fns["extra"]["train"]["from_failed"] = cd / f"05.1.{ip}.md_traj.extra_train.from_failed.xyz"
+    fns["extra"]["train"]["all_dft"] = cd / f"05.2.{ip}.md_traj.extra_train.dft.xyz"
+
+    fns["tests"] = {}
+    fns["tests"]["mlip_on_train"] = td / f"{ip}_on_{fns['this_train'].name}.xyz"
+    fns["tests"]["mlip_on_val"] = td / f"{ip}_on_{fns['val'].name}.xyz"
+
+    fns["orca_wdir"] = cd / "orca_wdir_extra_data"
+
+    return fns
+
+def cleanup(inputs, cycle_idx):
+    remove_all_calc_results(inputs)
+    outspec = OutputSpec()
+    inputs = prepare_dataset(
+        cs=inputs, 
+        os=outspec, 
+        cycle_idx=cycle_no+1,
+        arrays_to_delete=["small_soap"])
+    return inputs
+
+def organise_md_trajs(all_md_trajs, fns):
+
+    traj_success = OutputSpec(
+        output_files=fns["md_traj"]["successful"]["plain"], 
+        set_tags{"md_traj_outcome":"success"})
+    traj_failed = OutputSpec(
+        output_files=fns["md_traj"]["failed"],
+        set_tags{"md_traj_outcome":"fail"})
+    start_success = OutputSpec(
+        output_files=fns["md_starts"]["successful"],
+        set_tags{"md_traj_outcome":"success"})
+    start_failed = OutputSpec(
+        output_files=fns["md_starts"]["failed"],
+        set_tags{"md_traj_outcome":"fail"})
+
+    all_os = [traj_success, traj_failed, start_success, start_failed]
+
+    doneness = np.sum([outs.is_done for outs in all_os])
+    if doneness == 4:
+        logger.info("skipping organising md trajectories, since all outputs are done")
+        return
+    elif doneness == 0:
+        continue
+    else:
+        raise RuntimeError("Some of the organised trajectories are done, some not")
+
+    trajs = configs.into_dict_of_labels(all_md_trajs, info_label="md_start_hash")
+
+    for traj in trajs.values():
+
+        if traj[-1].info["md_geometry_check"]:
+            # successful trajectory
+            traj_success.store(traj)
+            start_success.store(traj[0])
+
+        else:
+            traj_failed.store(traj)
+            start_failed.store(traj[0])
+    
+    for outspec in all_os:
+        outspec.end_write()
+
+def sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_no):
+
+    inputs = ConfigSet(input_files=fns["md_traj"]["successful"]["plain"])
+
+    os_soap = OutputSpec(output_files=fns["md_traj"]["successful"]["soap"])
+    os_cur = OutputSpec(output_files=fns["md_traj"]["successful"]["cur"])
+
+    os_extra_train = OutputSpec(output_files=fns["extra"]["train"]["via_soap"])
+    os_extra_test = OutputSpec(output_files=fns["extra"]["validation"]["via_soap"])
+
+    doneness = int(os_extra_train.is_done()) + int(os_extra_test.is_done())
+    if doneness == 2:
+        logger.info("sampling with cur is done, not doing anything")
+        return os_extra_test.to_ConfigSet(), os_extra_train.to_ConfigSet()
+    elif doneness == 0:
+        continue
+    else:
+        raise RuntimeError("only some of the cur outputs are done. ")
+
+
+    if not os_soap.is_done():
+        logger.info("Calculating SOAP descriptor")
+        inputs = wfl.calc_descriptor.calc(
+            inputs=inputs,
+            outputs=os_soap,
+            descs=soap_params,
+            key="small_soap",  # where to store the descriptor
+            local=True)  
+    else:
+        inputs = os_soap.to_ConfigSet()
+
+
+    logger.info("Sampling with CUR")
+    inputs = cur.per_environment(
+        inputs=inputs,
+        outputs=os_cur,
+        num=num_cur_environments,
+        at_descs_key="small_soap",
+        kernel_exp=4,
+        leverage_score_key="cur_leverage_score",
+        write_all_configs=False)
+
+    inputs = list(inputs)
+    random.shuffle(inputs)
+
+    os_extra_test.store(inputs[0::2])
+    os_extra_train.store(inputs[1::2])
+    os_extra_test.end_write()
+    os_extra_train.end_write()
+
+    return os_extra_test.to_ConfigSet(), os_extra_train.to_ConfigSet()
+        
+
+def sample_failed(fns, pred_prop_prefix):
+    inputs = ConfigSet(input_files=fns["md_traj"["failed"]])
+    outputs = OutputSpec(output_files=fns["extra"]["train"]["from_failed"])
+    if outputs.is_done():
+        return outputs.to_ConfigSet()
+
+    trajs = configs.into_dict_of_labels(inputs, info_label="md_start_hash")
+    for traj in trajs.values():
+        accuracies = [check_accuracy(at, pred_prop_prefix) for at in traj]
+        first_failed = accuracies.index(False)
+        outputs.store(traj[first_failed - 1])
+    outputs.end_write()
+    return outputs.to_ConfigSet()
+
+def remove_all_calc_results(atoms):
+    for at in ats:
+        util.remove_energy_force_containing_entries(at)
+ 
 
 
 def prepare_remoteinfo(gap_fname):
@@ -60,23 +253,34 @@ def make_dirs(dir_names):
             os.makedirs(dir_name)
 
 
-def prepare_0th_dataset(ci, co):
+def prepare_dataset(cs, os, cycle_idx, arrays_to_delete=None, info_to_delete=None):
 
-    if co.is_done():
-        logger.info(f"initial dataset is preapared {co.output_files[0].name}")
-        return co.to_ConfigSet()
+    if arrays_to_delete is None:
+        arrays_to_delete = []
 
-    logger.info(f"preparing initial dataset {co.output_files[0].name}")
+    if info_to_delete is None:
+        info_to_delete = []
 
-    for at in ci:
+    if os.is_done():
+        logger.info(f"initial dataset is preapared {os.output_files[0].name}")
+        return os.to_ConfigSet()
+
+    logger.info(f"preparing initial dataset {os.output_files[0].name}")
+
+    for at in cs:
         if "iter_no" not in at.info.keys():
-            at.info["iter_no"] = 0
+            at.info["iter_no"] = cycle_idx 
+        for array in arrays_to_delete:
+            if array in at.arrays:
+                del at.arrays[array]
+        for info in info_to_delete:
+            if info in at.info:
+                del at.info[info]
         if at.cell is None:
             at.cell = [50, 50, 50]
-
-        co.write(at)
-    co.end_write()
-    return co.to_ConfigSet()
+        os.write(at)
+    os.end_write()
+    return os.to_ConfigSet()
 
 
 def make_structures(
@@ -86,7 +290,7 @@ def make_structures(
     num_rads_per_mol,
     smiles_col="smiles",
     name_col="zinc_id",
-):
+    ):
 
     if outputs.is_done():
         logger.info(f"outputs ({outputs} from {smiles_csv.name}) are done, returning")
@@ -113,6 +317,7 @@ def make_structures(
 
     for at in atoms_out:
         at.cell = [50, 50, 50]
+        at.info["md_start_hash"] = configs.hash_atoms(at)
         outputs.write(at)
 
     outputs.end_write()
@@ -148,7 +353,7 @@ def filter_configs(
     e_threshold_per_atom=None,
     max_f_comp_threshold=None,
     dft_prefix="dft_",
-):
+    ):
     have_small_errors = False
     have_large_errors = False
 
@@ -271,7 +476,7 @@ def do_ace_fit(
     fit_params_base,
     fit_to_prop_prefix,
     ace_fit_exec,
-):
+    ):
 
     assert ref_type == "dft"
 
@@ -337,17 +542,15 @@ def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir):
     tests_wdir.mkdir(exist_ok=True)
 
     all_ats = read(train_set_fname, ':')
-    ci = ConfigSet(input_configs=random.choices(all_ats, k=2))
-    co = OutputSpec()
+    cs = ConfigSet(input_configs=random.choices(all_ats, k=2))
+    os = OutputSpec(output_files=tests_wdir/"all_dft_check.xyz")
     inputs = generic.run(
-        inputs=ci,
-        outputs=co,
+        inputs=cs,
+        outputs=os,
         properties=["energy", "forces"],
         output_prefix='dft_recalc_',
         calculator=dft_calc
     )
-
-    write(tests_wdir/"all_dft_check.xyz", [at for at in inputs])
 
     for at in inputs:
         energy_ok = pytest.approx(at.info[f'{dft_prop_prefix}energy']) == at.info['dft_recalc_energy']
@@ -359,19 +562,19 @@ def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir):
             if not fname.exists():
                 write(fname, at)
             else:
-                pass
-                # raise RuntimeError("Failed fname esists, not overwriting!")
+                # pass
+                raise RuntimeError("Failed fname esists, not overwriting!")
             logger.warn("failed dft check")
-    # logger.info("dft cyeck is done")
+    # logger.info("dft check is done")
 
 
-def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, num_inputs_per_python_subprocess=10):
+def select_extra_smiles(all_extra_smiles_csv, smiles_selection_csv, num_extra_smiles=10):
 
     df = pd.read_csv(all_extra_smiles_csv, delim_whitespace=True)
 
     free = df[~df["has_been_used"]]
 
-    selection = free[:num_inputs_per_python_subprocess]
+    selection = free[:num_extra_smiles]
     del selection["has_been_used"]
 
     selection.to_csv(smiles_selection_csv, sep=" ")
@@ -392,7 +595,7 @@ def manipulate_smiles_csv(all_extra_smiles, wdir):
     
 
 
-def process_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_good_cfg_co, traj_sample_rule):
+def process_trajs(traj_cs, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_good_cfg_co, traj_sample_rule):
     """
     traj_sample_rule - how many/which configs to return from the good trajectory
     "last" - only last is returned
@@ -408,7 +611,7 @@ def process_trajs(traj_ci, good_traj_configs_co, bad_traj_bad_cfg_co, bad_traj_g
         raise RuntimeError("some outputs done, but not all!")
 
     # divide into graphs 
-    trajs = configs.into_dict_of_labels(traj_ci, "graph_name")
+    trajs = configs.into_dict_of_labels(traj_cs, "graph_name")
     
     count_good_traj = 0
     count_bad_traj_good_cfg = 0
@@ -453,7 +656,7 @@ def cotl(co):
     return [at for at in co.to_ConfigSet()]
 
 
-def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pred_prop_prefix):
+def sample_failed_trajectory(cs, co, orca_kwargs, dft_prop_prefix, cycle_dir, pred_prop_prefix):
 
     if co.is_done():
         logger.info("Sub-sampling is already done, returning")
@@ -464,16 +667,16 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
 
     from util import configs
 
-    trajs = configs.into_dict_of_labels(ci, "graph_name")
+    trajs = configs.into_dict_of_labels(cs, "graph_name")
 
     logger.info(f"Number of failed trajectories: {len(trajs)}")
 
     for label, traj in trajs.items():
         found_good = False
         logger.info(f"{label}: checking first couple of configs from trajectory")
-        dft_sample_ci = ConfigSet(input_configs=[at.copy() for at in traj[0:10]])
+        dft_sample_cs = ConfigSet(input_configs=[at.copy() for at in traj[0:10]])
         dft_sample_co = OutputSpec(output_files= dft_dir / f"{label}.dft.xyz")
-        orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
+        orca.evaluate(inputs=dft_sample_cs, outputs=dft_sample_co, 
                       orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
                       keep_files=False, workdir_root=dft_dir/"orca_wdir")        
 
@@ -500,9 +703,9 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
             if found_good:
                 break
             at_group = [at for at in at_group if at is not None]
-            dft_sample_ci = ConfigSet(input_configs=at_group)
+            dft_sample_cs = ConfigSet(input_configs=at_group)
             dft_sample_co = OutputSpec(output_files= dft_dir / f"{label}.{group_idx}.dft.xyz")
-            orca.evaluate(inputs=dft_sample_ci, outputs=dft_sample_co, 
+            orca.evaluate(inputs=dft_sample_cs, outputs=dft_sample_co, 
                         orca_kwargs=orca_kwargs, output_prefix=dft_prop_prefix, 
                         keep_files=False, workdir_root=dft_dir/"orca_wdir")        
                 
@@ -521,7 +724,7 @@ def sample_failed_trajectory(ci, co, orca_kwargs, dft_prop_prefix, cycle_dir, pr
     return co.to_ConfigSet()
 
 
-def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
+def check_accuracy(at, pred_prop_prefix, dft_prop_prefix=None):
 
     pred_forces = at.arrays[f'{pred_prop_prefix}forces']
     max_pred_f = np.max(np.abs(pred_forces))
@@ -529,7 +732,7 @@ def check_accuracy(at, dft_prop_prefix, pred_prop_prefix, no_dft=False):
     if max_pred_f > 10:
         return False
 
-    if not no_dft:
+    if dft_prop_prefix is not None:
         dft_forces = at.arrays[f'{dft_prop_prefix}forces']
         max_dft_f = np.max(np.abs(dft_forces))
 
@@ -571,6 +774,20 @@ def md_subselector_function(traj):
     print(f"working with after bad_md_traj: {traj[0].info}")
     return traj
 
+def run_md(calculator, inputs, outputs, md_params):
+
+    md_stopper = BadGeometry(info_label="md_geometry_check") 
+    autopara_info = autoparainfo.AutoparaInfo(num_inputs_per_python_subprocess=1)
+
+    inputs = md.sample(
+        inputs=inputs, 
+        outputs=outputs,
+        calculator=calculator, 
+        update_config_type=False,
+        abort_check=md_stopper,
+        **md_params)
+    
+    return inputs
 
 
 def launch_analyse_md(inputs, pred_prop_prefix, outputs_to_fit, outputs_traj, outputs_rerun, 

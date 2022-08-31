@@ -38,6 +38,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+
+def read_energy(at, isolated_atoms, ref_prop_name):
+    return at.info[ref_prop_name]
+
+def total_per_atom_energy(at, isolated_atoms, ref_prop_name):
+    return at.info[ref_prop_name] / len(at)
+
+
 def default_orca_params():
     cfg = Config.load()
     # dft_prop_prefix = "dft_"

@@ -2,6 +2,7 @@
 orca_path: /opt/womble/orca/orca_5.0.0/orca
 gap_fit_path: /opt/womble/QUIP/2021_07_06//bin/gap_fit
 quip_path: /opt/womble/QUIP/2021_07_06//linux_x86_64_gfortran_openmp/quip
+ace_fit_path: /home/eg475/.julia/dev/ACE1pack/scripts/ace_fit.jl
 
 scratch_path: /scratch-ssd/eg475
 tmp_dir: /tmp/eg475

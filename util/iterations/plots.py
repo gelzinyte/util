@@ -36,36 +36,30 @@ from util.plot import dataset
 from util.plot import rmse_scatter_evaled, multiple_error_files, julia_plots
 from util.util_config import Config
 from util.iterations import tools as it
+from util.error.table import plot as print_error
 
 logger = logging.getLogger(__name__)
 
 def run_tests(
-    calculator,
+    pred_calculator,
     pred_prop_prefix,
+    dft_calculator,
     dft_prop_prefix,
-    train_set_fname,
-    tests_wdir,
-    # bde_test_fname,
-    # orca_kwargs,
-    output_dir,
-    validation_fname,
-    quick = True,
+    fns,
     fit_params=None):
 
-    tests_wdir.mkdir(exist_ok=True)
+    train_evaled = fns["test"]["mlip_on_train"] 
+    val_evaled = fns["test"]["mlip_on_val"] 
 
-    train_evaled = tests_wdir / f"{pred_prop_prefix}on_{train_set_fname.name}"
-    val_evaled = tests_wdir / f"{pred_prop_prefix}on_{validation_fname.name}"
 
     # evaluate on training and test sets
-    ci = ConfigSet(input_files=[train_set_fname, validation_fname])
-    co = OutputSpec(output_files={train_set_fname: train_evaled, validation_fname: val_evaled},
-                       force=True, all_or_none=True)
+    ci = ConfigSet(input_files=[fns["this_train"], fns["val"]])
+    co = OutputSpec(output_files={fns["this_train"]:train_evaled, fns["val"]: val_evaled})
 
     generic.run(
         inputs=ci,
         outputs=co,
-        calculator=calculator,
+        calculator=pred_calculator,
         properties=["energy", "forces"],
         output_prefix=pred_prop_prefix,
         autopara_info=AutoparaInfo(num_inputs_per_python_subprocess=200))
@@ -73,127 +67,25 @@ def run_tests(
     # check the offset is not there
     check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
 
-    dimer_2b(calculator, tests_wdir, fit_params)
+    dimer_2b(pred_calculator, tests_wdir, fit_params)
 
     # training & validation set scatter plots
     ats_train = read(train_evaled, ":")
     ats_val = read(val_evaled, ":")
-    rmse_scatter_evaled.scatter_plot(
-        ref_energy_name=f"{dft_prop_prefix}energy",
-        pred_energy_name=f"{pred_prop_prefix}energy",
-        ref_force_name=f"{dft_prop_prefix}forces",
-        pred_force_name=f"{pred_prop_prefix}forces",
-        all_atoms=ats_train + ats_val,
-        output_dir=output_dir, 
-        prefix=None, 
-        color_info_name="dataset_type", 
-        isolated_atoms=None,
-        energy_type="binding_energy", 
-        energy_shift=False,
-        no_legend=False,
-        error_type='mae', 
-        skip_if_prop_not_present=False)
+    for at in ats_val: at.info["dataset_type"] = "validation"
+
+    print_error(
+        data = ats_val + ats_train, 
+        ref_energy_key = f"{dft_prop_prefix}energy",
+        pred_energy_key = f"{pred_prop_prefix}energy",
+        ref_forces_key = f"{dft_prop_prefix}forces",
+        pred_forces_key = f"{pred_prop_prefix}forces",
+        info_label="dataset_type")
 
     # re-evaluate a couple of DFTs
-    # check_dft(train_evaled, dft_prop_prefix, orca_kwargs, tests_wdir)
-
-    if quick:
-        return
+    check_dft(train_evaled, dft_prop_prefix, dft_calculator, fns["tests_dir"])
 
     
-    # bde test - final file of bde_test_fname.stem + ip_prop_prefix + bde.xyz
-    bde_ci = generate.everything(
-        calculator=calculator,
-        dft_bde_filename=bde_test_fname,
-        dft_prop_prefix=dft_prop_prefix,
-        ip_prop_prefix=pred_prop_prefix,
-        wdir=tests_wdir / "bde_wdir",
-        output_dir = output_dir,
-    )
-
-    # dft vs ip bde correlation
-    rmse_scatter_evaled.scatter_plot(
-        ref_energy_name=f"{dft_prop_prefix}opt_{dft_prop_prefix}bde_energy",
-        pred_energy_name=f"{pred_prop_prefix}opt_{pred_prop_prefix}bde_energy",
-        ref_force_name=None,
-        pred_force_name=None,
-        all_atoms=bde_ci,
-        output_dir=tests_wdir,
-        prefix=f"{dft_prop_prefix}bde_vs_{pred_prop_prefix}bde",
-        color_info_name="bde_type",
-        isolated_atoms=None,
-        energy_type="total_energy",
-        error_type='rmse',
-        skip_if_prop_not_present=True,
-    )
-
-    # ip bde absolute error vs ip energy absolute error
-    co = OutputSpec(
-        output_files=tests_wdir / f"{pred_prop_prefix}bde_file_with_errors.xyz",
-        force=True,
-        all_or_none=True,
-    )
-    if not co.is_done():
-        for at in bde_ci:
-            if at.info["mol_or_rad"] == "mol":
-                continue
-
-            at.info[f"{pred_prop_prefix}bde_absolute_error"] = np.abs(
-                at.info[f"{dft_prop_prefix}opt_{dft_prop_prefix}bde_energy"]
-                - at.info[f"{pred_prop_prefix}opt_{pred_prop_prefix}bde_energy"]
-            )
-
-            at.info[
-                f"{pred_prop_prefix}absolute_error_on_{pred_prop_prefix}opt"
-            ] = np.abs(
-                at.info[f"{pred_prop_prefix}opt_{dft_prop_prefix}energy"]
-                - at.info[f"{pred_prop_prefix}opt_{pred_prop_prefix}energy"]
-            )
-            at.info[
-                f"{pred_prop_prefix}absolute_error_on_{dft_prop_prefix}opt"
-            ] = np.abs(
-                at.info[f"{dft_prop_prefix}opt_{dft_prop_prefix}energy"]
-                - at.info[f"{dft_prop_prefix}opt_{pred_prop_prefix}energy"]
-            )
-
-            co.write(at)
-        co.end_write()
-    else:
-        logger.info("Not re-assigning bde errors, because OutputSpec is done")
-
-    rmse_scatter_evaled.scatter_plot(
-        ref_energy_name=f"{pred_prop_prefix}absolute_error_on_{pred_prop_prefix}opt",
-        pred_energy_name=f"{pred_prop_prefix}bde_absolute_error",
-        ref_force_name=None,
-        pred_force_name=None,
-        all_atoms=co.to_ConfigSet(),
-        output_dir=tests_wdir,
-        prefix=f"{pred_prop_prefix}error_on_{pred_prop_prefix}opt_vs_{pred_prop_prefix}bde_error",
-        color_info_name="bde_type",
-        isolated_atoms=None,
-        energy_type="total_energy",
-        skip_if_prop_not_present=True,
-    )
-
-    rmse_scatter_evaled.scatter_plot(
-        ref_energy_name=f"{pred_prop_prefix}absolute_error_on_{dft_prop_prefix}opt",
-        pred_energy_name=f"{pred_prop_prefix}bde_absolute_error",
-        ref_force_name=None,
-        pred_force_name=None,
-        all_atoms=co.to_ConfigSet(),
-        output_dir=tests_wdir,
-        prefix=f"{pred_prop_prefix}error_on_{dft_prop_prefix}opt_vs_{pred_prop_prefix}bde_error",
-        color_info_name="bde_type",
-        isolated_atoms=None,
-        energy_type="total_energy",
-        skip_if_prop_not_present=True,
-    )
-
-
-    # other tests are coming sometime
-    # CH dissociation curve
-    # dimer curves (2b, total)
-
 def dimer_2b(calculator, tests_wdir, fit_params=None):
 
     if fit_params is None:
