@@ -104,7 +104,6 @@ def dimer_2b(calculator, tests_wdir, fit_params=None):
         julia_plots.plot_ace_2b(ace_fname, plot_type, cc_in=cc_in, ch_in=ch_in, hh_in=hh_in)
 
 
-
 def summary_plots(
     cycle_idx,
     pred_prop_prefix,
