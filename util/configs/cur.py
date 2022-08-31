@@ -3,11 +3,70 @@ import logging
 import numpy as np
 
 from wfl.select import by_descriptor
+from wfl.autoparallelize.utils import get_remote_info
+
+from expyre import ExPyRe
 
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(message)s')
+
+def per_environment(inputs, outputs, num, 
+                    at_descs_key=None, kernel_exp=None, stochastic=True,
+                    keep_descriptor_arrays=True, center=True, leverage_score_key='leverage_score',
+                    write_all_configs=False
+                    remote_info=None, remote_label=None):
+
+    if outputs.is_done():
+        logger.info('output is done, returning')
+        return outputs.to_ConfigSet()
+
+    remote_info = get_remote_info(remote_info, remote_label) 
+    if remote_info is None:
+        return per_environment_core(
+            inputs=inputs,
+            outputs=outputs,
+            num-num,
+            at_descs_key=at_descs_key,
+            kernel_exp=kernel_exp,
+            stochastic=stochastic,
+            keep_descriptor_arrays=keep_descriptor_arrays,
+            center=center,
+            leverage_score_key=leverage_score_key,
+            write_all_configs=write_all_configs)
+
+    else:
+        xpr = ExPyRe(
+            name=remote_info.job_name,
+            pre_run_commands=remote_info.pre_cmds,
+            post_run_commands=remote_info.post_cmds,
+            env_vars=remote_info.env_vars, 
+            function=per_environment_core,
+            kwargs= {
+                'inputs':inputs,
+                'outputs':outputs,
+                'num':num,
+                'at_descs_key':at_descs_key,
+                'kernel_exp':kernel_exp,
+                'stochastic':stochastic,
+                'keep_descriptor_arrays':keep_descriptor_arrays,
+                'center':center,
+                'leverage_score_key':leverage_score_key,
+                'write_all_configs':write_all_configs }) 
+
+        xpr.start(resources=remote_info.resources, system_name=remote_info.sys_name, header_extra=remote_info.header_extra,
+                  exact_fit=remote_info.exact_fit, partial_node=remote_info.partial_node)
+
+        results, stdout, stderr = xpr.get_results(timeout=remote_info.timeout, check_interval=remote_info.check_interval)
+
+        sys.stdout.write(stdout)
+        sys.stderr.write(stderr)
+
+        xpr.mark_processed()
+
+        return results
+
 
 def per_environment_core(inputs, outputs, num,
                         at_descs_key=None, kernel_exp=None,
@@ -48,10 +107,6 @@ def per_environment_core(inputs, outputs, num,
         ConfigSet corresponding to configs that contain selected
         environments
     """
-
-    if outputs.is_done():
-        logger.info('output is done, returning')
-        return outputs.to_ConfigSet()
 
     logger.info('preparing descriptors')
 
