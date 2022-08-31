@@ -139,11 +139,11 @@ def fit(
 
     #######################################################################
 
-    for cycle_idx in range(1, num_cycles + 2):
+    for cycle_idx in range(1, num_cycles + 1):
 
         fns = it.get_filenames(no=cycle_idx, wdir=wdir, ip=ip_type, train_set_dir=train_set_dir, val_fn=validation_fname)
 
-        logger.info("-" * 50)
+        logger.info("-" * 80)
         logger.info(f"ITERATION {cycle_idx}")
 
         if os.path.exists(fns["next_train"]):
@@ -161,6 +161,7 @@ def fit(
             )
 
         elif ip_type == "ace":
+            logger.info(f'fitting ace')
             calculator = it.do_ace_fit(
                 fns=fns,
                 idx=cycle_idx,
