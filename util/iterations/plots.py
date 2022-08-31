@@ -48,10 +48,10 @@ def run_tests(
     fns,
     fit_params=None):
 
-    train_evaled = fns["test"]["mlip_on_train"] 
-    val_evaled = fns["test"]["mlip_on_val"] 
+    train_evaled = fns["tests"]["mlip_on_train"] 
+    val_evaled = fns["tests"]["mlip_on_val"] 
 
-
+    logger.info('evaluating with predicting calc')
     # evaluate on training and test sets
     ci = ConfigSet(input_files=[fns["this_train"], fns["val"]])
     co = OutputSpec(output_files={fns["this_train"]:train_evaled, fns["val"]: val_evaled})
@@ -65,25 +65,29 @@ def run_tests(
         autopara_info=AutoparaInfo(num_inputs_per_python_subprocess=200))
 
     # check the offset is not there
+    logger.info('checking for the offset')
     check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
 
-    dimer_2b(pred_calculator, tests_wdir, fit_params)
+    logger.info("plotting dimer curves")
+    # dimer_2b(pred_calculator, fns["tests_dir"], fit_params)
 
     # training & validation set scatter plots
     ats_train = read(train_evaled, ":")
     ats_val = read(val_evaled, ":")
     for at in ats_val: at.info["dataset_type"] = "validation"
 
+    logger.info('printing error table')
     print_error(
-        data = ats_val + ats_train, 
+        all_atoms = ats_val + ats_train, 
         ref_energy_key = f"{dft_prop_prefix}energy",
         pred_energy_key = f"{pred_prop_prefix}energy",
         ref_forces_key = f"{dft_prop_prefix}forces",
         pred_forces_key = f"{pred_prop_prefix}forces",
         info_label="dataset_type")
 
+    logger.info('checking dft')
     # re-evaluate a couple of DFTs
-    check_dft(train_evaled, dft_prop_prefix, dft_calculator, fns["tests_dir"])
+    it.check_dft(train_evaled, dft_prop_prefix, dft_calculator, fns["tests_dir"])
 
     
 def dimer_2b(calculator, tests_wdir, fit_params=None):

@@ -32,6 +32,7 @@ from wfl.calculators import generic
 from wfl.calculators import orca
 from wfl.generate import md
 from wfl.autoparallelize import autoparainfo
+from wfl.descriptors import quippy
 
 import util
 from util import radicals
@@ -42,6 +43,7 @@ from util.plot import dataset
 from util.plot import rmse_scatter_evaled, multiple_error_files
 from util.util_config import Config
 from util.md.stopper import BadGeometry
+from util.configs import cur
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +51,7 @@ logger = logging.getLogger(__name__)
 def get_filenames(no, wdir, ip, train_set_dir, val_fn):   
 
     # cycle dir
-    cd = wdir / f"iteration_{cycle_idx:02d}"
+    cd = wdir / f"iteration_{no:02d}"
     cd.mkdir(exist_ok=True)
 
     # fit dir
@@ -70,13 +72,16 @@ def get_filenames(no, wdir, ip, train_set_dir, val_fn):
 
     fns["tests_dir"] = td
     fns["cycle_dir"] = cd
+    fns["fit_dir"] = fd
 
-    fns["model"] = fd / model 
+    fns["model"] = {}
+    fns["model"]["fname"]= fd / model 
+    fns['model']['params'] = fd / f'{ip}_params.yaml'
 
     fns["val"] = val_fn 
 
-    fns["this_train"] = train_set_dir / f"{no-1:02d}.train_for_{ip}_{no:02.d}.xyz" 
-    fns["next_train"] = train_set_dir / f"{no:02d}.train_for_{ip}_{no+:02.d}.xyz" 
+    fns["this_train"] = train_set_dir / f"{no-1:02d}.train_for_{ip}_{no:02d}.xyz" 
+    fns["next_train"] = train_set_dir / f"{no:02d}.train_for_{ip}_{no+1:02d}.xyz" 
 
     fns["smiles"] = cd / "01.extra_smiles.csv"
 
@@ -105,8 +110,8 @@ def get_filenames(no, wdir, ip, train_set_dir, val_fn):
     fns["extra"]["train"]["all_dft"] = cd / f"05.2.{ip}.md_traj.extra_train.dft.xyz"
 
     fns["tests"] = {}
-    fns["tests"]["mlip_on_train"] = td / f"{ip}_on_{fns['this_train'].name}.xyz"
-    fns["tests"]["mlip_on_val"] = td / f"{ip}_on_{fns['val'].name}.xyz"
+    fns["tests"]["mlip_on_train"] = td / f"{ip}_on_{fns['this_train'].name}"
+    fns["tests"]["mlip_on_val"] = td / f"{ip}_on_{fns['val'].name}"
 
     fns["orca_wdir"] = cd / "orca_wdir_extra_data"
 
@@ -118,8 +123,8 @@ def cleanup(inputs, cycle_idx):
     outspec = OutputSpec()
     inputs = prepare_dataset(
         cs=inputs, 
-        os=outspec, 
-        cycle_idx=cycle_no+1,
+        outspec=outspec, 
+        cycle_idx=cycle_idx+1,
         arrays_to_delete=["small_soap"])
     return inputs
 
@@ -128,25 +133,25 @@ def organise_md_trajs(all_md_trajs, fns):
 
     traj_success = OutputSpec(
         output_files=fns["md_traj"]["successful"]["plain"], 
-        set_tags{"md_traj_outcome":"success"})
+        set_tags={"md_traj_outcome":"success"})
     traj_failed = OutputSpec(
         output_files=fns["md_traj"]["failed"],
-        set_tags{"md_traj_outcome":"fail"})
+        set_tags={"md_traj_outcome":"fail"})
     start_success = OutputSpec(
         output_files=fns["md_starts"]["successful"],
-        set_tags{"md_traj_outcome":"success"})
+        set_tags={"md_traj_outcome":"success"})
     start_failed = OutputSpec(
         output_files=fns["md_starts"]["failed"],
-        set_tags{"md_traj_outcome":"fail"})
+        set_tags={"md_traj_outcome":"fail"})
 
     all_os = [traj_success, traj_failed, start_success, start_failed]
 
-    doneness = np.sum([outs.is_done for outs in all_os])
-    if doneness == 4:
+    doneness = np.sum([outs.is_done() for outs in all_os])
+    if doneness in [2, 4]: # in case of no failure
         logger.info("skipping organising md trajectories, since all outputs are done")
         return
     elif doneness == 0:
-        continue
+        pass
     else:
         raise RuntimeError("Some of the organised trajectories are done, some not")
 
@@ -156,12 +161,12 @@ def organise_md_trajs(all_md_trajs, fns):
 
         if traj[-1].info["md_geometry_check"]:
             # successful trajectory
-            traj_success.store(traj)
-            start_success.store(traj[0])
+            traj_success.write(traj)
+            start_success.write(traj[0])
 
         else:
-            traj_failed.store(traj)
-            start_failed.store(traj[0])
+            traj_failed.write(traj)
+            start_failed.write(traj[0])
     
     for outspec in all_os:
         outspec.end_write()
@@ -182,14 +187,14 @@ def sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_no):
         logger.info("sampling with cur is done, not doing anything")
         return os_extra_test.to_ConfigSet(), os_extra_train.to_ConfigSet()
     elif doneness == 0:
-        continue
+        pass
     else:
         raise RuntimeError("only some of the cur outputs are done. ")
 
 
     if not os_soap.is_done():
         logger.info("Calculating SOAP descriptor")
-        inputs = wfl.calc_descriptor.calc(
+        inputs = quippy.calc(
             inputs=inputs,
             outputs=os_soap,
             descs=soap_params,
@@ -212,8 +217,8 @@ def sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_no):
     inputs = list(inputs)
     random.shuffle(inputs)
 
-    os_extra_test.store(inputs[0::2])
-    os_extra_train.store(inputs[1::2])
+    os_extra_test.write(inputs[0::2])
+    os_extra_train.write(inputs[1::2])
     os_extra_test.end_write()
     os_extra_train.end_write()
 
@@ -221,7 +226,11 @@ def sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_no):
             
 
 def sample_failed(fns, pred_prop_prefix):
-    inputs = ConfigSet(input_files=fns["md_traj"["failed"]])
+
+    if not fns["md_traj"]["failed"].exists():
+        return
+
+    inputs = ConfigSet(input_files=fns["md_traj"]["failed"])
     outputs = OutputSpec(output_files=fns["extra"]["train"]["from_failed"])
     if outputs.is_done():
         return outputs.to_ConfigSet()
@@ -230,17 +239,17 @@ def sample_failed(fns, pred_prop_prefix):
     for traj in trajs.values():
         accuracies = [check_accuracy(at, pred_prop_prefix) for at in traj]
         first_failed = accuracies.index(False)
-        outputs.store(traj[first_failed - 1])
+        outputs.write(traj[first_failed - 1])
     outputs.end_write()
     return outputs.to_ConfigSet()
 
 
 def remove_all_calc_results(atoms):
-    for at in ats:
+    for at in atoms:
         util.remove_energy_force_containing_entries(at)
  
 
-def prepare_dataset(cs, os, cycle_idx, arrays_to_delete=None, info_to_delete=None):
+def prepare_dataset(cs, outspec, cycle_idx, arrays_to_delete=None, info_to_delete=None):
 
     if arrays_to_delete is None:
         arrays_to_delete = []
@@ -248,11 +257,11 @@ def prepare_dataset(cs, os, cycle_idx, arrays_to_delete=None, info_to_delete=Non
     if info_to_delete is None:
         info_to_delete = []
 
-    if os.is_done():
-        logger.info(f"initial dataset is preapared {os.output_files[0].name}")
-        return os.to_ConfigSet()
+    if outspec.is_done():
+        logger.info(f"dataset is preapared {outspec}")
+        return outspec.to_ConfigSet()
 
-    logger.info(f"preparing initial dataset {os.output_files[0].name}")
+    logger.info(f"preparing dataset {outspec.output_files}")
 
     for at in cs:
         if "iter_no" not in at.info.keys():
@@ -265,9 +274,9 @@ def prepare_dataset(cs, os, cycle_idx, arrays_to_delete=None, info_to_delete=Non
                 del at.info[info]
         if at.cell is None:
             at.cell = [50, 50, 50]
-        os.write(at)
-    os.end_write()
-    return os.to_ConfigSet()
+        outspec.write(at)
+    outspec.end_write()
+    return outspec.to_ConfigSet()
 
 
 def make_structures(
@@ -368,10 +377,9 @@ def update_fit_params(fit_params_base, fit_to_prop_prefix):
 
 
 def do_ace_fit(
-    fit_dir,
+    fns,
     idx,
     ref_type,
-    train_set_fname,
     fit_params_base,
     fit_to_prop_prefix,
     ace_fit_exec,
@@ -384,22 +392,22 @@ def do_ace_fit(
         os.environ["ACE_FIT_JULIA_THREADS"] = str(ncores)
         os.environ["ACE_FIT_BLAS_THREADS"] = str(ncores)
 
-    fit_inputs = read(train_set_fname, ":")
+    fit_inputs = read(fns["this_train"], ":")
 
     params = update_ace_params(fit_params_base, fit_inputs)
 
-    ace_name = f"ace_{idx}"
-    ace_fname = fit_dir / (ace_name + ".json")
+    ace_name = f"ace"
+    ace_fname = fns["model"]["fname"]
     params["ACE_fname"] = str(ace_fname)
 
-    with open(fit_dir / f"ace_{idx}_params.yaml", "w") as f:
+    with open(fns["model"]["params"], "w") as f:
         yaml.dump(params, f)
 
     ace_fname = wfl.fit.ace.run_ace_fit(
         fitting_configs=fit_inputs, 
         ace_fit_params=params,
-        run_dir=fit_dir, 
-        ace_fit_command='julia /home/eg475/.julia/dev/ACE1pack/scripts/ace_fit.jl',
+        run_dir=fns["fit_dir"], 
+        ace_fit_command=ace_fit_exec,
         skip_if_present=True)
 
     # return (ace.ACECalculator, [], {"jsonpath": str(ace_fname), 'ACE_version':1})

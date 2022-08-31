@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 def fit(
     num_cycles,
-    initial_train_fname="train.xyz",
+    base_train_fname="train.xyz",
+    validation_fname = 'validation.xyz',
     fit_param_fname=None,
     all_extra_smiles_csv=None,
     md_temp=500,
@@ -29,7 +30,6 @@ def fit(
     ip_type="ace",
     num_extra_smiles_per_cycle=10,
     num_rads_per_mol=0, 
-    validation_fname = 'validation.xyz',
     cur_soap_params="cur_soap.yaml",
     md_steps = 2000):
     """ iteratively fits potetnials
@@ -61,8 +61,10 @@ def fit(
     assert ref_type in ["dft"]
     assert ip_type in ["gap", "ace"]
 
-    logger.info('\n', "-"*30, '\n', "Setting up\n", "*"*30)
-    logger.info(f"csv file", all_extra_smiles)
+    logger.info("*"*50)
+    logger.info("Setting up")
+    logger.info("*"*50)
+    logger.info(f"csv file {all_extra_smiles_csv}")
     logger.info(f"fitting parameters from {fit_param_fname}")
 
     cfg = Config.load()
@@ -73,7 +75,7 @@ def fit(
     if ip_type == "gap":
         fit_exec_path = cfg["gap_fit_path"]
     elif ip_type == "ace":
-        fit_exec_path = cfg["ace_fit_path"]'
+        fit_exec_path = cfg["ace_fit_path"]
     logger.info(f"Fit exec: {fit_exec_path}")
 
 
@@ -127,17 +129,17 @@ def fit(
  
     initial_train_fname = train_set_dir / f"00.train_for_{ip_type}_01.xyz"
     if not initial_train_fname.exists():
-        it.check_dft(initial_train_fname, dft_prop_prefix=dft_prop_prefix, orca_kwargs=orca_kwargs, tests_wdir=wdir/"dft_check_wdir")
+        it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, dft_calc=orca_calc, tests_wdir=wdir/"dft_check_wdir")
 
     # prepare 1st dataset
-    cs = ConfigSet(input_files=initial_train_fname)
-    os = OutputSpec(output_files=initial_train_fname, force=True, all_or_none=True,
+    cs = ConfigSet(input_files=base_train_fname)
+    outspec = OutputSpec(output_files=initial_train_fname, force=True, all_or_none=True,
                        set_tags={"dataset_type": "train"})
-    it.prepare_dataset(cs, os, cycle_idx=0)
+    it.prepare_dataset(cs, outspec, cycle_idx=1)
 
     #######################################################################
 
-    for cycle_idx in range(1, num_cycles + 0):
+    for cycle_idx in range(1, num_cycles + 2):
 
         fns = it.get_filenames(no=cycle_idx, wdir=wdir, ip=ip_type, train_set_dir=train_set_dir, val_fn=validation_fname)
 
@@ -150,7 +152,7 @@ def fit(
 
         if ip_type == "gap":
             calculator = it.do_gap_fit(
-                fit_dir=fit_dir,
+                fit_dir=fns["fit_dir"],
                 idx=cycle_idx,
                 ref_type=ref_type,
                 train_set_fname=fns["this_train"],
@@ -160,10 +162,9 @@ def fit(
 
         elif ip_type == "ace":
             calculator = it.do_ace_fit(
-                fit_dir=fit_dir,
+                fns=fns,
                 idx=cycle_idx,
                 ref_type=ref_type,
-                train_set_fname=fns["this_train"],
                 fit_params_base=fit_params_base,
                 fit_to_prop_prefix=fit_to_prop_prefix,
                 ace_fit_exec=fit_exec_path,
@@ -171,10 +172,10 @@ def fit(
 
 
         # 2. Run tests
-        tests_wdir = cycle_dir / "tests"
-        if not fns["test"]["mlip_on_train"].exists():
+        # if not fns["tests"]["mlip_on_train"].exists():
+        if True:
             logger.info("running_tests")
-            with open(fit_dir / f"ace_{cycle_idx}_params.yaml") as f:
+            with open(fns["model"]["params"]) as f:
                 fit_params = yaml.safe_load(f)
 
             ip.run_tests(
@@ -191,7 +192,7 @@ def fit(
             it.select_extra_smiles(
                 all_extra_smiles_csv=all_extra_smiles_csv,
                 smiles_selection_csv=fns["smiles"],
-                num_extra_smiles=num_extra_smiles)
+                num_extra_smiles=num_extra_smiles_per_cycle)
 
 
         # 4. Generate actual structures for md 
@@ -208,31 +209,42 @@ def fit(
 
 
         # 5. Run MD
+        logger.info('running md')
         outputs = OutputSpec(output_files = fns["md_traj"]["all"])
         inputs = it.run_md(
+            calculator=calculator,
             inputs=inputs,
             outputs=outputs,
             md_params=md_params,
         )
 
         # 6. Organise trajectories
-        it.organise_md(all_md_trajs=inputs, fns=fns)
+        logger.info('organising trajectories')
+        it.organise_md_trajs(all_md_trajs=inputs, fns=fns)
 
         # 7. sample trajectories
-        cs_test_cur, cs_train_cur = it.sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_idx)
-        cs_train_from_failed = it.sample_failed(fns)
+        logger.info("sampling trajectories")
+        num_cur_environments = 2 * num_extra_smiles_per_cycle * (1+num_rads_per_mol)
+        cs_test_cur, cs_train_cur = it.sample_with_cur_soap(fns, cur_soap_params, num_cur_environments, cycle_idx)
+        cs_train_from_failed = it.sample_failed(fns, pred_prop_prefix)
 
         # 8. cleanup 
+        logger.info('cleaning up data')
         cs_test_cur = it.cleanup(cs_test_cur, cycle_idx)
         cs_train_cur = it.cleanup(cs_train_cur, cycle_idx)
-        cs_train_from_failed = it.cleanup(cs_train_from_failed, cycle_idx)
+        if cs_train_from_failed is not None: 
+            cs_train_from_failed = it.cleanup(cs_train_from_failed, cycle_idx)
 
         # 9. get DFT
+        logger.info('getting dft')
         outputs_test = OutputSpec(output_files=fns["extra"]["validation"]["dft"],
             set_tags={"dataset_type": "validation"})
         outputs_train = OutputSpec(output_files=fns["extra"]["train"]["all_dft"],
             set_tags={"dataset_type": "train"})
-        inputs_train = ConfigSet(input_configsets = [cs_train_cur, cs_train_from_failed])
+        input_configsets = [cs_train_cur]
+        if cs_train_from_failed is not None:
+            input_configsets.append(cs_train_from_failed)
+        inputs_train = ConfigSet(input_configsets = input_configsets)
 
         orca_kwargs["directory"] = fns["cycle_dir"] 
         dft_calc = (orca.ORCA, [], orca_kwargs)

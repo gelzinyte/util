@@ -8,6 +8,7 @@ from wfl.configset import OutputSpec
 
 from util.plot import rmse_scatter_evaled
 from util import error
+import util
 
 import pandas as pd
 
@@ -40,13 +41,13 @@ def plot(all_atoms, ref_energy_key, pred_energy_key, pred_forces_key=None,
         error_function = util.get_mae
         error_label = "MAE"
 
-    data = error.process(
+    data = util.error.process(
         all_atoms=all_atoms,
         ref_energy_key=ref_energy_key,
         pred_energy_key = pred_energy_key,
         ref_forces_key = ref_forces_key,
         pred_forces_key = pred_forces_key,
-        info_label=info_key,
+        info_label=info_label,
         energy_type=energy_type,
         isolated_atoms=isolated_atoms) 
 

@@ -15,7 +15,7 @@ basis:
       type: polynomial
     type: pair
   ace_basis:
-    N: 3
+    N: 2
     maxdeg: 1 
     r0: 1.1
     radial:
@@ -45,7 +45,7 @@ basis:
     degree:
       type: sparseM
       Dd: 
-        default: 10
+        default: 6 
         (3, H): 3
         (3, C): 6 
 data:

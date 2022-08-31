@@ -43,7 +43,7 @@ def test_iterfit(tmp_path):
     soap_params_for_cur = ref_path() / 'files/soap_params_for_cur.yml'
 
     util.iterations.fit.fit(
-        num_cycles=1,
+        num_cycles=2,
         base_train_fname=train_fname,
         validation_fname=test_fname,
         fit_param_fname=fit_param_fname,
@@ -52,9 +52,7 @@ def test_iterfit(tmp_path):
         wdir= tmp_path / "fits",
         ref_type='dft', 
         ip_type='ace',
-        # soap_params_for_cur_fname=soap_params_for_cur,
-        # num_train_environments_per_cycle=5,
-        # num_test_environments_per_cycle=5,
+        cur_soap_params=soap_params_for_cur,
         num_extra_smiles_per_cycle=5,
         md_steps=200,
     )
