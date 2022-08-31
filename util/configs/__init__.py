@@ -15,8 +15,14 @@ import os
 import hashlib
 import random
 from util import radicals
+from util import distances_dict
 
 logger = logging.getLogger(__name__)
+
+def min_max_data(atoms):
+    dd = distances_dict(atoms)
+    for key, vals in dd.items():
+        print(f"{key}: min: {min(vals)}, max: {max(vals)}")
 
 def generate_radicals_from_optimsied_molecules(ci, co, number_of_radicals, copy_mol=True):
 

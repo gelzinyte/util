@@ -6,6 +6,15 @@ from util import configs
 from util import qm
 from pathlib import Path
 
+
+@click.command("min-max")
+@click.argument('input-fn')
+def min_max_of_data(input_fn):
+    ats = read(input_fn, ":")
+    configs.min_max_data(ats)
+
+
+
 @click.command("rads-from-mols")
 @click.option('--input', '-i', help='input filename')
 @click.option('--output', '-o', help='output filename')

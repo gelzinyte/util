@@ -60,10 +60,20 @@ def scatter_plot(ref_energy_name,
         "zinc-test":"tab:orange",
         "comp6": "tab:red",
         "ha22": "tab:green",
-        "tyzack": "tab:purple"
+        "tyzack": "tab:purple",
+        # "MACE": "#D62627",
+        # "ACE": "#25D425",
+        # "GAP": "#2525D4",
+        # "MACE": "#D62627",
+        # "ACE": "#1EA91E",
+        # "GAP": "#1E1EA9"
+        "MACE": "tab:red",
+        "ACE": "tab:olive",
+        "GAP": "tab:blue"
     }
     # labels_order = ["zinc-train", "zinc-test", "comp6", "ha22", "tyzack"]
-    labels_order = ["zinc-test", "comp6", "ha22", "tyzack"]
+    # labels_order = ["zinc-test", "comp6", "ha22", "tyzack"]
+    # labels_order = ["GAP", "ACE", "MACE"]
 
 
     errors_to_return = {"energy": {}, "forces": {}}
@@ -100,9 +110,9 @@ def scatter_plot(ref_energy_name,
         y_energy_correlation_label = f'Predicted total {pred_energy_name} ' \
                                      f'/ eV'
         x_energy_label = f'Total {ref_energy_name} / eV'
-        y_energy_error_label = f'total energy error / meV'
-        energy_correlation_title = 'total energy correlation'
-        energy_error_title = 'total energy error'
+        y_energy_error_label = f'Total energy error / meV'
+        energy_correlation_title = 'Total energy correlation'
+        energy_error_title = 'Total energy error'
         e_error_units = 'meV'
 
     elif energy_type == 'mean_shifted_energy':
@@ -132,14 +142,14 @@ def scatter_plot(ref_energy_name,
     if error_scatter_type == 'absolute':
         y_energy_error_label = f'absolute {y_energy_error_label}'
         y_force_error_label = 'absolute force component error / meV/Å' 
-        energy_error_title = f'absolute {energy_error_title}'
+        energy_error_title = f'Absolute {energy_error_title}'
         forces_error_title = "absolute force component error"
     elif error_scatter_type == 'signed':
-        y_energy_error_label = f'signed {y_energy_error_label}'
-        y_force_error_label = 'signed force component error / meV/Å' 
-        energy_error_title = f'signed {energy_error_title}'
-        forces_error_title = "signed force component error"
-
+        y_energy_error_label = f'Signed {y_energy_error_label}'
+        y_force_error_label = 'Signed force component error / meV/Å' 
+        energy_error_title = f'Signed {energy_error_title}'
+        # forces_error_title = "Signed force component error"
+        forces_error_title = "Force component error"
     else:
         raise ValueError(f'"error_scatter_type" must be one of "absolute" or "signed", not "{error_scatter_type}"')
 
@@ -241,13 +251,13 @@ def scatter_plot(ref_energy_name,
     ax_err = ax_e_err
     ax_corr = ax_e_corr
 
-    # for color, (label, data) in zip(colors, all_plot_data.items()):
+    for color, (label, data) in zip(colors, all_plot_data.items()):
     # for label, data in all_plot_data.items():
-    for label in labels_order:
+    # for label in labels_order:
         # print(all_plot_data.keys())
         # print(len(all_plot_data[label]["predicted"]))
-        data = all_plot_data[label]
-        color = special_colors[label]
+        # data = all_plot_data[label]
+        # color = special_colors[label]
 
         ref = data['reference']
         pred = data['predicted']
@@ -275,17 +285,21 @@ def scatter_plot(ref_energy_name,
                         color=color,
                         #edgecolors=color, 
                         zorder=2)
-        ax_err.axhline(error_scatter_line, color=color, lw=0.8, label=error_scatter_line_label)
+        # ax_err.axhline(error_scatter_line, color=color, lw=0.8, label=error_scatter_line_label)
 
     if not no_legend:
+        # just for now
+        # e_error_units = "meV/at"
         ax_corr.legend(title=f' {color_info_name}: {error_label} / {e_error_units}',
                        **e_legend_kwargs)
-        # if error_scatter_type == 'signed':
-            # ax_err.legend()
-            # ax_err.axhline(0, c='k', lw=0.8, ls='--')
-        
+        if error_scatter_type == 'signed':
+            ax_err.legend()
+            ax_err.axhline(0, c='k', lw=0.8, ls='--')
+   
+
     ax_corr.set_ylabel(y_energy_correlation_label)
     ax_err.set_ylabel(y_energy_error_label)
+
     # if error_scatter_type == "absolute": 
         # ax_err.set_yscale('log')
         # ax_err.set_ylim(bottom=0)
@@ -322,10 +336,10 @@ def scatter_plot(ref_energy_name,
         ax_err = ax_f_err
         ax_corr = ax_f_corr
 
-        # for color, (label, data) in zip(colors, all_plot_data.items()):
-        for label in labels_order:
-            data = all_plot_data[label]
-            color = special_colors[label]
+        for color, (label, data) in zip(colors, all_plot_data.items()):
+        # for label in labels_order:
+            # data = all_plot_data[label]
+            # color = special_colors[label]
 
             ref = data['reference']
             pred = data['predicted']
@@ -351,18 +365,19 @@ def scatter_plot(ref_energy_name,
                             color=color,
                             # edgecolors=color,
                             **marker_kwargs)
-            ax_err.scatter(ref, errors ,
+            ax_err.scatter(ref, errors/1e3 ,
                             color=color,
                             # edgecolors=color,
                         **marker_kwargs)
-            ax_err.axhline(error_scatter_line, color=color, lw=0.8, label=error_scatter_line_label)
+            # ax_err.axhline(error_scatter_line, color=color, lw=0.8, label=error_scatter_line_label)
 
         if not no_legend:
-            ax_corr.legend(title=f'F component {error_label} / meV/Å',
+            ax_corr.legend(title=f'model {error_label} / meV/Å',
                            **f_legend_kwargs)
-            # # # if error_scatter_type == 'signed':
-            # #     ax_err.legend()  
-            #     ax_err.axhline(0, color='k', lw=0.8, ls='--')
+            if error_scatter_type == 'signed':
+            #     ax_err.legend()  
+                ax_err.axhline(0, color='k', lw=0.8, ls='--')
+
 
         ax_corr.set_ylabel(f'Predicted {pred_force_name} / eV/Å')
         ax_err.set_ylabel(y_force_error_label)

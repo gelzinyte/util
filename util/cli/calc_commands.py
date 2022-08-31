@@ -11,6 +11,7 @@ from ase.io import read, write
 from wfl.configset import ConfigSet, OutputSpec
 from wfl.generate import vib
 from wfl.calculators import generic 
+from wfl.autoparallelize.autoparainfo import AutoparaInfo
 from util.calculators import pyjulip_ace
 
 logger = logging.getLogger(__name__)
@@ -146,6 +147,6 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix, num_inputs_p
     calc = (pyjulip_ace, [ace_fname], {})
 
     generic.run(inputs=inputs, outputs=outputs, calculator=calc, properties=["energy", "forces"],
-                output_prefix=prop_prefix, num_inputs_per_python_subprocess=num_inputs_per_python_subprocess)
+                output_prefix=prop_prefix, autopara_info=AutoparaInfo(num_inputs_per_python_subprocess=num_inputs_per_python_subprocess))
 
 
