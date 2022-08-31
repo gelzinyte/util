@@ -38,11 +38,6 @@ def prepare_data(ref_values, pred_values, labels):
 
     return data
 
-def read_energy(at, isolated_atoms, ref_prop_name):
-    return at.info[ref_prop_name]
-
-def total_per_atom_energy(at, isolated_atoms, ref_prop_name):
-    return at.info[ref_prop_name] / len(at)
 
 def scatter_plot(ref_energy_name,
                 pred_energy_name,
@@ -92,8 +87,6 @@ def scatter_plot(ref_energy_name,
         error_label = "MAE"
 
 
-
-
    ################### energy plots
 
     if energy_type == 'atomization_energy':
@@ -106,7 +99,7 @@ def scatter_plot(ref_energy_name,
         e_error_units = 'meV/at'
 
     elif energy_type == 'total_energy':
-        energy_getter_function = read_energy
+        energy_getter_function = util.read_energy
         y_energy_correlation_label = f'Predicted total {pred_energy_name} ' \
                                      f'/ eV'
         x_energy_label = f'Total {ref_energy_name} / eV'
@@ -116,7 +109,7 @@ def scatter_plot(ref_energy_name,
         e_error_units = 'meV'
 
     elif energy_type == 'mean_shifted_energy':
-        energy_getter_function = read_energy
+        energy_getter_function = util.read_energy
         y_energy_correlation_label = f'Predicted mean shifted total' \
                                      f' {pred_energy_name} / eV'
         x_energy_label = f'Mean shifted total {ref_energy_name} / eV'
@@ -126,7 +119,7 @@ def scatter_plot(ref_energy_name,
         e_error_units = 'meV'
 
     elif energy_type == "per_atom_energy":
-        energy_getter_function = total_per_atom_energy
+        energy_getter_function = util.total_per_atom_energy
         y_energy_correlation_label = f'Predicted per atom total (not atomization)' \
                                      f' {pred_energy_name} / eV/at'
         x_energy_label = f'per atom total (not atomization) {ref_energy_name} / eV/at'

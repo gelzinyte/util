@@ -6,25 +6,26 @@ from ase.io import write
 from wfl.calculators import generic
 from wfl.configset import OutputSpec
 
+from util.plot import rmse_scatter_evaled
+from util import error
+import util
+
 import pandas as pd
 
 
-def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, num_inputs_per_python_subprocess=10, precision=4, 
-         info_key="config_type"):
+def plot(all_atoms, ref_energy_key, pred_energy_key, pred_forces_key=None,
+         ref_forces_key=None, precision=4, info_label="config_type", 
+         error_type="rmse", energy_type="atomization_energy", isolated_atoms=None):
     """Plots error table by config type
 
     Parameters
     ----------
-    data: list(Atoms) / CoinfigSet_in
+    all_atoms: list(Atoms) / CoinfigSet_in
         Structures with reference (and predicted) energies and forces
     ref_prefix: str
         Prefix for "energy" in Atoms.info and "forces" in Atoms.arrays for reference
     pred_prefix: str
         Prefix for predicted energy and forces
-    calculator: calculator / (initializer, args, kwargs)
-        Calculator to evaluate predicted energy & forces
-    output_fname: str, default None
-        Where to save data with predicted energy & forces, if at all
     num_inputs_per_python_subprocess: int, default 10
         How many structures to evaluate sequentially at calculators.generic.run
 
@@ -32,85 +33,43 @@ def plot(data, ref_prefix, pred_prefix, calculator=None, output_fname=None, num_
     -------
     """
 
-    assert ref_prefix != pred_prefix
+    assert error_type in ['rmse', 'mae']
+    if error_type == 'rmse':
+        error_function = util.get_rmse
+        error_label = 'RMSE'
+    elif error_type == 'mae':
+        error_function = util.get_mae
+        error_label = "MAE"
 
-    # Always evaluate configurations if calculator is given
-    if calculator is not None:
-        data = evaluate_data(data, calculator, pred_prefix, output_fname, num_inputs_per_python_subprocess)
-
-    ref_data = read_energies_forces(data, ref_prefix, info_key)
-    pred_data = read_energies_forces(data, pred_prefix, info_key)
-
-    config_types = []
-    for at in data:
-        if len(at) != 1:
-            if info_key in at.info.keys():
-                config_types.append(at.info[info_key])
-            else:
-                config_types.append(f'no_{info_key}')
+    data = util.error.process(
+        all_atoms=all_atoms,
+        ref_energy_key=ref_energy_key,
+        pred_energy_key = pred_energy_key,
+        ref_forces_key = ref_forces_key,
+        pred_forces_key = pred_forces_key,
+        info_label=info_label,
+        energy_type=energy_type,
+        isolated_atoms=isolated_atoms) 
 
     # prepare table by config type
-    config_counts = dict(Counter(config_types))
-    total_count = sum([val for key, val in config_counts.items()])
+    config_counts = {}
+    for label, vals in data.items():
+        config_counts[label] = len(vals["energy"]["reference"])
+
     table = {}
     for config_type in config_counts.keys():
         table[config_type] = {}
         table[config_type]["Count"] = int(config_counts[config_type])
-    table['overall'] = {}
-    table['overall']["Count"] = total_count
-
-    # read_energies_forces() partitions forces by element and by config_type
-    # put all elements together; maybe will introduce force_by_element later
-    tmp_no_f_sym_data = desymbolise_force_dict(ref_data['forces'])
-    ref_data['forces'].clear()
-    ref_data['forces'] = tmp_no_f_sym_data
-
-    tmp_no_f_sym_data = desymbolise_force_dict(pred_data['forces'])
-    pred_data['forces'].clear()
-    pred_data['forces'] = tmp_no_f_sym_data
 
     # collect energy RMSEs
-    e_key = 'E RMSE, meV/at'
-    all_ref_vals = np.array([])
-    all_pred_vals = np.array([])
-    for ref_config_type, pred_config_type in zip(ref_data['energy'].keys(),
-                                                 pred_data['energy'].keys()):
-        if ref_config_type != pred_config_type:
-            raise ValueError('Reference and predicted config_types do not match')
+    keys = {
+        "energy": f'E {error_label}, meV/at',
+        "forces": f'F {error_label}, meV/Å'}
 
-        ref_vals = ref_data['energy'][ref_config_type]
-        pred_vals = pred_data['energy'][pred_config_type]
-        all_ref_vals = np.concatenate([all_ref_vals, ref_vals])
-        all_pred_vals = np.concatenate([all_pred_vals, pred_vals])
-
-        rmse = get_rmse(ref_vals, pred_vals)
-        table[ref_config_type][e_key] = rmse * 1000  # meV
-    table['overall'][e_key] = get_rmse(all_ref_vals, all_pred_vals) * 1000
-
-    # collect force RMSEs
-    f_key = 'F RMSE, meV/Å'
-    f_perf_key = 'F RMSE/STD, %'
-
-    all_ref_vals = np.array([])
-    all_pred_vals = np.array([])
-    for ref_config_type, pred_config_type in zip(ref_data['forces'].keys(),
-                                                 pred_data['forces'].keys()):
-        if ref_config_type != pred_config_type:
-            raise ValueError(
-                'Reference and predicted config_types do not match')
-
-        ref_vals = ref_data['forces'][ref_config_type]
-        pred_vals = pred_data['forces'][pred_config_type]
-        all_ref_vals = np.concatenate([all_ref_vals, ref_vals])
-        all_pred_vals = np.concatenate([all_pred_vals, pred_vals])
-
-        rmse = get_rmse(ref_vals, pred_vals)  # meV/A
-        table[ref_config_type][f_key] = rmse * 1000
-        table[ref_config_type][f_perf_key] = rmse / np.std(ref_vals) * 100
-
-    overall_rmse = get_rmse(all_ref_vals, all_pred_vals)
-    table['overall'][f_key] = overall_rmse * 1000  # meV
-    table['overall'][f_perf_key] = overall_rmse / np.std(all_ref_vals) * 100  # %
+    for label, label_data in data.items():
+        for obs, obs_data in label_data.items():
+            error = error_function(obs_data["reference"], obs_data["predicted"]) * 1e3
+            table[label][keys[obs]] = error
 
     # print table
     table = pd.DataFrame(table).transpose()
