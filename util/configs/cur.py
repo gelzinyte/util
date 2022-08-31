@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO,
 def per_environment(inputs, outputs, num, 
                     at_descs_key=None, kernel_exp=None, stochastic=True,
                     keep_descriptor_arrays=True, center=True, leverage_score_key='leverage_score',
-                    write_all_configs=False
+                    write_all_configs=False,
                     remote_info=None, remote_label=None):
 
     if outputs.is_done():
@@ -27,7 +27,7 @@ def per_environment(inputs, outputs, num,
         return per_environment_core(
             inputs=inputs,
             outputs=outputs,
-            num-num,
+            num=num,
             at_descs_key=at_descs_key,
             kernel_exp=kernel_exp,
             stochastic=stochastic,

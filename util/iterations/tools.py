@@ -214,7 +214,8 @@ def sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_no):
         at_descs_key="small_soap",
         kernel_exp=4,
         leverage_score_key="cur_leverage_score",
-        write_all_configs=False)
+        write_all_configs=False,
+        remote_label="cur")
 
     inputs = list(inputs)
     random.shuffle(inputs)
@@ -447,7 +448,7 @@ def parse_cutoffs(key, cutoffs_mb):
     return [float(val) for val in vals.strip("()").split(',')]
 
 
-def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir, remote_info):
+def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir):
 
     tests_wdir.mkdir(exist_ok=True)
 
