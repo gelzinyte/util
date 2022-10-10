@@ -56,6 +56,9 @@ def run_tests(
     ci = ConfigSet(input_files=[fns["this_train"], fns["val"]])
     co = OutputSpec(output_files={fns["this_train"]:train_evaled, fns["val"]: val_evaled})
 
+    print(co)
+    # raise RuntimeError
+
     generic.run(
         inputs=ci,
         outputs=co,
@@ -69,7 +72,7 @@ def run_tests(
     check_for_offset(train_evaled, pred_prop_prefix, dft_prop_prefix)
 
     logger.info("plotting dimer curves")
-    dimer_2b(pred_calculator, fns["tests_dir"], fit_params)
+    # dimer_2b(pred_calculator, fns["tests_dir"], fit_params)
 
     # training & validation set scatter plots
     ats_train = read(train_evaled, ":")
@@ -87,7 +90,7 @@ def run_tests(
 
     logger.info('checking dft')
     # re-evaluate a couple of DFTs
-    it.check_dft(train_evaled, dft_prop_prefix, dft_calculator, fns["tests_dir"])
+    # it.check_dft(train_evaled, dft_prop_prefix, dft_calculator, fns["tests_dir"])
 
     
 def dimer_2b(calculator, tests_wdir, fit_params=None):

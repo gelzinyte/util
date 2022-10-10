@@ -9,12 +9,13 @@ from ase.io import read, write
 import wfl
 from wfl.calculators import orca, generic
 from wfl.configset import ConfigSet, OutputSpec
+from wfl.autoparallelize.autoparainfo import AutoparaInfo
 
 from util.util_config import Config
 from util.iterations import tools as it
 from util.iterations import plots as ip
 import util
-from wfl.autoparallelize.autoparainfo import AutoparaInfo
+from util.error.table import plot as print_error
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ def fit(
     num_rads_per_mol=0, 
     cur_soap_params="cur_soap.yaml",
     md_steps = 2000,
+    md_sample_interval=20,
     ):
     """ iteratively fits potetnials
 
@@ -125,15 +127,15 @@ def fit(
         "dt": 0.5,  # fs
         "temperature": md_temp,  # K
         "temperature_tau": 200,  # fs, somewhat quicker than recommended (???)
-        "traj_step_interval": 20,
+        "traj_step_interval": md_sample_interval,
         "results_prefix": pred_prop_prefix,
     }
     logger.info(f"MD params: {md_params}")
  
     # RemoteJob
     initial_train_fname = train_set_dir / f"00.train_for_{ip_type}_01.xyz"
-    if not initial_train_fname.exists():
-        it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, dft_calc=orca_calc, tests_wdir=wdir/"dft_check_wdir")
+    # if not initial_train_fname.exists():
+        # it.check_dft(base_train_fname, dft_prop_prefix=dft_prop_prefix, dft_calc=orca_calc, tests_wdir=wdir/"dft_check_wdir")
 
     # prepare 1st dataset
     cs = ConfigSet(input_files=base_train_fname)
@@ -149,6 +151,20 @@ def fit(
 
         logger.info("-" * 80)
         logger.info(f"ITERATION {cycle_idx}")
+
+        if fns["tests"]["mlip_on_val"].exists():
+            print('\n', '_'*60)
+            print_error(
+                all_atoms = read(fns["tests"]["mlip_on_train"], ':') +  read(fns["tests"]["mlip_on_val"], ":"),
+                ref_energy_key = f"{dft_prop_prefix}energy",
+                pred_energy_key = f"{pred_prop_prefix}energy",
+                ref_forces_key = f"{dft_prop_prefix}forces",
+                pred_forces_key = f"{pred_prop_prefix}forces",
+                info_label="dataset_type")
+            print('-'*60, '\n')
+        else:
+            print('no', fns["tests"]["mlip_on_val"])
+
 
         if os.path.exists(fns["next_train"]):
             logger.info(f"Found {fns['next_train']}, skipping iteration {cycle_idx}")
@@ -228,7 +244,7 @@ def fit(
 
         # 7. sample trajectories
         logger.info("sampling trajectories")
-        num_cur_environments = 2 * num_extra_smiles_per_cycle * (1+num_rads_per_mol)
+        num_cur_environments = 2 * len(read(fns["md_traj"]["successful"]["plain"]))
         cs_test_cur, cs_train_cur = it.sample_with_cur_soap(fns, cur_soap_params, num_cur_environments, cycle_idx)
         cs_train_from_failed = it.sample_failed(fns, pred_prop_prefix)
 
@@ -240,28 +256,38 @@ def fit(
             cs_train_from_failed = it.cleanup(cs_train_from_failed, cycle_idx)
 
         # 9. get DFT
-        logger.info('getting dft')
-        outputs_test = OutputSpec(output_files=fns["extra"]["validation"]["dft"],
-            set_tags={"dataset_type": "validation"})
-        outputs_train = OutputSpec(output_files=fns["extra"]["train"]["all_dft"],
-            set_tags={"dataset_type": "train"})
-        input_configsets = [cs_train_cur]
+        #     sort out test
+        ats = read(fns["extra"]["validation"]["via_soap"], ':')
+        for at in ats:
+            at.info["dataset_type"] = "validation"
+        write(fns["extra"]["validation"]["via_soap"], ats)
+
+        #     sort out train
+        ats = read(fns["extra"]["train"]["via_soap"], ":")
         if cs_train_from_failed is not None:
-            input_configsets.append(cs_train_from_failed)
-        inputs_train = ConfigSet(input_configsets = input_configsets)
+            ats += read(fns["extra"]["train"]["from_failed"], ":")
+        for at in ats:
+            at.info["dataset_type"] = "train"
+        write(fns["extra"]["train"]["combined"], ats)
+
+        logger.info('getting dft')
+        inputs = ConfigSet(input_files = [fns["extra"]["validation"]["via_soap"], fns["extra"]["train"]["combined"]])
+        outputs = OutputSpec(output_files = {
+            fns["extra"]["validation"]["via_soap"] : fns["extra"]["validation"]["dft"],
+            fns["extra"]["train"]["combined"] : fns["extra"]["train"]["all_dft"]
+        })
 
         orca_kwargs["directory"] = fns["cycle_dir"] 
         dft_calc = (orca.ORCA, [], orca_kwargs)
 
-        for inp, outp in [(cs_test_cur, outputs_test), (inputs_train, outputs_train)]:
-
-            generic.run(
-                inputs=inp, 
-                outputs=outp,
-                calculator=dft_calc,
-                output_prefix=dft_prop_prefix,
-                autopara_info=AutoparaInfo(remote_label="orca")
-            )
+        generic.run(
+            inputs=inputs, 
+            outputs=outputs,
+            calculator=dft_calc,
+            output_prefix=dft_prop_prefix,
+            autopara_info=AutoparaInfo(remote_label="orca"),
+            properties=["energy", "forces"]
+        )
 
 
         # 15. Combine datasets

@@ -1,9 +1,11 @@
 import logging
+import sys
 
 import numpy as np
 
 from wfl.select import by_descriptor
 from wfl.autoparallelize.utils import get_remote_info
+from wfl.configset import OutputSpec, ConfigSet
 
 from expyre import ExPyRe
 
@@ -24,7 +26,7 @@ def per_environment(inputs, outputs, num,
 
     remote_info = get_remote_info(remote_info, remote_label) 
     if remote_info is None:
-        return per_environment_core(
+        output_configs= per_environment_core(
             inputs=inputs,
             outputs=outputs,
             num=num,
@@ -35,6 +37,7 @@ def per_environment(inputs, outputs, num,
             center=center,
             leverage_score_key=leverage_score_key,
             write_all_configs=write_all_configs)
+        return ConfigSet(input_configs=output_configs)
 
     else:
         xpr = ExPyRe(
@@ -44,8 +47,8 @@ def per_environment(inputs, outputs, num,
             env_vars=remote_info.env_vars, 
             function=per_environment_core,
             kwargs= {
-                'inputs':inputs,
-                'outputs':outputs,
+                'inputs':list(inputs),
+                'outputs': None,
                 'num':num,
                 'at_descs_key':at_descs_key,
                 'kernel_exp':kernel_exp,
@@ -65,7 +68,7 @@ def per_environment(inputs, outputs, num,
 
         xpr.mark_processed()
 
-        return results
+        return ConfigSet(input_configs=results)
 
 
 def per_environment_core(inputs, outputs, num,
@@ -108,6 +111,9 @@ def per_environment_core(inputs, outputs, num,
         environments
     """
 
+    if outputs is None:
+        outputs = OutputSpec()
+
     logger.info('preparing descriptors')
 
     at_descs, parent_at_idx = prepare_descriptors(inputs, at_descs_key)
@@ -148,7 +154,7 @@ def per_environment_core(inputs, outputs, num,
                              write_all_configs=write_all_configs
                              )
 
-    return outputs.to_ConfigSet()
+    return list(outputs.to_ConfigSet())
 
 def clean_and_write_selected(inputs, outputs, selected,
                              parent_at_idx, at_descs_key,

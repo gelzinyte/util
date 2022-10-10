@@ -76,10 +76,10 @@ def get_filenames(no, wdir, ip, train_set_dir, val_fn):
     fns["fit_dir"] = fd
 
     fns["model"] = {}
-    fns["model"]["fname"]= fd / model 
+    fns["model"]["fname"]= (fd / model).resolve()
     fns['model']['params'] = fd / f'{ip}_params.yaml'
 
-    fns["val"] = val_fn 
+    fns["val"] = Path(val_fn)
 
     fns["this_train"] = train_set_dir / f"{no-1:02d}.train_for_{ip}_{no:02d}.xyz" 
     fns["next_train"] = train_set_dir / f"{no:02d}.train_for_{ip}_{no+1:02d}.xyz" 
@@ -108,7 +108,8 @@ def get_filenames(no, wdir, ip, train_set_dir, val_fn):
 
     fns["extra"]["train"]["via_soap"] = cd / f"05.0.{ip}.md_traj.extra_train.soap_cur.xyz" 
     fns["extra"]["train"]["from_failed"] = cd / f"05.1.{ip}.md_traj.extra_train.from_failed.xyz"
-    fns["extra"]["train"]["all_dft"] = cd / f"05.2.{ip}.md_traj.extra_train.dft.xyz"
+    fns["extra"]["train"]["combined"] = cd / f"05.2.{ip}.md_traj.extra_train.all.xyz"
+    fns["extra"]["train"]["all_dft"] = cd / f"05.3.{ip}.md_traj.extra_train.all.dft.xyz"
 
     fns["tests"] = {}
     fns["tests"]["mlip_on_train"] = td / f"{ip}_on_{fns['this_train'].name}"
@@ -160,22 +161,24 @@ def organise_md_trajs(all_md_trajs, fns):
 
     for traj in trajs.values():
 
-        if traj[-1].info["md_geometry_check"]:
+        if len(traj) == 1 or not traj[-1].info["md_geometry_check"]:
+            traj_failed.write(traj)
+            start_failed.write(traj[0])
+        else:
             # successful trajectory
             traj_success.write(traj)
             start_success.write(traj[0])
-
-        else:
-            traj_failed.write(traj)
-            start_failed.write(traj[0])
-    
+                
     for outspec in all_os:
         outspec.end_write()
 
 
 def sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_no):
 
-    inputs = ConfigSet(input_files=fns["md_traj"]["successful"]["plain"])
+    ats = read(fns["md_traj"]["successful"]["plain"], ":")
+    if len(ats) > 1000:
+        ats = ats[::4]
+    inputs = ConfigSet(input_configs=ats)
 
     os_soap = OutputSpec(output_files=fns["md_traj"]["successful"]["soap"])
     os_cur = OutputSpec(output_files=fns["md_traj"]["successful"]["cur"])
@@ -201,7 +204,7 @@ def sample_with_cur_soap(fns, soap_params, num_cur_environments, cycle_no):
             descs=soap_params,
             key="small_soap",  # where to store the descriptor
             local=True,
-            remote_label='soap')  
+            autopara_info=AutoparaInfo(remote_label='soap'))
     else:
         inputs = os_soap.to_ConfigSet()
 
@@ -239,10 +242,18 @@ def sample_failed(fns, pred_prop_prefix):
         return outputs.to_ConfigSet()
 
     trajs = configs.into_dict_of_labels(inputs, info_label="md_start_hash")
-    for traj in trajs.values():
-        accuracies = [check_accuracy(at, pred_prop_prefix) for at in traj]
-        first_failed = accuracies.index(False)
-        outputs.write(traj[first_failed - 1])
+    for label, traj in trajs.items():
+        ok_traj = [traj[0]]+[at for at in traj[1:] if at.info["md_geometry_check"]]
+        if len(ok_traj) > 1:
+            ok_traj = ok_traj[:-1]
+        # write(label + ".xyz", ok_traj)
+        first_failed = None
+        accuracies = [check_accuracy(at, pred_prop_prefix) for at in ok_traj]
+        if False in accuracies:
+            first_failed = accuracies.index(False)
+            outputs.write(ok_traj[first_failed - 1])
+        else:
+            outputs.write(ok_traj[-1])
     outputs.end_write()
     return outputs.to_ConfigSet()
 
@@ -452,8 +463,11 @@ def check_dft(train_set_fname, dft_prop_prefix, dft_calc, tests_wdir):
 
     tests_wdir.mkdir(exist_ok=True)
 
-    all_ats = read(train_set_fname, ':')
-    cs = ConfigSet(input_configs=random.choices(all_ats, k=4))
+    all_ats = read(train_set_fname, '-4:')
+    all_ats = [at for at in all_ats if len(at)!=1]
+    # cs = ConfigSet(input_configs=random.choices(all_ats, k=4))
+    cs = ConfigSet(input_configs=all_ats)
+
     os = OutputSpec(output_files=tests_wdir/"all_dft_check.xyz")
     inputs = generic.run(
         inputs=cs,
@@ -513,6 +527,9 @@ def check_accuracy(at, pred_prop_prefix, dft_prop_prefix=None):
 
     if max_pred_f > 10:
         return False
+    if np.any(pred_forces == 0):
+        logger.info("Some forces are zero, molecule must have exploded beyond cutoff")
+        return False
 
     if dft_prop_prefix is not None:
         dft_forces = at.arrays[f'{dft_prop_prefix}forces']
@@ -541,7 +558,9 @@ def check_accuracy(at, pred_prop_prefix, dft_prop_prefix=None):
 def run_md(calculator, inputs, outputs, md_params):
 
     md_stopper = BadGeometry(info_label="md_geometry_check") 
-    autopara_info = autoparainfo.AutoparaInfo(num_inputs_per_python_subprocess=1)
+    autopara_info = autoparainfo.AutoparaInfo(
+        num_inputs_per_python_subprocess=1, 
+        remote_label="mlip_md")
 
     inputs = md.sample(
         inputs=inputs, 
@@ -549,7 +568,7 @@ def run_md(calculator, inputs, outputs, md_params):
         calculator=calculator, 
         update_config_type=False,
         abort_check=md_stopper,
-        remote_label="mlip_md",
+        autopara_info=autopara_info,
         **md_params)
     
     return inputs

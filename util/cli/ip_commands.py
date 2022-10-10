@@ -54,10 +54,11 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 @click.option('--num-rads-per-mol', default=0, type=click.INT, show_default=True)
 @click.option('--md-steps', type=click.INT, default=2000)
 @click.option('--cur-soap-params')
+@click.option('--md-sample-interval')
 def fit(num_cycles, train_fname, fit_param_fname, all_smiles_csv, md_temp, 
         wdir, ref_type, ip_type, # bde_test_fname, 
         num_extra_smiles_per_cycle, num_rads_per_mol, validation_fname,
-        md_steps, cur_soap_params):
+        md_steps, cur_soap_params, md_sample_interval):
 
     import util.iterations.fit
 
@@ -73,4 +74,5 @@ def fit(num_cycles, train_fname, fit_param_fname, all_smiles_csv, md_temp,
                             num_extra_smiles_per_cycle=num_extra_smiles_per_cycle,
                             num_rads_per_mol=num_rads_per_mol, 
                             cur_soap_params=cur_soap_params,
-                            md_steps=md_steps)
+                            md_steps=md_steps,
+                            md_sample_interval=md_sample_interval)
