@@ -9,14 +9,14 @@ from wfl.autoparallelize.base import autoparallelize
 logger = logging.getLogger(__name__)
 
 
-def optimise(inputs, outputs, calculator, output_prefix,  num_inputs_per_python_subprocess=1,
-             traj_step_interval=None,num_python_subprocesses=None, info_for_logfile=None, remote_info=None):
-    return autoparallelize(iterable=inputs, outputspec=outputs,
-                         calculator=calculator, op=optimise_autopara_wrappable,
-                         num_inputs_per_python_subprocess=num_inputs_per_python_subprocess,
-                         traj_step_interval=traj_step_interval,
-                         output_prefix=output_prefix, num_python_subprocesses=num_python_subprocesses, 
-                         info_for_logfile=info_for_logfile, remote_info=remote_info)
+# def optimise(inputs, outputs, calculator, output_prefix,  num_inputs_per_python_subprocess=1,
+#              traj_step_interval=None,num_python_subprocesses=None, info_for_logfile=None, remote_info=None):
+#     return autoparallelize(iterable=inputs, outputspec=outputs,
+#                          calculator=calculator, op=optimise_autopara_wrappable,
+#                          num_inputs_per_python_subprocess=num_inputs_per_python_subprocess,
+#                          traj_step_interval=traj_step_interval,
+#                          output_prefix=output_prefix, num_python_subprocesses=num_python_subprocesses, 
+#                          info_for_logfile=info_for_logfile, remote_info=remote_info)
 
 
 def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_interval=None, info_for_logfile=None):
@@ -54,3 +54,5 @@ def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_inte
     return all_trajs
 
 
+def optimise(*args, **kwargs):
+    return autoparallelize(optimise_autopara_wrappable, *args, **kwargs)
