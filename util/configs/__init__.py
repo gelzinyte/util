@@ -3,7 +3,6 @@ import logging
 import pandas as pd
 from util import smiles
 from wfl.configset import ConfigSet, OutputSpec
-from wfl.generate.vib import Vibrations
 from ase import units
 from ase import Atoms
 import warnings

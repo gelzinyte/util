@@ -25,18 +25,23 @@ def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_inte
 
     """
 
+    if isinstance(atoms, Atoms): 
+        atoms = [atoms]
+
 
     if info_for_logfile is not None:
+        label = atoms[0].info[info_for_logfile]
+
         if len(atoms) == 1:
-            logfile = atoms[0].info[info_for_logfile] + ".opt_log"
-        elif isinstance(atoms, Atoms):
-            logfile = atoms.info[info_for_logfile] + ".opt_log"
+            logfile = label + ".opt_log"
         else:
             logger.warn(f"got `info_for_logfile`, but have more than one Atoms object")
-            logfile = atoms[0].info[info_for_logfile] + ".opt_log"
+            logfile = label + ".opt_log"
     else:
         logfile = None
 
+    logfile = None
+    label = None
 
     opt_kwargs = {'logfile': logfile, 'master': True, 'precon': None,
                   'use_armijo': False, 'steps':500}
@@ -46,10 +51,12 @@ def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_inte
     if traj_step_interval is not None:
         opt_kwargs['traj_step_interval'] = traj_step_interval
 
-    all_trajs = optimize.run_autopara_wrappable(atoms=atoms, calculator=calculator,
+    all_trajs = optimize._run_autopara_wrappable(atoms=atoms, calculator=calculator,
                              keep_symmetry=False, update_config_type=False,
                              results_prefix=output_prefix,
-                             fmax=1e-2, **opt_kwargs)
+                             fmax=1e-2, 
+                             #traj_fn_prefix = label,
+                             **opt_kwargs)
 
     return all_trajs
 

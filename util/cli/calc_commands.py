@@ -9,7 +9,7 @@ from tqdm import tqdm
 from ase.io import read, write
 
 from wfl.configset import ConfigSet, OutputSpec
-from wfl.generate import vib
+from wfl.generate import normal_modes
 from wfl.calculators import generic 
 from wfl.autoparallelize.autoparainfo import AutoparaInfo
 from util.calculators import pyjulip_ace
@@ -35,12 +35,12 @@ def xtb_normal_modes(input_fname, output_fname, parallel_hessian):
     prop_prefix = 'xtb2_'
 
     if parallel_hessian:
-        vib.generate_normal_modes_parallel_hessian(inputs=ConfigSet,
+        normal_modes.generate_normal_modes_parallel_hessian(inputs=ConfigSet,
                                           outputs=OutputSpec,
                                           calculator=calc,
                                           prop_prefix=prop_prefix)
     else:
-        vib.generate_normal_modes_parallel_atoms(inputs=ConfigSet,
+        normal_modes.generate_normal_modes_parallel_atoms(inputs=ConfigSet,
                                                  outputs=OutputSpec,
                                                  calculator=calc,
                                                  prop_prefix=prop_prefix,
