@@ -12,6 +12,7 @@ from wfl.configset import ConfigSet, OutputSpec
 from wfl.generate import vib
 from wfl.calculators import generic 
 from util.calculators import pyjulip_ace
+from wfl.autoparallelize.autoparainfo import AutoparaInfo
 
 logger = logging.getLogger(__name__)
 
@@ -140,12 +141,32 @@ def calculate_descriptor(input_fname, output_fname, param_fname, key, local):
 @click.option('--num_inputs_per_python_subprocess', '-c', default=100, show_default=True, help='num_inputs_per_python_subprocess for parallelisation')
 def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix, num_inputs_per_python_subprocess):
 
-    inputs = ConfigSet(input_files=input_fname)
-    outputs = OutputSpec(output_files=output_fname)
+    inputs = ConfigSet(input_fname)
+    outputs = OutputSpec(output_fname)
 
     calc = (pyjulip_ace, [ace_fname], {})
 
     generic.run(inputs=inputs, outputs=outputs, calculator=calc, properties=["energy", "forces"],
                 output_prefix=prop_prefix, num_inputs_per_python_subprocess=num_inputs_per_python_subprocess)
+
+
+@click.command('mace')
+@click.argument('input_fname')
+@click.option('--output-fname', '-o', help='output filename')
+@click.option('--mace-fname', '-m', help='mace .cpu path')
+@click.option('--prop-prefix', '-p', default='mace_', show_default=True)
+@click.option('--num_inputs_per_python_subprocess', '-c', default=100, show_default=True, help='num_inputs_per_python_subprocess for parallelisation')
+def evaluate_ace(input_fname, output_fname, mace_fname, prop_prefix, num_inputs_per_python_subprocess):
+
+    from mace.calculators.mace import MACECalculator 
+
+    inputs = ConfigSet(input_fname)
+    outputs = OutputSpec(output_fname)
+
+    calc = (MACECalculator, [], {"model_path":mace_fname, "default_dtype":"float64", "device":"cpu"})
+
+    generic.run(inputs=inputs, outputs=outputs, calculator=calc, properties=["energy", "forces"],
+                output_prefix=prop_prefix, autopara_info = AutoparaInfo(num_inputs_per_python_subprocess=num_inputs_per_python_subprocess))
+
 
 
