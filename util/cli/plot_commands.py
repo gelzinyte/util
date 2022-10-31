@@ -270,6 +270,7 @@ def scatter(ref_energy_name, pred_energy_name, ref_force_name,
     if len(atoms_filenames) == 1:
         atoms_filename = atoms_filenames[0]
         all_atoms = read(atoms_filename, ":")
+        # all_atoms = read(atoms_filename, "::50")
 
         isolated_atoms = None
         if isolated_at_fname is not None:

@@ -1,26 +1,65 @@
-atoms_filename: /home/eg475/scripts/tests/files/tiny_gap.train_set.xyz
-outfile_base: ace_interactive 
-outfile_format: .json
-load_dbfile:  
-save_dbfile:  
-r0: 1.1
-cutoffs_mb: 
-  "(C, H)": "(1.6, 4.4)"
-  "(C, C)": "(0.8, 4.4)"
-  "(H, H)": "(1.0, 4.4)"
-cutoff_pair: 5.5
-correlation_order: 3
-degree:
-  default: 10
-  1: 10 
-  2: 10
-  "(3, H)": 3 
-  "(3, C)": 6 
-degree_pair: 4
+ACE_fname: ace_interactive.json
+basis:
+  pair_basis:
+    maxdeg: 4
+    pcut: 2
+    pin: 0
+    r0: 1.1
+    rcut: 5.5
+    rin: 0.0
+    species:
+    - C
+    - H
+    transform:
+      r0: 1.1
+      type: polynomial
+    type: pair
+  ace_basis:
+    N: 2
+    maxdeg: 1 
+    r0: 1.1
+    radial:
+      pcut: 2
+      pin: 2
+      type: radial
+    species:
+    - C
+    - H
+    transform:
+      cutoffs:
+        (C, C): (1.6, 4.5)
+        (C, H): (0.8, 4.5)
+        (H, H): (1.0, 4.5)
+      transforms:
+        (C, C):
+          r0: 1.1
+          type: polynomial
+        (C, H):
+          r0: 1.1
+          type: polynomial
+        (H, H):
+          r0: 1.1
+          type: polynomial
+      type: multitransform
+    type: ace
+    degree:
+      type: sparseM
+      Dd: 
+        default: 6 
+        (3, H): 3
+        (3, C): 6 
+data:
+  energy_key: dft_energy
+  fname: /home/eg475/programs/scripties/tests/files/tiny_gap.train_set.xyz
+  force_key: dft_forces
+e0:
+  C: -1028.4321581399468
+  H: -13.547478676206193
 solver: 
-  - ard
-  - [0.1, 100]
-key: 
-  - [E, dft_energy]
-  - [F, dft_forces]
-_repeat_key: true
+  type: lsqr
+  lsqr_damp: 0
+  lsqr_atol: 1.0e-4 
+weights:
+  default:
+    E: 10.0
+    F: 1.0

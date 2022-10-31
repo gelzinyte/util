@@ -2,6 +2,7 @@ import click
 import os
 from wfl.calculators import generic
 from wfl.configset import ConfigSet, OutputSpec
+from wfl.autoparallelize.autoparainfo import AutoparaInfo
 from ase.io import read, write 
 import numpy as np
 from util.plot import dimer
@@ -27,7 +28,7 @@ def eval_gap(gap_fname, at_gaussian_weight, pred_prop_prefix, input_fn, output_f
         calculator=gap_calc,
         properties = ["energy", "forces"],
         output_prefix=pred_prop_prefix, 
-        num_inputs_per_python_subprocess = num_inputs_per_python_subprocess)
+        autopara_info=AutoparaInfo(num_inputs_per_python_subprocess = num_inputs_per_python_subprocess))
 
 
 

@@ -12,6 +12,7 @@ from ase import Atoms
 
 from wfl.configset import ConfigSet, OutputSpec
 from wfl.calculators import generic
+from wfl.autoparallelize.autoparainfo import AutoparaInfo
 
 from util.util_config import Config
 from util import opt
@@ -38,12 +39,14 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
             return outputs.to_ConfigSet()
         dft_h.info["dft_energy"] = -13.547478676206193
         dft_h.info["mace_energy"] = -13.547478676206193
-        outputs.write(dft_h)
-        outputs.end_write()
+        outputs.store(dft_h)
+        outputs.close()
         return outputs.to_ConfigSet()
 
-    inputs = ConfigSet(input_configs=dft_h)
+    inputs = ConfigSet(dft_h)
     interim_outputs = OutputSpec()
+
+    remote_info = None
 
     if not no_dft:
         inputs = generic.run(inputs=inputs,
@@ -51,16 +54,20 @@ def ip_isolated_h(pred_calculator, dft_calculator, dft_prop_prefix, ip_prop_pref
                     calculator=dft_calculator, 
                     properties=["energy"],
                     output_prefix=dft_prop_prefix,
-                    num_inputs_per_python_subprocess=1,
-                    remote_info=remote_info
+                    autopara_info = AutoparaInfo(
+                        num_inputs_per_python_subprocess=1,
+                        remote_info=remote_info,
+                        remote_label = None)
                     )
 
     generic.run(inputs=inputs,
                 outputs=outputs,
                 calculator=pred_calculator, properties=['energy', 'forces'],
                 output_prefix=ip_prop_prefix,
-                num_python_subprocesses=None,
-                remote_info=remote_info)
+                autopara_info = AutoparaInfo(
+                    num_python_subprocesses=None,
+                    remote_info=remote_info,
+                    remote_label = None))
 
     return outputs.to_ConfigSet() 
 
@@ -107,8 +114,8 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     assert isinstance(dft_calculator, tuple)
     assert len(dft_calculator) == 3
 
-    if remote_info is not None:
-        orig_job_name = remote_info.job_name
+    # if remote_info is not None:
+        # orig_job_name = remote_info.job_name
     
 
     # deal with needed paths
@@ -136,17 +143,20 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     #     print(p)
 
     # 1. evaluate structures with pred_calculator
-    if remote_info is not None:
-        remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}ef'
+    # if remote_info is not None:
+    #     remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}ef'
     logger.info("evaluating IP on dft-optimised structures")
-    inputs = ConfigSet(input_files=dft_bde_filename)
-    outputs = OutputSpec(output_files=dft_bde_with_ip_fname, force=True, all_or_none=True, set_tags={"dataset_type":f"bde_{dft_prop_prefix}optimised"})
+    inputs = ConfigSet(dft_bde_filename)
+    outputs = OutputSpec(dft_bde_with_ip_fname)
     inputs = generic.run(inputs=inputs,
                         outputs=outputs,
                         calculator=pred_calculator,
                         properties=['energy', 'forces'],
                         output_prefix=ip_prop_prefix,
-                        remote_info=remote_info)
+                        autopara_info = AutoparaInfo(
+                            remote_info=remote_info["pred_single_point"],
+                            num_inputs_per_python_subprocess = 50))
+    inputs = _set_tags(inputs, {"dataset_type":f"bde_{dft_prop_prefix}optimised"})
 
 
     # 2. Duplicate and relabel structures in-memory
@@ -154,50 +164,53 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
     inputs = _prepare_structures(inputs, outputs)
 
     # 3. Optimise with interatomic potential
-    if remote_info is not None:
-        remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}opt'
+    # if remote_info is not None:
+    #     remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}opt'
     logger.info('IP-optimising DFT structures')
-    outputs = OutputSpec(output_files=ip_reopt_fname,
-                            force=True, all_or_none=True,
-                            set_tags={'bde_config_type': f"{ip_prop_prefix}optimised",
-                                    'dataset_type': f"bde_{ip_prop_prefix}reoptimised"})
+    outputs = OutputSpec(ip_reopt_fname)
     inputs = opt.optimise(inputs=inputs,
                         outputs=outputs,
                         calculator=pred_calculator,
                         output_prefix=ip_prop_prefix,
-                        num_inputs_per_python_subprocess=num_inputs_per_python_subprocess,
-                        remote_info=remote_info)
+                        autopara_info = AutoparaInfo(
+                            num_inputs_per_python_subprocess=num_inputs_per_python_subprocess,
+                            remote_info=remote_info["pred_opt"]))
 
+    # inputs = _set_tags(inputs, {'bde_config_type': f"{ip_prop_prefix}optimised",
+    #                                 'dataset_type': f"bde_{ip_prop_prefix}reoptimised"})
 
     # 3.1 evaluate with interatomic potential
-    if remote_info is not None:
-        remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}ef'
-    outputs = OutputSpec(output_files=ip_reopt_fname_with_ip, force=True, all_or_none=True)
+    # if remote_info is not None:
+    #     remote_info.job_name = orig_job_name + f'_{ip_prop_prefix}ef'
+    outputs = OutputSpec(ip_reopt_fname_with_ip)
     inputs = generic.run(inputs=inputs,
                         outputs=outputs,
                         calculator=pred_calculator,
                         properties=['energy', 'forces'],
                         output_prefix=ip_prop_prefix,
-                        remote_info=remote_info)
+                        autopara_info=AutoparaInfo(
+                            remote_info=remote_info["pred_single_point"],
+                            num_inputs_per_python_subprocess = 50))
 
     if not no_dft:
         # 4. evaluate with DFT
         logger.info('Re-evaluating ip-optimised structures with DFT')
-        outputs = OutputSpec(output_files=ip_reopt_with_dft_fname,
-                                    force=True, all_or_none=True)
+        outputs = OutputSpec(ip_reopt_with_dft_fname)
         generic.run(inputs=inputs, 
                     outputs=outputs,
                     calculator=dft_calculator,
                     output_prefix=dft_prop_prefix, 
                     properties=["energy", "forces"],
-                    num_inputs_per_python_subprocess=1,
-                    remote_info=remote_info)
+                    autopara_info = AutoparaInfo(
+                        num_inputs_per_python_subprocess=1,
+                        remote_info=remote_info["dft_single_point"],
+                        remote_label="dft_single_point"))
 
     # 5. construct isolated atom 
     logger.info("Constructing isolated_h")
-    if remote_info is not None:
-        remote_info.job_name = orig_job_name + f'_H'
-    outputs = OutputSpec(output_files=isolated_h_fname, force=True, all_or_none=True)
+    # if remote_info is not None:
+    #     remote_info.job_name = orig_job_name + f'_H'
+    outputs = OutputSpec(isolated_h_fname)
     ip_isolated_h(pred_calculator=pred_calculator,
                   dft_calculator=dft_calculator,
                   dft_prop_prefix=dft_prop_prefix, 
@@ -244,9 +257,9 @@ def everything(pred_calculator, dft_calculator, dft_bde_filename,
 
     # 7. gather results in one file for comparison
     logger.info("gathering results to one file")
-    dft_opt_ats = ConfigSet(input_files=dft_opt_bde_fname)
-    ip_reopt_ats = ConfigSet(input_files=ip_reopt_bde_fname)
-    outputs = OutputSpec(output_files=summary_file, force=True, all_or_none=True)
+    dft_opt_ats = ConfigSet(dft_opt_bde_fname)
+    ip_reopt_ats = ConfigSet(ip_reopt_bde_fname)
+    outputs = OutputSpec(summary_file)
     inputs = collect_bde_results(dft_opt_ats=dft_opt_ats, 
                         ip_reopt_ats=ip_reopt_ats, 
                         dft_prop_prefix=dft_prop_prefix,
@@ -296,9 +309,9 @@ def collect_bde_results(dft_opt_ats, ip_reopt_ats, dft_prop_prefix, ip_prop_pref
         at.arrays[f'{dft_prop_prefix}opt_positions'] = dft_opt_at.positions.copy()
         at.arrays[f'{ip_prop_prefix}opt_positions'] = ip_reopt_at.positions.copy()
 
-        outputs.write(at)
+        outputs.store(at)
 
-    outputs.end_write()
+    outputs.close()
 
     return outputs.to_ConfigSet() 
 
@@ -308,8 +321,8 @@ def _prepare_structures(inputs, outputs):
         fresh_at = at.copy()
         # remove keys that will change upon geometry optimisation
         remove_energy_force_containing_entries(fresh_at)
-        outputs.write(fresh_at)
-    outputs.end_write()
+        outputs.store(fresh_at)
+    outputs.close()
     return outputs.to_ConfigSet()
 
 
@@ -326,4 +339,13 @@ def setup_orca_kwargs():
 
     return  orca_kwargs
 
+
+def _set_tags(inputs, tags):
+    outputs = OutputSpec()
+    for at in inputs:
+        for key, tag in tags.items():
+            at.info[key] = tag
+        outputs.store(at)
+    outputs.close()
+    return outputs.to_ConfigSet()
 

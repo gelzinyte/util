@@ -10,3 +10,4 @@ util.egg-info/*
 *ace*.json
 *_expyre*
 *remoteinfo.json
+docs/build

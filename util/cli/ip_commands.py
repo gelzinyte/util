@@ -41,6 +41,7 @@ def evaluate_ip(config_file, gap_fname, output_fname,
               help='number of gap_fit - optimise cycles')
 @click.option('--train-fname', default='train.xyz', show_default=True,
               help='fname of the first training set file')
+@click.option('--validation-fname')
 @click.option('--fit-param-fname', help='(base) parameters for fitting the potential')
 @click.option('--all-smiles-csv', help='csv with ALL smiles to be added')
 @click.option('--md-temp', type=click.FLOAT, default=500, show_default=True,
@@ -48,29 +49,30 @@ def evaluate_ip(config_file, gap_fname, output_fname,
 @click.option('--wdir', default='runs', show_default=True)
 @click.option('--ref-type', default='dft', help='fit to dft data only for now')
 @click.option('--ip-type', type=click.Choice(["ace"]), help='fit ACE only for now.')
-# @click.option('--bde-test-fname', help='xyz with configs to test bdes on')
 @click.option('--num-extra-smiles-per-cycle', default=10, type=click.INT, show_default=True, 
               help="How many structures to generate each cycle")
 @click.option('--num-rads-per-mol', default=0, type=click.INT, show_default=True)
-@click.option('--validation-fname')
 @click.option('--md-steps', type=click.INT, default=2000)
+@click.option('--cur-soap-params')
+@click.option('--md-sample-interval')
 def fit(num_cycles, train_fname, fit_param_fname, all_smiles_csv, md_temp, 
         wdir, ref_type, ip_type, # bde_test_fname, 
         num_extra_smiles_per_cycle, num_rads_per_mol, validation_fname,
-        md_steps):
+        md_steps, cur_soap_params, md_sample_interval):
 
     import util.iterations.fit
 
     util.iterations.fit.fit(num_cycles=num_cycles,
                             base_train_fname=train_fname,
+                            validation_fname=Path(validation_fname),
                             fit_param_fname=fit_param_fname,
                             all_extra_smiles_csv=all_smiles_csv,
                             md_temp=md_temp,
                             wdir=wdir,
                             ref_type=ref_type,
                             ip_type=ip_type,
-                            # bde_test_fname=bde_test_fname,
                             num_extra_smiles_per_cycle=num_extra_smiles_per_cycle,
                             num_rads_per_mol=num_rads_per_mol, 
-                            validation_fname=Path(validation_fname),
-                            md_steps=md_steps)
+                            cur_soap_params=cur_soap_params,
+                            md_steps=md_steps,
+                            md_sample_interval=md_sample_interval)

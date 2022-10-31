@@ -121,78 +121,6 @@ def test_make_structures():
     for label in ["config_type", "compound", "mol_or_rad", "rad_num", "graph_name", "iter_no"]:
         assert label in at.info.keys()
 
-
-def test_filter_configs():
-
-    fake_forces = np.random.rand(5, 3)
-    at0 = molecule("CH4")
-    at0.info["ref_energy"] = 4.00
-    at0.arrays["ref_forces"] = fake_forces
-
-    ats_to_test = []
-    at = at0.copy()
-    at.info["pred_energy"] = at.info["ref_energy"] + 0.04 
-    pred_forces = deepcopy(at.arrays["ref_forces"])
-    pred_forces[0][1] += 0.05
-    at.arrays["pred_forces"] = pred_forces 
-
-    at.info["test_config_type"] = "small_error"
-    ats_to_test.append(at.copy())
-
-    at.arrays["pred_forces"][0][1] += 0.051
-    at.info["test_config_type"] = "large_error"
-    ats_to_test.append(at.copy())
-
-    at.arrays["pred_forces"][0][1] -= 0.051
-    at.info["pred_energy"] += 0.02
-    ats_to_test.append(at.copy())
-    co_large = OutputSpec()
-    co_small = OutputSpec()
-    it.filter_configs(inputs=ats_to_test, 
-                     outputs_large_error=co_large,
-                     outputs_small_error=co_small, 
-                     pred_prop_prefix='pred_', 
-                     dft_prefix="ref_",
-                     e_threshold_total=0.05, 
-                     max_f_comp_threshold=0.1)
-    assert len([at for at in co_large.to_ConfigSet()]) ==2
-    assert len([at for at in co_small.to_ConfigSet()]) == 1
-    for at in co_large.to_ConfigSet():
-        assert at.info["test_config_type"] == "large_error"
-    for at in co_small.to_ConfigSet():
-        assert at.info["test_config_type"] == "small_error"
-
-    ats_to_test = []
-    at = at0.copy()
-    at.info["pred_energy"] = at.info["ref_energy"] + 0.06 
-    pred_forces = deepcopy(at.arrays["ref_forces"])
-    pred_forces[0][1] += 0.05
-    at.arrays["pred_forces"] = pred_forces 
-
-    at.info["test_config_type"] = "small_error"
-    ats_to_test.append(at.copy())
-
-    at.arrays["pred_forces"][0][1] += 0.251
-    at.info["test_config_type"] = "large_error"
-    ats_to_test.append(at.copy())
-
-    co_large = OutputSpec()
-    co_small = OutputSpec()
-    it.filter_configs(inputs=ats_to_test, 
-                     outputs_large_error=co_large,
-                     outputs_small_error=co_small, 
-                     pred_prop_prefix='pred_', 
-                     dft_prefix="ref_",
-                     e_threshold_per_atom=0.05, 
-                     max_f_comp_threshold=0.1)
-    assert len([at for at in co_large.to_ConfigSet()]) == 1
-    assert len([at for at in co_small.to_ConfigSet()]) == 1
-    for at in co_large.to_ConfigSet():
-        assert at.info["test_config_type"] == "large_error"
-    for at in co_small.to_ConfigSet():
-        assert at.info["test_config_type"] == "small_error"
-
-
 def test_update_cutoffs():
 
     cutoffs_mb = {"(C, H)": "(1.6, 4.4)",
@@ -231,60 +159,6 @@ def test_check_dft(tmp_path, dft_calculator):
     logger.info(f"dft calc: {dft_calculator}") 
 
     it.check_dft(train_set_fname, dft_prop_prefix, dft_calculator, tmp_path / "dft_check_wdir")
-
-
-@pytest.mark.skip(reason="changed many things")
-def test_process_trajs():
-
-    at0 = molecule("CH4")
-
-    # check just that everything gets picked up as it should
-    traj_1 = [at0.copy() for _ in range(4)]
-    for at in traj_1:
-        at.info["graph_name"] = "good_traj"
-    traj_1[-1].info["config_type"] = "last"
-
-    traj_2 = [at0.copy() for _ in range(4)]
-    for at in traj_2:
-        at.info["graph_name"] = "bad_traj"
-
-    traj_2[2].set_distance(0, 1, 5)
-    traj_2[3].set_distance(0, 1, 5)
-
-    ci = ConfigSet(input_configs=traj_1 + traj_2)
-    co_good_traj = OutputSpec()
-    co_bad_traj_good_cfg = OutputSpec()
-    co_bad_traj_bad_cfg = OutputSpec()
-
-    it.process_trajs(ci, co_good_traj, co_bad_traj_bad_cfg, co_bad_traj_good_cfg, "last")
-
-
-    assert [at for at in co_good_traj.to_ConfigSet()][0].info["config_type"] == "last"
-    assert [at for at in co_good_traj.to_ConfigSet()][0].info["graph_name"] == "good_traj"
-
-    assert len([at for at in co_bad_traj_bad_cfg.to_ConfigSet()]) == 2
-    assert len([at for at in co_bad_traj_good_cfg.to_ConfigSet()]) == 2
-
-    # ~check that can get empty files~
-    # actually I'm not writing to files...
-    traj_1 = [at0.copy() for _ in range(4)]
-    for at in traj_1:
-        at.info["graph_name"] = "good_traj"
-    traj_1[-1].info["config_type"] = "last"
-
-    traj_2 = [at0.copy() for _ in range(4)]
-    for at in traj_2:
-        at.info["graph_name"] = "bad_traj"
-
-    ci = ConfigSet(input_configs=traj_1 + traj_2)
-    co_good_traj = OutputSpec()
-    co_bad_traj_good_cfg = OutputSpec()
-    co_bad_traj_bad_cfg = OutputSpec()
-
-    it.process_trajs(ci, co_good_traj, co_bad_traj_bad_cfg, co_bad_traj_good_cfg, "last")
-    assert len([at for at in co_good_traj.to_ConfigSet()]) == 2
-    assert len([at for at in co_bad_traj_good_cfg.to_ConfigSet()]) == 0
-
 
 
 

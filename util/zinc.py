@@ -21,7 +21,6 @@ def main(wget_fname, output_label, wdir='wdir'):
     wget_stdout = output_label + '.out'
     wget_stderr = output_label + '.err'
 
-
     Path(wdir).mkdir(parents=True, exist_ok=True)
     Path(log_fname).touch()
 
@@ -77,22 +76,29 @@ def write_entries(staged_info, smi_output_fname, staged_labels, log_fname):
         f.write('\n'.join(staged_labels) + '\n')
 
 
-
 def only_has_CH(entry):
     return not bool(re.search(r'[a-bd-gi-zA-BD-GI-Z]', entry))
 
-def filter_for_CH(df):
-    return df[df['smiles'].apply(only_has_CH)]
+def only_has_CHO(entry):
+    return not bool(re.search(r'[a-bd-gi-np-zA-BD-GI-NP-Z]', entry))
+
+
+def filter_elements(df, elements):
+    if elements=="CH":
+        return df[df['smiles'].apply(only_has_CH)]
+    elif elements=="CHO":
+        return df[df['smiles'].apply(only_has_CHO)]
 
 def collect_info(command, label, wget_stdout, wget_stderr, wdir):
 
-    tmp_fname = tempfile.mkstemp(dir=wdir, suffix='.smi')[1]
-    command = command.replace(f"-O {label}.smi", f"-O {tmp_fname}")
+    tmp_fname = tempfile.mkstemp(dir=wdir, suffix='.txt')[1]
+    command = command.replace(f"-O {label}.txt", f"-O {tmp_fname}")
 
     logger.info(command)
     result = subprocess.run(command, shell=True, capture_output=True,
                             text=True)
 
+    # import pdb; pdb.set_trace()
     with open(wget_stdout, 'a') as f:
         f.write(result.stdout)
     with open(wget_stderr, 'a') as f:
@@ -101,8 +107,8 @@ def collect_info(command, label, wget_stdout, wget_stderr, wdir):
     filesize = Path(tmp_fname).stat().st_size
     if filesize > 0:
         data = pd.read_csv(tmp_fname, delim_whitespace=True)
-
-        data = filter_for_CH(data)
+        data = data[["smiles", "zinc_id"]]
+        data = filter_elements(data, elements="CHO")
 
         if len(data) == 0:
             data = None
@@ -122,5 +128,5 @@ def is_logged(label, logged_labels, staged_labels):
 
 def get_label(command):
     pat = re.compile(r"wget http://files.docking.org/2D/[A-Z]{2}/[A-Z]{4}"
-                     r".smi -O ([A-Z]{4}).smi")
+                     r".txt -O ([A-Z]{4}).txt")
     return pat.search(command).groups()[0]
