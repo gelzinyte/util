@@ -260,13 +260,13 @@ def scatter_plot(ref_energy_name,
     ax_err = ax_e_err
     ax_corr = ax_e_corr
 
-    # for color, (label, data) in zip(colors, all_plot_data.items()):
+    for color, (label, data) in zip(colors, all_plot_data.items()):
     # for label, data in all_plot_data.items():
-    for label in labels_order:
+    # for label in labels_order:
         # print(all_plot_data.keys())
         # print(len(all_plot_data[label]["predicted"]))
-        data = all_plot_data[label]
-        color = special_colors[label]
+        # data = all_plot_data[label]
+        # color = special_colors[label]
 
         ref = data['reference']
         pred = data['predicted']
@@ -357,10 +357,10 @@ def scatter_plot(ref_energy_name,
         ax_err = ax_f_err
         ax_corr = ax_f_corr
 
-        # for color, (label, data) in zip(colors, all_plot_data.items()):
-        for label in labels_order:
-            data = all_plot_data[label]
-            color = special_colors[label]
+        for color, (label, data) in zip(colors, all_plot_data.items()):
+        # for label in labels_order:
+            # data = all_plot_data[label]
+            # color = special_colors[label]
 
             ref = data['reference']
             pred = data['predicted']
