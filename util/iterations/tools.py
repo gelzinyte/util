@@ -302,12 +302,12 @@ def make_structures(
     name_col="zinc_id",
     ):
 
-    if outputs.is_done():
+    if outputs.done():
         logger.info(f"outputs ({outputs} from {smiles_csv.name}) are done, returning")
         return outputs.to_ConfigSet()
 
     atoms_out = []
-    logger.info(f"writing new structures from {smiles_csv} to {outputs.output_files}")
+    logger.info(f"writing new structures from {smiles_csv} to {outputs}")
 
     # generate molecules
     df = pd.read_csv(smiles_csv, delim_whitespace=True)
@@ -328,9 +328,9 @@ def make_structures(
     for at in atoms_out:
         at.cell = [50, 50, 50]
         at.info["md_start_hash"] = configs.hash_atoms(at)
-        outputs.write(at)
+        outputs.store(at)
 
-    outputs.end_write()
+    outputs.close()
     return outputs.to_ConfigSet()
 
 
