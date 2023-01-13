@@ -118,10 +118,11 @@ def scatter_plot(ref_energy_name,
         energy_getter_function = util.read_energy
         # y_energy_correlation_label = f'Predicted total {pred_energy_name} / eV'
         y_energy_correlation_label = f'Predicted BDE / eV'
+        # y_energy_correlation_label = "Predicted atomization energy / eV/at"
         x_energy_label = f'Total {ref_energy_name} / eV'
         y_energy_error_label = f'Total energy error / meV'
-        # energy_correlation_title = 'Total energy correlation'
-        energy_correlation_title = "Bond Dissociation Energy correlation"
+        energy_correlation_title = 'Total energy correlation'
+        # energy_correlation_title = "Bond Dissociation Energy correlation"
         energy_error_title = 'Total energy error'
         e_error_units = 'meV'
 
@@ -197,8 +198,8 @@ def scatter_plot(ref_energy_name,
         logger.warn(f'skipped {number_of_skipped_configs} configs, because one of {ref_energy_name} or {pred_energy_name} was not found.')
 
     if energy_shift:
-        ref_energies = util.shift0(ref_energies, by=np.mean(ref_energies))
-        pred_energies = util.shift0(pred_energies, by=np.mean(pred_energies))
+        # ref_energies = util.shift0(ref_energies, by=np.mean(ref_energies))
+        # pred_energies = util.shift0(pred_energies, by=np.mean(pred_energies))
 
         y_energy_correlation_label =  'Mean shifted ' + \
                                       y_energy_correlation_label
@@ -211,6 +212,15 @@ def scatter_plot(ref_energy_name,
     # print(info_entries)
     all_plot_data = prepare_data(ref_values=ref_energies,
                              pred_values=pred_energies, labels=info_entries)
+
+    if energy_shift:
+        for key, vals in all_plot_data.items():
+            # import pdb; pdb.set_trace()
+            pred_es = np.array(all_plot_data[key]["predicted"])
+            all_plot_data[key]["predicted"] = np.array(util.shift0(pred_es, np.mean(pred_es)))
+
+            ref_es = np.array(all_plot_data[key]["reference"])
+            all_plot_data[key]["reference"] = np.array(util.shift0(ref_es, np.mean(ref_es)))
 
 
 
@@ -307,12 +317,13 @@ def scatter_plot(ref_energy_name,
         ax_err.legend(title=f' {color_info_name}: {error_label} / {e_error_units}',
                        **e_legend_kwargs)
         if error_scatter_type == 'signed':
-            ax_err.legend()
+            ax_err.legend(loc="lower right")
             ax_err.axhline(0, c='k', lw=0.8, ls='--')
    
 
     ax_corr.set_ylabel(y_energy_correlation_label)
     # ax_err.set_ylabel(y_energy_error_label)
+    # ax_err.set_ylabel("MACE atomization energy error / meV/at")
     # ax_err.set_ylabel("Atomization energy error / meV/at")
     ax_err.set_ylabel("BDE error / meV/at")
 
@@ -323,6 +334,8 @@ def scatter_plot(ref_energy_name,
     # ax_err.set_title("Atomization energy error")
     ax_err.set_title("Bond Dissociation Energy error")
     ax_corr.set_title(energy_correlation_title)
+
+    # ax_err.set_ylim((-65, 40))
 
     xmin, xmax = ax_e_corr.get_xlim()
     extend_axis = 0.1
@@ -338,7 +351,7 @@ def scatter_plot(ref_energy_name,
     for ax in [ax_e_corr, ax_e_err]:
         # ax.set_xlabel(x_energy_label)
         # ax.set_xlabel("DFT atomization energy / eV/at")
-        ax.set_xlabel("DFT BDE / eV")
+        ax.set_xlabel("Mean-shifted DFT BDE / eV")
         ax.set_xlim(xmin, xmax)
 
     ######################### force plots

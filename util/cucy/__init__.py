@@ -1,8 +1,9 @@
-
+import numpy as np
 import os
 from ase.io import read, write
 import click
 from wfl.calculators import orca
+from ase.constraints import FixedPlane, FixInternals
 
 # @click.command()
 # @click.option('--opt_xyzs_dir', default='/data/eg475/carbyne/optimised_structures')
@@ -60,4 +61,95 @@ def read_energy(out_label):
     calc.label = out_label
     calc.read_energy()
     return calc.results['energy']
+
+
+def rotate_comulene(inputs, outputs, angles=None):
+    if outputs.done():
+        return outputs.to_ConfigSet()
+    if angles is None:
+        angles = [0, 30, 45, 60, 90]
+    for at in inputs:
+        ats_out = []
+        ea = get_at_nos_for_dihedral(at)
+        # print(ea)
+        # end atoms 
+        for angle in angles:
+            aa = at.copy()
+            aa.set_dihedral(ea["c2"], ea["h22"], ea["c1"], ea["h12"], angle, indices=[ea["c1"], ea["h12"], ea["h11"]])
+            aa.info["dihedral_angle"] = angle
+            ats_out.append(aa)
+        outputs.store(ats_out)
+    outputs.close()
+    return outputs.to_ConfigSet()
+
+def set_cu_constraint_plane(inputs, outputs):
+    for group in inputs.groups():
+        out = []
+        for at in group:
+            ea = get_at_nos_for_dihedral(at)
+            # set constraints
+            ch1 = at.get_distance(ea["c1"], ea["h11"], vector=True)
+            ch2 = at.get_distance(ea["c1"], ea["h12"], vector=True)
+            direction = np.cross(ch1, ch2)
+            direction = direction / np.linalg.norm(direction)
+            end1 = FixedPlane([ea["h11"], ea["h12"]], direction = direction)
+
+            ch1 = at.get_distance(ea["c2"], ea["h21"], vector=True)
+            ch2 = at.get_distance(ea["c2"], ea["h22"], vector=True)
+            direction = np.cross(ch1, ch2)
+            direction = direction / np.linalg.norm(direction)
+            end2 = FixedPlane([ea["h21"], ea["h22"]], direction = direction)
+
+            at.set_constraint([end1, end2])
+            out.append(at)
+        outputs.store(out)
+    outputs.close() 
+    return outputs.to_ConfigSet()
+
+def set_cu_constraint_dihedrals(inputs, outputs):
+    for group in inputs.groups():
+        out = []
+        for at in group:
+            ea = get_at_nos_for_dihedral(at)
+            dih_constraints = []
+            for first_h in ["h11", "h12"]:
+                for second_h in ["h21", "h22"]:
+                    dihedral_indices = ea["c1"], ea[first_h], ea["c2"], ea[second_h]
+                    constraint = [at.get_dihedral(*dihedral_indices), dihedral_indices]
+                    dih_constraints.append(constraint)
+            overal_constraint = FixInternals(dihedrals_deg = dih_constraints, epsilon=1e-1)
+            at.set_constraint(overal_constraint)
+            out.append(at)
+        outputs.store(out)
+    outputs.close()
+    return outputs.to_ConfigSet()
+
+ 
+
+def get_at_nos_for_dihedral(at):
+    if len(at) == 6:
+        return {"c1":1, "h11": 4, "h12": 5, "c2":0, "h21":2, "h22":3} 
+    c1 = 0
+    h11 = 1
+    h12 = 2
+    max_pos = 0
+    c2 = None 
+    h21 = None
+    h22 = None
+    for  aa in at:
+        if aa.symbol == "H":
+            if aa.index == h11 or aa.index == h12:
+                continue
+            if h21 is None:
+                h21 = aa.index
+            elif h22 is None:
+                h22 = aa.index
+            continue
+        if aa.position[0] > max_pos:
+            max_pos = aa.position[0]
+            c2 = aa.index
+    return {"c1":c1, "h11": h11, "h12": h12, "c2":int(c2), "h21":int(h21), "h22":int(h22)}
+    
+        
+
 

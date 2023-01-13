@@ -1,7 +1,8 @@
-from wfl.generate.md.abort import AbortBase
+from wfl.generate.md.abort import AbortSimBase
 from util import configs
 
-class BadGeometry(AbortBase):
+class BadGeometry(AbortSimBase):
+    pass
     def __init__(self, n_failed_steps=5, mult=1.2, skin=0, mark_elements=False,
         info_label=None):
         super().__init__(n_failed_steps)

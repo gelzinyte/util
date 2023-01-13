@@ -297,3 +297,6 @@ def hash_array(v):
 def hash_atoms(at):
     v = np.concatenate((at.numbers.reshape(-1,1), at.positions),axis=1)
     return hash_array(v)
+
+def hash_smiles(smi):
+    return hashlib.md5(smi.encode()).hexdigest()
