@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def main(wget_fname, output_label, wdir='wdir'):
+def main(wget_fname, output_label, elements, wdir='wdir'):
 
     log_fname = output_label + '.log'
     smi_output_fname = output_label + '.csv'
@@ -39,16 +39,13 @@ def main(wget_fname, output_label, wdir='wdir'):
         label = get_label(command)
         if is_logged(label, logged_labels, staged_labels):
             continue
-        staged_info.append(collect_info(command, label,
-                             wget_stdout=wget_stdout, wget_stderr=wget_stderr,
-                                        wdir=wdir))
+        staged_info.append(collect_info(command, label, wget_stdout=wget_stdout, 
+                                        wget_stderr=wget_stderr,wdir=wdir, elements=elements))
         staged_labels.append(label)
 
         if idx%10 == 9:
-            write_entries(staged_info, smi_output_fname, staged_labels,
-                          log_fname)
-            staged_info, staged_labels, logged_labels = reset_staged(
-                log_fname)
+            write_entries(staged_info, smi_output_fname, staged_labels,log_fname)
+            staged_info, staged_labels, logged_labels = reset_staged(log_fname)
 
 
     write_entries(staged_info, smi_output_fname, staged_labels,
@@ -82,14 +79,18 @@ def only_has_CH(entry):
 def only_has_CHO(entry):
     return not bool(re.search(r'[a-bd-gi-np-zA-BD-GI-NP-Z]', entry))
 
+def only_has_CHNOPS(entry):
+    return not bool(re.search(r'[a-bd-gi-mq-rt-zA-BD-GI-MQ-RT-Z', entry))
 
 def filter_elements(df, elements):
     if elements=="CH":
         return df[df['smiles'].apply(only_has_CH)]
     elif elements=="CHO":
         return df[df['smiles'].apply(only_has_CHO)]
+    elif elements=="CHNOPS":
+        return df[df["smiles"].apply(only_has_CHNOPS)]
 
-def collect_info(command, label, wget_stdout, wget_stderr, wdir):
+def collect_info(command, label, wget_stdout, wget_stderr, wdir, elements):
 
     tmp_fname = tempfile.mkstemp(dir=wdir, suffix='.txt')[1]
     command = command.replace(f"-O {label}.txt", f"-O {tmp_fname}")
@@ -108,7 +109,7 @@ def collect_info(command, label, wget_stdout, wget_stderr, wdir):
     if filesize > 0:
         data = pd.read_csv(tmp_fname, delim_whitespace=True)
         data = data[["smiles", "zinc_id"]]
-        data = filter_elements(data, elements="CHO")
+        data = filter_elements(data, elements=elements)
 
         if len(data) == 0:
             data = None
