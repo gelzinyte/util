@@ -65,14 +65,26 @@ def scatter_plot(ref_energy_name,
         # "GAP": "#1E1EA9"
         "MACE": "tab:red",
         "ACE": "tab:olive",
-        "GAP": "tab:blue"
+        "GAP": "tab:blue",
+        "test": "tab:red",
+        "COMP6.ANI-MD.ani_md_bench_10": "tab:brown",
+        "ha22_hydrocarbons": "tab:green",
+        "COMP6.GDB07to09": "tab:orange",
+        "COMP6.GDB10to13": "tab:olive",
+        "COMP6.DrugBank":"tab:cyan",
+        "train": "k",
+        "initial_train": "k",
+        "extra_1": "tab:red",
+        "extra_2": "tab:pink",
+        "extra_3": "tab:brown",
+        "ZINC-test": "tab:red",
+        "train": "tab:blue",
+        "ext-test": "tab:green"
+
     }
     # labels_order = ["zinc-train", "zinc-test", "comp6", "ha22", "tyzack"]
     # labels_order = ["zinc-test", "comp6", "ha22", "tyzack"]
-<<<<<<< HEAD
-=======
-    labels_order = ["GAP", "ACE", "MACE"]
->>>>>>> 04e55d81280b160623623a4ebd522f1d619a20f5
+    # labels_order = ["GAP", "ACE", "MACE"]
 
 
     errors_to_return = {"energy": {}, "forces": {}}
@@ -256,7 +268,7 @@ def scatter_plot(ref_energy_name,
         # print(all_plot_data.keys())
         # print(len(all_plot_data[label]["predicted"]))
         # data = all_plot_data[label]
-        # color = special_colors[label]
+        color = special_colors[label]
 
         ref = data['reference']
         pred = data['predicted']
@@ -347,7 +359,7 @@ def scatter_plot(ref_energy_name,
         for color, (label, data) in zip(colors, all_plot_data.items()):
         # for label in labels_order:
             # data = all_plot_data[label]
-            # color = special_colors[label]
+            color = special_colors[label]
 
             ref = data['reference']
             pred = data['predicted']
