@@ -157,14 +157,15 @@ def evaluate_ace(input_fname, output_fname, ace_fname, prop_prefix, num_inputs_p
 @click.option('--mace-fname', '-m', help='mace .cpu path')
 @click.option('--prop-prefix', '-p', default='mace_', show_default=True)
 @click.option('--num_inputs_per_python_subprocess', '-c', default=100, show_default=True, help='num_inputs_per_python_subprocess for parallelisation')
-def evaluate_ace(input_fname, output_fname, mace_fname, prop_prefix, num_inputs_per_python_subprocess):
+@click.option('--dtype', default='float64', show_default=True)
+def evaluate_ace(input_fname, output_fname, mace_fname, prop_prefix, num_inputs_per_python_subprocess, dtype):
 
     from mace.calculators.mace import MACECalculator 
 
     inputs = ConfigSet(input_fname)
     outputs = OutputSpec(output_fname)
 
-    calc = (MACECalculator, [], {"model_path":mace_fname, "default_dtype":"float64", "device":"cpu"})
+    calc = (MACECalculator, [], {"model_path":mace_fname, "default_dtype":dtype, "device":"cpu"})
 
     generic.run(inputs=inputs, outputs=outputs, calculator=calc, properties=["energy", "forces"],
                 output_prefix=prop_prefix, autopara_info = AutoparaInfo(num_inputs_per_python_subprocess=num_inputs_per_python_subprocess))

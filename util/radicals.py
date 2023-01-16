@@ -50,7 +50,7 @@ def get_sp3_h_numbers(atoms):
 
 
 
-def abstract_sp3_hydrogen_atoms(inputs, label_config_type=True,
+def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
                                 return_mol=True):
     """ Removes molecules' sp3 hydrogen atoms one at a time to give a number
     of corresponding unsaturated (radical) structures.
@@ -92,12 +92,15 @@ def abstract_sp3_hydrogen_atoms(inputs, label_config_type=True,
 
             if return_mol:
                 mol = atoms.copy()
+                # configs.assign_info_entries(mol, "mol", "mol", config_type=None,
+                # compound=None)
                 # mol.info['compound'] = mol.info['config_type']
                 # config_type_append(mol, 'mol')
                 # mol.info['mol_or_rad'] = 'mol'
                 atoms_out.append(mol)
 
             for rad, h_id in zip(radicals, sp3_hs):
+                # configs.assign_info_entires(rad, "rad", h_id)
                 # rad.info['compound'] = rad.info['config_type']
                 # config_type_append(rad, f'rad{h_id}')
                 # rad.info['mol_or_rad'] = f'rad{h_id}'
@@ -108,8 +111,10 @@ def abstract_sp3_hydrogen_atoms(inputs, label_config_type=True,
                 atoms_out = [atoms.copy()] + radicals
             else:
                 atoms_out = radicals
-        all_output_atoms += atoms_out
-    return all_output_atoms
+        
+        outputs.store(atoms_out)
+    outputs.close()
+    return outputs.to_ConfigSet() 
 
 def rad_conformers_from_smi(smi, compound, num_radicals):
     """given molecule, make "num_radicals" of radicals"""
@@ -151,3 +156,47 @@ def rad_conformers_from_smi(smi, compound, num_radicals):
         output_ats.append(rad)
     return output_ats
 
+
+
+
+
+def generate_radicals_from_optimsied_molecules(ci, co, number_of_radicals, copy_mol=True):
+
+    if co.is_done():
+        logger.info("returning because outputs are done")
+        return co.to_ConfigSet()
+
+    orig_num_or_radicals = number_of_radicals
+
+    for at in ci:
+        if copy_mol:
+            # save molecule
+            at = util.remove_energy_force_containing_entries(at)
+            co.write(at)
+
+        #make a radical
+        rad = at.copy()
+        comp = rad.info["compound"]
+        sp3_Hs = radicals.get_sp3_h_numbers(rad.copy())
+        if orig_num_or_radicals > len(sp3_Hs):
+            logger.warning(f"Asking for more radicals ({number_of_radicals}) than there are sp3 hydrogens ({len(sp3_Hs)}), returning all of radicals ({len(sp3_Hs)})for {at.info}")
+            number_of_radicals = len(sp3_Hs)
+        else:
+            number_of_radicals = orig_num_or_radicals
+
+        # print(f'len(sp3_Hs): {len(sp3_Hs)}; num_rads: {number_of_radicals}')
+        
+        all_H_to_remove = random.sample(sp3_Hs, number_of_radicals)
+
+        for h_to_remove in all_H_to_remove: 
+            atoms = rad.copy()
+            del atoms[h_to_remove]
+
+            atoms.info["mol_or_rad"] = "rad"
+            atoms.info["rad_num"] = h_to_remove
+            atoms.info["graph_name"] = str(comp) + '_rad' + str(h_to_remove)
+
+            co.write(atoms)
+
+    co.end_write()
+    return co.to_ConfigSet()

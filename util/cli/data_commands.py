@@ -9,9 +9,10 @@ from wfl.configset import OutputSpec
 @click.option('--output-label', '-l',
               help='label for all the output files ')
 @click.option("--wdir", default='wdir')
-def get_smiles_from_zinc(wget_fname, output_label, wdir):
+@click.option("--elements", type=click.Choice(["CH", "CHO", "CHNOPS"]), help="elements to filter out")
+def get_smiles_from_zinc(wget_fname, output_label, wdir, elements):
     from util import zinc
-    zinc.main(wget_fname, output_label, wdir=wdir)
+    zinc.main(wget_fname, output_label, wdir=wdir, elements=elements)
 
 @click.command("read-ani")
 @click.option('--hd5-fname', '-f')

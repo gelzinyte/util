@@ -5,6 +5,7 @@ from ase.io import read, write
 from util import configs    
 from util import qm
 from pathlib import Path
+import numpy as np
 
 
 @click.command("min-max")
@@ -98,7 +99,7 @@ def smiles_to_molecules_and_rads(smiles_csv, repeats, output_fname,
 
     from util.iterations import tools as it
 
-    outputs = OutputSpec(output_files=output_fname)
+    outputs = OutputSpec(output_fname)
     smiles_csv = Path(smiles_csv)
     it.make_structures(smiles_csv, num_smi_repeat=repeats,
                        outputs=outputs, num_rads_per_mol=num_rads_per_mol,
@@ -174,3 +175,32 @@ def configs_summary(input, info):
     dd = configs.into_dict_of_labels(ats, info)
     for key, entries in dd.items():
         print(f"{key}: {len(entries)}")
+
+
+def count_heavy(at):
+    return len([sym for sym in at.symbols if sym!="H"])
+
+@click.command("count-atoms")
+@click.argument("input", nargs=-1)
+@click.option("--info", "-i", default="config_type")
+def configs_count_atoms(input, info):
+    ats = []
+    for fn in input:
+        ats += read(fn, ":")
+    all_heavy = []
+    all_atoms = []
+    dd = configs.into_dict_of_labels(ats, info)
+    for key, entries in dd.items():
+        num_heavy = [count_heavy(at) for at in entries]
+        num_atoms = [len(at.symbols) for at in entries]
+        all_heavy += num_heavy
+        all_atoms += num_atoms
+        print(f"{key}: {len(entries)}") 
+        print(f"    all   - min: {np.min(num_atoms)}, max: {np.max(num_atoms)}, mean: {np.mean(num_atoms):.1f}")
+        print(f"    heavy - min: {np.min(num_heavy)}, max: {np.max(num_heavy)}, mean: {np.mean(num_heavy):.1f}")
+
+    print(f"all: {len(ats)}") 
+    print(f"    all   - min: {np.min(all_atoms)}, max: {np.max(all_atoms)}, mean: {np.mean(all_atoms):.1f}")
+    print(f"    heavy - min: {np.min(all_heavy)}, max: {np.max(all_heavy)}, mean: {np.mean(all_heavy):.1f}")
+
+

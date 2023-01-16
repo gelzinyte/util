@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 #                          info_for_logfile=info_for_logfile, remote_info=remote_info)
 
 
-def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_interval=None, info_for_logfile=None):
+def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_interval=None, info_for_logfile=None, 
+                                steps = 500):
     """traj_step_interval: if None, only the last converged config will be
     taken. Otherwise take all that get sampled. + the last
 
@@ -44,7 +45,7 @@ def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_inte
     label = None
 
     opt_kwargs = {'logfile': logfile, 'master': True, 'precon': None,
-                  'use_armijo': False, 'steps':500}
+                  'use_armijo': False, 'steps':steps}
 
     if traj_step_interval is None:
         opt_kwargs["traj_subselect"] = "last_converged"
