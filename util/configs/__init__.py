@@ -185,7 +185,7 @@ def check_geometry(atoms, mult=1.2, mark_elements=False, skin=0):
                     at.symbol = "Ca"
                 return False
         elif at.symbol == 'O':
-            if len(indices) == 0:
+            if len(indices) == 0 or len(indices)>3:
                 if mark_elements:
                     atoms.symbol = "Os"
                 # bad_atoms.append(atoms)

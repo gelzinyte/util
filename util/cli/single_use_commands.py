@@ -1,10 +1,15 @@
 import click
+import os
 from pathlib import Path
 from util.single_use import md_test
 from wfl.configset import ConfigSet, OutputSpec
 from ase.io import read, write
 from wfl.generate import md
 from util import configs
+import logging
+from util.configs import check_geometry
+
+logger = logging.getLogger(__name__)
 
 try:
     import ace
@@ -84,3 +89,68 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
         **md_params)
 
 
+@click.command('no-wfl-md')
+@click.option('--mace-fname', '-m')
+@click.option('--in-fname', '-x')
+@click.option('--in-dir')
+@click.option('--temp', '-t', type=click.FLOAT)
+@click.option('--output-dir')
+@click.option('--pred-prop-prefix', '-p', default='mace_')
+@click.option('--steps', type=click.INT)
+@click.option('--sampling-interval', type=click.INT)
+def run_md_no_wfl_autopara(mace_fname, in_dir, in_fname, temp, output_dir,  pred_prop_prefix, 
+    steps, sampling_interval):
+
+    logger.info(f"\n mace: {mace_fname} \n in_dir: {in_dir} \n in_fname: {in_fname} \n temp {temp} K \n output {output_dir}\n pred-prop-prefix {pred_prop_prefix}\n steps {steps}\n sampling interval {sampling_interval}")
+    
+    from mace.calculators.mace import MACECalculator 
+    calc = MACECalculator(model_path=mace_fname, default_dtype="float64", device="cpu")
+
+    atoms = read(Path(in_dir) / in_fname, ":")
+    assert len(atoms) == 1
+    atoms[0].info[f'md_start_hash'] = configs.hash_atoms(atoms[0])
+
+    from wfl.generate.md import _sample_autopara_wrappable as run_md
+
+    output_dir = Path(output_dir)
+    in_fname = Path(in_fname)
+
+    ok_at_output_dir = output_dir / "ok_output" / str(in_fname.parent) 
+    ok_at_output_dir.mkdir(exist_ok=True)
+    ok_at_fn = ok_at_output_dir / str(in_fname.name).replace(".xyz", ".sample.xyz") 
+
+    bad_traj_output_dir = output_dir / "failed_traj" / str(in_fname.parent) 
+    bad_traj_output_dir.mkdir(exist_ok=True)
+    bad_traj_fn = bad_traj_output_dir / str(in_fname.name).replace('.xyz', ".bad_traj.xyz")
+
+    running_traj_dir = output_dir / "running_traj"  / str(in_fname.parent)
+    running_traj_dir.mkdir(exist_ok=True)
+    running_traj_fn = running_traj_dir / str(in_fname.name).replace('.xyz', ".in_progress_traj.xyz")
+
+
+    md_params = {
+        "steps": steps,
+        "dt": 0.5,  # fs
+        "temperature": temp,  # K
+        "temperature_tau": 500,  # fs, somewhat quicker than recommended (???)
+        "traj_step_interval": sampling_interval,
+        "results_prefix": pred_prop_prefix,
+        "update_config_type": False}
+
+    traj = run_md(
+        atoms = atoms,
+        calculator = calc, 
+        traj_fname = running_traj_fn,
+        **md_params)
+
+    assert len(traj) == 1
+    traj = traj[0]
+
+    traj_ok = [check_geometry(at) for at in traj]
+    failed_count = sum([1 for check in traj_ok if check is False])
+
+    if failed_count < 5: 
+        write(ok_at_fn, traj[-1])
+    else:
+        write(bad_traj_fn, traj)
+    os.remove(running_traj_fn)
