@@ -53,6 +53,7 @@ def default_orca_params():
     orca_kwargs = default_kw["orca"]
     orca_kwargs["orca_path"] = cfg["orca_path"]
     orca_kwargs["workdir_root"] = cfg["scratch_path"] 
+    orca_kwargs["workdir"] = "ORCA_calc_files"
     return orca_kwargs
 
 def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None):
@@ -74,6 +75,18 @@ def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None)
     for key in arrays_keys_to_remove:
         del at.arrays[key]
     return at
+
+def clean_calc_results(inputs, outputs, keep_info=None, keep_arrays=None):
+
+    if outputs.is_done():
+        logger.info("output with cleaned calculator results is found, not re-cleaning")
+
+    for at in inputs:
+        cleaned_at = remove_energy_force_containing_entries(at, keep_info=keep_info, keep_arrays=keep_arrays)
+        outputs.store(cleaned_at)
+    outputs.close()
+    return outputs.to_ConfigSet()
+
 
 @contextmanager
 def suppress_stdout_stderr():
