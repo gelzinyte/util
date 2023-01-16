@@ -52,7 +52,8 @@ def default_orca_params():
     default_kw = Config.from_yaml(Path(__file__).parent /  "default_kwargs.yml")
     orca_kwargs = default_kw["orca"]
     orca_kwargs["orca_path"] = cfg["orca_path"]
-    orca_kwargs["workdir_root"] = cfg["scratch_path"] 
+    cfg_scratchpath = cfg["scratch_path"]
+    orca_kwargs["scratchdir"] = cfg_scratchpath if cfg_scratchpath != "none" else None
     orca_kwargs["workdir"] = "ORCA_calc_files"
     return orca_kwargs
 
@@ -78,7 +79,7 @@ def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None)
 
 def clean_calc_results(inputs, outputs, keep_info=None, keep_arrays=None):
 
-    if outputs.is_done():
+    if outputs.done():
         logger.info("output with cleaned calculator results is found, not re-cleaning")
 
     for at in inputs:
