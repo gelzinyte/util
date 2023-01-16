@@ -81,8 +81,8 @@ def only_has_CHO(entry):
 
 def only_has_CHNOPS(entry):
     # import pdb; pdb.set_trace()
-    print(entry)
-    return not bool(re.search(r'[a-bd-gi-mq-rt-zA-BD-GI-MQ-RT-Z', entry))
+    # print(entry)
+    return not bool(re.search(r'[a-bd-gi-mq-rt-zA-BD-GI-MQ-RT-Z]', entry))
 
 def filter_elements(df, elements):
     if elements=="CH":
