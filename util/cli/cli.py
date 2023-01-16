@@ -40,7 +40,8 @@ subcli_mace.add_command(eval_mace)
 @click.pass_context
 def subcli_misc(ctx):
     pass
-from util.cli.single_use_commands import run_md, test_aces, grab_first
+from util.cli.single_use_commands import run_md, test_aces, grab_first, run_md_no_wfl_autopara
+subcli_misc.add_command(run_md_no_wfl_autopara)
 subcli_misc.add_command(run_md)
 subcli_misc.add_command(test_aces)
 subcli_misc.add_command(grab_first)
