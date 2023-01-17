@@ -1,6 +1,8 @@
+import os 
+from copy import deepcopy
 import json
 import numpy as np
-from pprint import pprint
+from pathlib import Path
 
 from ase.io import read, write
 from ase import Atoms
@@ -8,7 +10,9 @@ from ase import Atoms
 from wfl.calculators.orca import ORCA
 from wfl.configset import ConfigSet, OutputSpec
 from wfl.autoparallelize.autoparainfo import AutoparaInfo
+from wfl.autoparallelize.remoteinfo import RemoteInfo
 from wfl.calculators import generic
+from expyre.resources import Resources
 
 from mace.calculators import mace
 
@@ -25,6 +29,7 @@ from util.bde.table import get_bde
 
 ir = "in" # input root
 mace_fn = "/mnt/lustre/a2fs-work3/work/e89/e89/eg475/work/9.160123.bde_test/ref_files/mace_run-123.model.cpu"
+main_in_fname = "cyp_3A4_Ea_CHO.no_optb_data.xyz"
 
 mace_opt_mols_rads_fn = f'{ir}.mace_all.mace_opt.xyz'
 dft_opt_mols_rads_fn = f'{ir}.dft_all.dft_opt.xyz'
@@ -38,12 +43,43 @@ isolated_H_fn = "isolated_H.mace.dft.xyz"
 
 print('set up', '-'*30)
 
+ref_remote_info = {
+    "sys_name" : "local", 
+    "job_name" : "orca", 
+    "timeout":36000,
+    "resources" : { 
+        "max_time" : "24h",
+        "num_nodes" : 1,
+        "partitions" : "standard"}, 
+    "num_inputs_per_queued_job" :128,
+    "pre_cmds" :["conda activate mace160123"]
+    } 
+
 # remote_info
 remote_info = {}
-remote_info["mace_opt"] = None
-remote_info["orca_opt"] = None
-remote_info["mace_eval"] = None
-remote_info["orca_eval"] = None
+
+remote_info["mace_opt"] = deepcopy(ref_remote_info)
+remote_info["mace_opt"]["job_name"] = "mace_opt"
+remote_info["mace_opt"]["num_inputs_per_queued_job"] = 128*10 
+
+remote_info["mace_eval"] = deepcopy(ref_remote_info)
+remote_info["mace_eval"]["job_name"] = "mace_eval"
+remote_info["mace_eval"]["num_inputs_per_queued_job"] = 128*100
+
+remote_info["orca_opt"] = deepcopy(ref_remote_info)
+remote_info["orca_opt"]["job_name"] = "dft_opt"
+remote_info["orca_opt"]["num_inputs_per_queued_job"] = 128
+
+remote_info["orca_eval"] = deepcopy(ref_remote_info)
+remote_info["orca_eval"]["job_name"] = "dft_eval"
+remote_info["orca_eval"]["num_inputs_per_queued_job"] = 128*10
+
+
+expyre_root = Path("_expyre")
+expyre_root.mkdir(exist_ok=True)
+expyre_root=expyre_root.resolve()
+os.environ["EXPYRE_ROOT"] = str(expyre_root)
+
 
 # orca calc 
 orca_kwargs = util.default_orca_params()
@@ -59,7 +95,7 @@ mace_calc = (mace.MACECalculator, [], {"model_path":mace_fn, "device":"cpu"})
 # check that geometry type is set 
 # and add a hash
 in_fname = f"{ir}.xyz"
-in_ats = read("ref.xyz", ":")
+in_ats = read(main_in_fname, ":")
 for at in in_ats:
     at.info["geometry_type"] = "rdkit_start"
     at.info["bde_initial_hash"] = configs.hash_atoms(at)
@@ -95,7 +131,8 @@ mace_opt_mols = opt.optimise(
     output_prefix= "mace_",
     autopara_info = AutoparaInfo(
         num_inputs_per_python_subprocess=8,
-        remote_info=remote_info["mace_opt"])
+        remote_info=remote_info["mace_opt"],
+        skip_failed=False)
 ) 
 set_tags(outputs, "geometry_type", "mace_opt")
 
@@ -112,7 +149,9 @@ dft_opt_mols = generic.run(
     output_prefix='dft_',
     autopara_info = AutoparaInfo(
         remote_info=remote_info["orca_opt"],
-        num_inputs_per_python_subprocess=1)
+        num_inputs_per_python_subprocess=1,
+        skip_failed=False
+        )
 )
 set_tags(outputs, "geometry_type", "dft_opt")
 
@@ -155,7 +194,9 @@ mace_opt_mols_rads = opt.optimise(
     output_prefix= "mace_",
     autopara_info = AutoparaInfo(
         num_inputs_per_python_subprocess=8,
-        remote_info=remote_info["mace_opt"])
+        remote_info=remote_info["mace_opt"],
+        skip_failed=False,
+        )
 ) 
 set_tags(outputs, "geometry_type", "mace_opt")
 
@@ -170,7 +211,9 @@ dft_opt_mols_rads = generic.run(
     output_prefix='dft_',
     autopara_info = AutoparaInfo(
         remote_info=remote_info["orca_opt"],
-        num_inputs_per_python_subprocess=1)
+        num_inputs_per_python_subprocess=1, 
+        skip_failed=False
+        )
 )
 set_tags(outputs, "geometry_type", "dft_opt")
 
@@ -196,7 +239,8 @@ mace_opt_mols = opt.optimise(
     output_prefix= "mace_",
     autopara_info = AutoparaInfo(
         num_inputs_per_python_subprocess=8,
-        remote_info=remote_info["mace_opt"])
+        remote_info=remote_info["mace_opt"],
+        skip_failed=False)
 ) 
 set_tags(outputs, "geometry_type", "mace_reopt")
 
@@ -204,7 +248,7 @@ set_tags(outputs, "geometry_type", "mace_reopt")
 # clean previous calculation results
 mace_opt_mols_rads = util.clean_calc_results(
     inputs = mace_opt_mols_rads,
-    otuputs=OutputSpec()
+    outputs=OutputSpec()
 )
 
 print('dft reoptimise', '-'*30)
@@ -218,7 +262,8 @@ dft_opt_mols = generic.run(
     output_prefix='dft_',
     autopara_info = AutoparaInfo(
         remote_info=remote_info["orca_opt"],
-        num_inputs_per_python_subprocess=1)
+        num_inputs_per_python_subprocess=1,
+        skip_failed=False)
 )
 set_tags(outputs, "geometry_type", "dft_reopt")
 
@@ -268,7 +313,6 @@ inputs = ConfigSet([
     isolated_h_fn
 ])
 
-
 outputs = OutputSpec([
     # mace_opt_mols_rads_fn.replace(".xyz", ".mace.xyz"),
     dft_opt_mols_rads_fn.replace(".xyz", ".mace.xyz"),
@@ -286,7 +330,8 @@ generic.run(
     output_prefix='mace_',
     autopara_info = AutoparaInfo(
         remote_info=remote_info["mace_eval"],
-        num_inputs_per_python_subprocess=1)
+        num_inputs_per_python_subprocess=1,
+        skip_failed=False)
 )
 
 # relabel
@@ -311,7 +356,7 @@ outputs = OutputSpec([
     # dft_opt_mols_rads_fn.replace(".xyz", ".dft.xyz"),
     mace_reopt_mols_rads_fn.replace(".xyz", ".dft.xyz"),
     # dft_reopt_mols_rads_fn.replace(".xyz", ".dft.xyz"),
-    isolated_h_fn.replace(".xyz", ".mace.xyz")
+    isolated_h_fn.replace(".xyz", ".dft.xyz")
 ])
 
 print('evaluate orca', '-'*30)
@@ -323,7 +368,8 @@ generic.run(
     output_prefix='dft_',
     autopara_info = AutoparaInfo(
         remote_info=remote_info["orca_eval"],
-        num_inputs_per_python_subprocess=1)
+        num_inputs_per_python_subprocess=1,
+        skip_failed=False)
 )
 
 # relabel
@@ -331,7 +377,7 @@ mace_opt_mols_rads_fn = mace_opt_mols_rads_fn.replace(".xyz", ".dft.xyz")
 # dft_opt_mols_rads_fn = dft_opt_mols_rads_fn.replace(".xyz", ".dft.xyz")
 mace_reopt_mols_rads_fn = mace_reopt_mols_rads_fn.replace(".xyz", ".dft.xyz")
 # dft_reopt_mols_rads_fn = dft_reopt_mols_rads_fn.replace(".xyz", ".dft.xyz")
-isolated_h_fn = isolated_h_fn.replace(".xyz", "dft.xyz")
+isolated_h_fn = isolated_h_fn.replace(".xyz", ".dft.xyz")
 
 
 # -----------------------------------------
@@ -358,7 +404,7 @@ def assign_bde_entries(dest_mols, all_bde_ats, bde_array_label, isolated_h_fn, p
         mol_energy = mol.info[f"{prop_prefix}energy"]
 
         for rad in bde_ats["rad"]:
-            rad_no = rad["rad_num"]
+            rad_no = rad.info["rad_num"]
             rad_energy = rad.info[f"{prop_prefix}energy"]
             bde = get_bde(
                 mol_energy = mol_energy,
@@ -373,9 +419,10 @@ def assign_bde_entries(dest_mols, all_bde_ats, bde_array_label, isolated_h_fn, p
 
 
 ref_geometries = mace_opt_mols_rads_fn 
+print(ref_geometries)
 ats = read(ref_geometries, ":")
 ref_mols = configs.into_dict_of_labels(ats, "mol_or_rad")["mol"]
-ref_mols = [util.remove_energy_force_containing_entries(at) for at in ats]
+ref_mols = [util.remove_energy_force_containing_entries(at) for at in ref_mols]
 
 
 geom_fnames = [mace_opt_mols_rads_fn, dft_opt_mols_rads_fn, mace_reopt_mols_rads_fn, dft_reopt_mols_rads_fn]
