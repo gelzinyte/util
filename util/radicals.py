@@ -74,6 +74,9 @@ def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
     -------
 
     """
+    if outputs.done():
+        print('found file with abstracted sp3 hydrogens, not repeated')
+        return outputs.to_ConfigSet()
     all_output_atoms = []
     for atoms in atoms_to_list(inputs):
 

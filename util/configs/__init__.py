@@ -258,3 +258,16 @@ def hash_atoms(at):
 
 def hash_smiles(smi):
     return hashlib.md5(smi.encode()).hexdigest()
+
+
+def find_closest_c(at, h_idx):
+    distances = at.get_all_distances()[h_idx]
+    distances[distances == 0] = np.inf
+    closest_id = np.argmin(distances)
+    if at.symbols[closest_id] != "C":
+        write("bad_at.xyz", at)
+        print(f"h_idx: {h_idx}, closest: {closest_id}")
+        print(distances)
+        raise RuntimeError
+    return closest_id
+

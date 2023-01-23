@@ -6,6 +6,7 @@ from util import configs
 from util import qm
 from pathlib import Path
 import numpy as np
+from util import radicals
 
 
 @click.command("min-max")
@@ -202,5 +203,31 @@ def configs_count_atoms(input, info):
     print(f"all: {len(ats)}") 
     print(f"    all   - min: {np.min(all_atoms)}, max: {np.max(all_atoms)}, mean: {np.mean(all_atoms):.1f}")
     print(f"    heavy - min: {np.min(all_heavy)}, max: {np.max(all_heavy)}, mean: {np.mean(all_heavy):.1f}")
+
+
+@click.command("find-sp3-hydrogens")
+@click.argument("inputs")
+@click.option("--outputs", '-o')
+@click.option("--info-key", default="sp3-hydrogen", show_default=True)
+def find_sp3_hydrogens(inputs, outputs, info_key):
+
+    inputs = ConfigSet(inputs)
+    outputs = OutputSpec(outputs)
+
+    if outputs.done():
+        print(f"outputs {outputs} with marked sp3 hydrogens found/done , not redoing")
+        return
+
+    for at in inputs:
+        is_sp3 = np.empty(len(at))
+        is_sp3.fill(False)
+
+        sp3_H_numbers = radicals.get_sp3_h_numbers(at)
+        is_sp3[sp3_H_numbers] = True
+        at.arrays[info_key] = is_sp3
+        outputs.store(at)
+    outputs.close()
+
+
 
 

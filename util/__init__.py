@@ -51,7 +51,7 @@ def default_orca_params():
     # dft_prop_prefix = "dft_"
     default_kw = Config.from_yaml(Path(__file__).parent /  "default_kwargs.yml")
     orca_kwargs = default_kw["orca"]
-    orca_kwargs["orca_path"] = cfg["orca_path"]
+    orca_kwargs["calculator_exec"] = cfg["orca_path"]
     cfg_scratchpath = cfg["scratch_path"]
     orca_kwargs["scratchdir"] = cfg_scratchpath if cfg_scratchpath != "none" else None
     orca_kwargs["workdir"] = "ORCA_calc_files"

@@ -47,7 +47,6 @@ subcli_misc.add_command(test_aces)
 subcli_misc.add_command(grab_first)
 
 
-
 @cli.group("blobs")
 @click.pass_context
 def subcli_blob(ctx):
@@ -137,7 +136,7 @@ from util.cli.config_commands import assign_differences, \
     smiles_to_molecules_and_rads, distribute_configs, \
     gather_configs, info_to_numbers, hash_structures, \
     remove_old_calc_results, check_geometry, configs_summary, color_atoms_by_array, \
-    rads_from_mols, min_max_of_data, configs_count_atoms
+    rads_from_mols, min_max_of_data, configs_count_atoms, find_sp3_hydrogens
 
 # smiles_to_molecules
 subcli_configs.add_command(assign_differences)
@@ -154,6 +153,7 @@ subcli_configs.add_command(color_atoms_by_array)
 subcli_configs.add_command(rads_from_mols)
 subcli_configs.add_command(min_max_of_data)
 subcli_configs.add_command(configs_count_atoms)
+subcli_configs.add_command(find_sp3_hydrogens)
 
 
 @cli.group("calc")
