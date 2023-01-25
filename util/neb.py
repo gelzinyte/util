@@ -13,10 +13,17 @@ from wfl.utils.at_copy_save_results import at_copy_save_results
 from wfl.utils.parallel import construct_calculator_picklesafe
 from wfl.autoparallelize import autoparallelize, autoparallelize_docstring
 
+from ase.constraints import FixBondLength
+# from ase.optimize.precon import PreconLBFGS
+# from ase.optimize import FIRE
+# from ase.neb import NEB
+from ase import units
+from ase.build import molecule
 
+import util
 
 def neb_ll(inputs, calculator, num_images, results_prefix="neb_", traj_step_interval=1, 
-           fmax=1.0e-3, steps=1000, verbose=False, traj_subselect=None, skip_failures=True, **opt_kwargs):
+           fmax=1.0e-3, steps=1000, parallel=False, verbose=False, traj_subselect=None, skip_failures=True, **opt_kwargs):
     """
     inputs - (Atoms_initial, Atoms_end) or list of (Atoms, Atoms) for first and last images.  
     
@@ -30,27 +37,32 @@ def neb_ll(inputs, calculator, num_images, results_prefix="neb_", traj_step_inte
     if opt_kwargs_to_use.get('logfile') is None and verbose:
         opt_kwargs_to_use['logfile'] = '-'
 
-    if len(inputs) == 2 and isinstance(inputs[0], Atoms):
+    if isinstance(inputs[0], Atoms):
         inputs = [inputs]
     
     all_nebs = []
-    for pair in inputs:
-        assert len(pair) == 2
-        start = pair[0]
-        end = pair[1]
+    for neb_configs in inputs:
+        
+        interpolate=False
+        if len(neb_configs) == 2:
+            start = neb_configs[0]
+            end = neb_configs[1]
+            neb_configs = [start.copy() for _ in range(num_images - 1)] + [end]
+            interpolate=True
 
-        neb_configs = [start.copy() for _ in range(num_images - 1)] + [end]
 
         for at in neb_configs:
             at.calc = deepcopy(calculator)
             at.info["neb_optimize_config_type"] = "optimize_mid"
 
-        traj = []
+        neb = NEB(neb_configs, parallel=parallel)
 
-        neb = NEB(neb_configs)
-        neb.interpolate()
+        if interpolate:
+            neb.interpolate()
 
         opt = PreconLBFGS(neb, **opt_kwargs_to_use)
+
+        traj = []
 
         def process_step():
             for at in neb_configs:
@@ -152,30 +164,8 @@ def subselect_from_traj(traj, subselect=None):
 
 
 
-
-import sys
-import numpy as np
-from quippy.potential import Potential
-
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution, Stationary, ZeroRotation
-from ase.io import read, write
-from ase.md.verlet import VelocityVerlet
-from ase.constraints import FixBondLength
-# from ase.optimize.precon import PreconLBFGS
-from ase.optimize import FIRE
-from ase.neb import NEB
-from ase import units
-from ase.build import molecule
-
-
 def make_end_images(sub, H_idx, separation):
     '''Makes end images for H abstraction. Quite a specific case. '''
-    # dftb = Potential(args_str='TB DFTB', param_filename='/home/eg475/reactions/tightbind.parms.DFTB.mio-0-1.xml')
-
-    # print('\n----Relaxing substrate and methanol\n')
-    # sub.set_calculator(dftb)
-    # opt = PreconLBFGS(sub)
-    # opt.run(fmax=1e-3)
 
     methanol = molecule('CH3OH')
     # methanol.set_calculator(dftb)
@@ -204,7 +194,17 @@ def make_end_images(sub, H_idx, separation):
 
     at = methanol + sub
 
+    sub = util.remove_energy_force_containing_entries(sub)
+
+    for key, val in sub.info.items():
+        at.info[key] = val
+
+    at_mid = at.copy()
+
     unit_dir = CH / np.linalg.norm(CH)
+
+    at_mid.positions[:idx_shift] += methanol.get_distance(meth_OH_H_idx, meth_O_idx) * unit_dir
+
     at.positions[:idx_shift] += separation * unit_dir
 
     dists = at.get_all_distances()[meth_O_idx]
@@ -215,8 +215,9 @@ def make_end_images(sub, H_idx, separation):
     at_init = at.copy()
     at_final = at.copy()
     at_final.positions[H_idx + idx_shift - 1] = tmp_H_pos
+    del at_mid[tmp_H_idx]
 
-    return at_init, at_final
+    return [at_init, at_mid, at_final]
 
 
 def run_neb(neb, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs):
