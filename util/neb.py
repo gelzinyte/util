@@ -1,6 +1,9 @@
+import os
 import sys
 import warnings
 from copy import deepcopy
+import numpy as np
+
 from ase import Atoms
 from ase.neb import NEB
 from ase.optimize.precon import PreconLBFGS
@@ -8,11 +11,12 @@ from ase.io import read, write
 
 from wfl.utils.at_copy_save_results import at_copy_save_results
 from wfl.utils.parallel import construct_calculator_picklesafe
+from wfl.autoparallelize import autoparallelize, autoparallelize_docstring
 
 
 
 def neb_ll(inputs, calculator, num_images, results_prefix="neb_", traj_step_interval=1, 
-           fmax=1.0e-3, steps=1000, verbose=False, skip_failures=True, **opt_kwargs):
+           fmax=1.0e-3, steps=1000, verbose=False, traj_subselect=None, skip_failures=True, **opt_kwargs):
     """
     inputs - (Atoms_initial, Atoms_end) or list of (Atoms, Atoms) for first and last images.  
     
@@ -73,8 +77,6 @@ def neb_ll(inputs, calculator, num_images, results_prefix="neb_", traj_step_inte
             else:
                 raise
 
-
-
         # set for first config, to be overwritten if it's also last config
         for idx in range(num_images):
             traj[idx].info['optimize_config_type'] = 'optimize_initial'
@@ -108,9 +110,9 @@ def run_neb(*args, **kwargs):
     def_autopara_info={"initializer":initializer, "num_inputs_per_python_subprocess":1,
             "hash_ignore":["initializer"]}
 
-    return neb_ll(_run_autopara_wrappable, *args, 
+    return autoparallelize(neb_ll, *args, 
         def_autopara_info=def_autopara_info, **kwargs)
-autoparallelize_docstring(run, _run_autopara_wrappable, "Atoms")
+# autoparallelize_docstring(run_neb, neb_ll, "Atoms")
 
 
 
@@ -148,4 +150,108 @@ def subselect_from_traj(traj, subselect=None):
     raise RuntimeError(f'Subselecting confgs from trajectory with rule '
                        f'"subselect={subselect}" is not yet implemented')
 
+
+
+
+import sys
+import numpy as np
+from quippy.potential import Potential
+
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution, Stationary, ZeroRotation
+from ase.io import read, write
+from ase.md.verlet import VelocityVerlet
+from ase.constraints import FixBondLength
+# from ase.optimize.precon import PreconLBFGS
+from ase.optimize import FIRE
+from ase.neb import NEB
+from ase import units
+from ase.build import molecule
+
+
+def make_end_images(sub, H_idx, separation):
+    '''Makes end images for H abstraction. Quite a specific case. '''
+    # dftb = Potential(args_str='TB DFTB', param_filename='/home/eg475/reactions/tightbind.parms.DFTB.mio-0-1.xml')
+
+    # print('\n----Relaxing substrate and methanol\n')
+    # sub.set_calculator(dftb)
+    # opt = PreconLBFGS(sub)
+    # opt.run(fmax=1e-3)
+
+    methanol = molecule('CH3OH')
+    # methanol.set_calculator(dftb)
+    # opt = PreconLBFGS(methanol)
+    # opt.run(fmax=1e-3)
+
+    idx_shift = len(methanol)
+
+    meth_O_idx = np.where(methanol.get_atomic_numbers()==8)[0][0]
+    # meth_C_idx = np.where(methanol.get_atomic_numbers()==6)[0][0]
+    meth_OH_H_idx = 3
+
+    dists = sub.get_all_distances()[H_idx]
+    sub_C_idx = np.argmin([d if d!= 0 else np.inf for d in dists])
+
+    # OC = methanol.get_distance(meth_O_idx, meth_C_idx, vector=True)
+    HO = methanol.get_distance(meth_OH_H_idx, meth_O_idx, vector=True)
+    CH = sub.get_distance(sub_C_idx, H_idx, vector=True)
+
+    # methanol.rotate(OC, CH, center=methanol.positions[1])
+    methanol.rotate(HO, CH, center=methanol.positions[1])
+
+    # methanol.positions -= methanol.positions[meth_O_idx]
+    methanol.positions -= methanol.positions[meth_OH_H_idx]
+    sub.positions -= sub.positions[sub_C_idx]
+
+    at = methanol + sub
+
+    unit_dir = CH / np.linalg.norm(CH)
+    at.positions[:idx_shift] += separation * unit_dir
+
+    dists = at.get_all_distances()[meth_O_idx]
+    tmp_H_idx = np.argmin([d if d != 0 else np.inf for d in dists])
+    tmp_H_pos = at.positions[tmp_H_idx]
+    del at[tmp_H_idx]
+
+    at_init = at.copy()
+    at_final = at.copy()
+    at_final.positions[H_idx + idx_shift - 1] = tmp_H_pos
+
+    return at_init, at_final
+
+
+def run_neb(neb, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs):
+    "Runs NEB with fire/lbfgs for steps/fmax on given NEB object, returns NEB object"
+
+    opt_fire = FIRE(neb, trajectory=f'structure_files/{fname}.traj')
+    opt_lbfgs = PreconLBFGS(neb, precon=None, use_armijo=False, \
+                            trajectory=f'structure_files/{fname}.traj')
+
+    print('\n----NEB\n')
+    if steps_fire:
+        opt_fire.run(fmax=fmax_fire, steps=steps_fire)
+
+    if steps_lbfgs:
+        opt_lbfgs.run(fmax=fmax_lbfgs, steps=steps_lbfgs)
+    return neb
+
+
+def prepare_do_neb(atoms, calc_name, no_images, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs):
+    """Sets up and NEB given end images"""
+    images = [atoms[0]]
+    images += [atoms[0].copy() for _ in range(no_images - 2)]
+    images += [atoms[1].copy()]
+
+    neb = NEB(images)
+    neb.interpolate()
+
+    for i, image in enumerate(images):
+        print(f'setting {i} image calculator')
+        if calc_name == 'dftb':
+            image.set_calculator(
+                Potential(args_str='TB DFTB', param_filename='/home/eg475/reactions/tightbind.parms.DFTB.mio-0-1.xml'))
+        else:
+            image.set_calculator(Potential(param_filename=calc_name))
+
+    neb = run_neb(neb, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs)
+    return neb
 
