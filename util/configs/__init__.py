@@ -13,6 +13,7 @@ import util
 import os
 import hashlib
 import random
+from util import radicals
 from util import distances_dict
 
 logger = logging.getLogger(__name__)
@@ -270,4 +271,38 @@ def find_closest_c(at, h_idx):
         print(distances)
         raise RuntimeError
     return closest_id
+
+
+def mark_sp3_CH(at, info_key="sp3_ch"):
+
+    is_sp3 = np.empty(len(at))
+    is_sp3.fill(False)
+    # print(is_sp3)
+
+    sp3_H_numbers = radicals.get_sp3_h_numbers(at)
+    closest_carbons = [find_closest_c(at, h_idx) for h_idx in sp3_H_numbers] 
+    sp3_ch = closest_carbons + sp3_H_numbers 
+
+    is_sp3[sp3_ch] = True
+    is_sp3 = [bool(val) for val in is_sp3]
+
+    at.arrays[info_key] = np.array(is_sp3)
+    return at
+
+
+def mark_mol_rad_envs(at, info_key):
+
+    is_sp3 = np.empty(len(at))
+    is_sp3.fill(False)
+    # print(is_sp3)
+
+    sp3_H_numbers = radicals.get_sp3_h_numbers(at)
+    closest_carbons = [find_closest_c(at, h_idx) for h_idx in sp3_H_numbers] 
+    sp3_ch = closest_carbons + sp3_H_numbers 
+
+    is_sp3[sp3_ch] = True
+    is_sp3 = [bool(val) for val in is_sp3]
+
+    at.arrays[info_key] = np.array(is_sp3)
+    return at
 

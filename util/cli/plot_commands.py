@@ -6,13 +6,34 @@ from pathlib import Path
 import os
 import glob
 import logging
-from util.plot import mace_loss 
+from util.plot import mace_loss, lbfgs_loss, neb
 
 from pathlib import Path
 
 from ase.io import read, write
 
 logger = logging.getLogger(__name__)
+
+@click.command("nebs")
+@click.option('--in-fname', '-i')
+@click.option("--num-images", '-n', type=click.INT)
+@click.option("--prop-prefix", '-p')
+@click.option("--system-label-key", '-l', default="graph_name", show_default=True)
+@click.option('--out-dir', '-o', default='neb_overview', show_default=True)
+@click.option("--dft-prop-prefixes", default=["dft_singlet_", "dft_triplet_"], multiple=True, show_default=True)
+@click.option("--dft-fname")
+@click.option("--shift-by", type=click.Choice(["dft", "predicted"]), default='dft', show_default=True, help="what to shift dft curve by")
+def plot_neb_summary(in_fname, num_images, prop_prefix, system_label_key, out_dir, dft_prop_prefixes, dft_fname, shift_by):
+    neb.neb(in_fname=in_fname, num_images=num_images, prop_prefix=prop_prefix, 
+            dft_fname=dft_fname, dft_prop_prefixes=dft_prop_prefixes,
+            system_label_key=system_label_key, out_dir=out_dir, shift_by=shift_by)
+
+@click.command("opt-fmax")
+@click.option("--input", "-i", type=(str, str), multiple=True, help="tuple of (label, fname). ")
+@click.option("--out-fname", default="lbfgs_convergence.png")
+def plot_opt_fmax(input, out_fname):
+    lbfgs_loss.plot_fmax(input, out_fname)
+
 
 @click.command("mace-loss")
 @click.option('--fig-name', '-n', default="train_summary.png", show_default=True, help='filename/prefix to save figure to')

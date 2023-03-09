@@ -208,8 +208,9 @@ def configs_count_atoms(input, info):
 @click.command("find-sp3-hydrogens")
 @click.argument("inputs")
 @click.option("--outputs", '-o')
-@click.option("--info-key", default="sp3-hydrogen", show_default=True)
+@click.option("--info-key", default="sp3-ch", show_default=True)
 def find_sp3_hydrogens(inputs, outputs, info_key):
+    from util.configs import mark_sp3_CH
 
     inputs = ConfigSet(inputs)
     outputs = OutputSpec(outputs)
@@ -219,15 +220,30 @@ def find_sp3_hydrogens(inputs, outputs, info_key):
         return
 
     for at in inputs:
-        is_sp3 = np.empty(len(at))
-        is_sp3.fill(False)
-
-        sp3_H_numbers = radicals.get_sp3_h_numbers(at)
-        is_sp3[sp3_H_numbers] = True
-        at.arrays[info_key] = is_sp3
+        at = mark_sp3_CH(at, info_key=info_key)
         outputs.store(at)
     outputs.close()
 
 
+@click.command("mark-rad-environments")
+@click.argument("inputs")
+@click.option("--outputs", '-o')
+@click.option("--info-key", default="mol_or_rad_env", show_default=True)
+def mark_mol_rad_envs(inputs, outputs, info_key):
 
+    from util import configs
+
+    inputs = ConfigSet(inputs)
+    outputs = OutputSpec(outputs)
+
+    if outputs.done():
+        print(f"outputs {outputs} with marked sp3 hydrogens found/done , not redoing")
+        return
+
+    for at in inputs:
+
+        at = configs.mark_mol_rad_envs(at, info_key=info_key)
+
+        outputs.store(at)
+    outputs.close()
 

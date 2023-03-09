@@ -3,6 +3,8 @@ from wfl.utils.parallel import construct_calculator_picklesafe
 from ase import Atoms
 from wfl.autoparallelize import autoparallelize
 from ase.io import read, write
+import warnings
+warnings.filterwarnings("error", module="mace")
 
 
 def to_cpu(model_path_in, model_path_out):
@@ -13,6 +15,7 @@ def to_cpu(model_path_in, model_path_out):
 
 
 def calc_descriptor_ll(atoms, calculator, prefix='mace_', normalize=True, skip_unnormalizable=True):
+
 
     calculator = construct_calculator_picklesafe(calculator)    
 
@@ -26,38 +29,51 @@ def calc_descriptor_ll(atoms, calculator, prefix='mace_', normalize=True, skip_u
         calculator.calculate(at)
 
         local_desc = calculator.extra_results["descriptor"]
-        global_sum = np.sum(local_desc, axis=0)
+        # global_sum = np.sum(local_desc, axis=0)
         global_mean = np.mean(local_desc, axis=0)
 
         if normalize:
 
             local_norm = np.linalg.norm(local_desc, axis=1)
 
-            if np.any(local_norm == 0):
+            try:
+                local_desc = local_desc / local_norm.reshape(len(local_desc), 1)
+            except RuntimeWarning as e:
                 write(f"{at.info['dataset_type']}_bad_descriptor.xyz", at)
-
                 if skip_unnormalizable:
                     local_desc = None
                 else:
-                    raise RuntimeError("found bad descriptor")
+                    raise e 
 
-            if local_desc is not None:
-                local_desc = local_desc / local_norm.reshape(len(local_desc), 1)
 
-            global_sum = global_sum / np.linalg.norm(global_sum)
-            global_mean= global_mean / np.linalg.norm(global_mean)
+            # global_sum = global_sum / np.linalg.norm(global_sum)
+
+            try:
+                global_mean= global_mean / np.linalg.norm(global_mean)
+            except RuntimeWarning as e:
+                write(f"{at.info['dataset_type']}_bad_descriptor.xyz", at)
+                if skip_unnormalizable:
+                    global_mean = None
+                else:
+                    raise e 
+
+
 
         if local_desc is not None:
             at.arrays[f"{prefix}local_desc"] = local_desc
         else:
             at.info[f"{prefix}local_desc_failed"] = "FAILED_DESCRIPTOR"
 
-        at.info[f"{prefix}global_sum_desc"] = global_sum
-        at.info[f"{prefix}global_mean_mace_desc"] = global_mean
+        # at.info[f"{prefix}global_sum_desc"] = global_sum
+        if global_mean is not None:
+            at.info[f"{prefix}global_mean_mace_desc"] = global_mean
+        else:
+            at.info[f"{prefix}global_desc_failed"] = "FAILED_DESCRIPTOR"
+
 
         ats_out.append(at)
     
-    return atoms 
+    return ats_out 
 
 
 def descriptor(*args, **kwargs):

@@ -95,7 +95,8 @@ def subcli_plot():
     pass
 from util.cli.plot_commands import plot_dataset, plot_error_table, scatter,  \
                 distance_autocorrelation, plot_mols, plot_dimer, dissociate, \
-                ace_2b, plot_ard_scores, md_test_summary, plot_quick_dimer, plot_mace_loss
+                ace_2b, plot_ard_scores, md_test_summary, plot_quick_dimer, plot_mace_loss, \
+                plot_opt_fmax, plot_neb_summary
 subcli_plot.add_command(plot_dataset)
 subcli_plot.add_command(plot_error_table)
 subcli_plot.add_command(scatter)
@@ -108,6 +109,8 @@ subcli_plot.add_command(plot_ard_scores)
 subcli_plot.add_command(md_test_summary)
 subcli_plot.add_command(plot_mace_loss)
 subcli_plot.add_command(plot_quick_dimer)
+subcli_plot.add_command(plot_opt_fmax)
+subcli_plot.add_command(plot_neb_summary)
 
 
 @cli.group("track")
