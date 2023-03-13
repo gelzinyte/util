@@ -64,7 +64,7 @@ def read_energy(out_label):
 
 
 def rotate_comulene(inputs, outputs, angles=None):
-    if outputs.done():
+    if outputs.all_written():
         return outputs.to_ConfigSet()
     if angles is None:
         angles = [0, 30, 45, 60, 90]

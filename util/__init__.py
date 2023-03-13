@@ -79,7 +79,7 @@ def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None)
 
 def clean_calc_results(inputs, outputs, keep_info=None, keep_arrays=None):
 
-    if outputs.done():
+    if outputs.all_written():
         logger.info("output with cleaned calculator results is found, not re-cleaning")
 
     for at in inputs:

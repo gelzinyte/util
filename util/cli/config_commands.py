@@ -215,7 +215,7 @@ def find_sp3_hydrogens(inputs, outputs, info_key):
     inputs = ConfigSet(inputs)
     outputs = OutputSpec(outputs)
 
-    if outputs.done():
+    if outputs.all_written():
         print(f"outputs {outputs} with marked sp3 hydrogens found/done , not redoing")
         return
 
@@ -236,7 +236,7 @@ def mark_mol_rad_envs(inputs, outputs, info_key):
     inputs = ConfigSet(inputs)
     outputs = OutputSpec(outputs)
 
-    if outputs.done():
+    if outputs.all_written():
         print(f"outputs {outputs} with marked sp3 hydrogens found/done , not redoing")
         return
 
