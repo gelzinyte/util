@@ -10,7 +10,7 @@ from util import configs
 
 
 def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval, 
-        pred_prop_prefix, remote_info, verbose=False):
+        pred_prop_prefix, verbose=False, autopara_info=None):
 
     workdir_root = Path(workdir_root) 
     workdir_root.mkdir(exist_ok=True)
@@ -20,10 +20,9 @@ def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval,
 
     tags = {"temp":int(str(temp))}
 
-
     ci, co = prepare_inputs(in_ats, info_label, workdir_root, tags)
 
-    os.environ["WFL_DETERMINISTIC_HACK"] = "true"
+    # os.environ["WFL_DETERMINISTIC_HACK"] = "true"
 
     md_params = {
         "steps": steps,
@@ -39,10 +38,9 @@ def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval,
         outputs=co,
         calculator=calc,
         verbose=verbose,
-        remote_info=remote_info,
-        num_inputs_per_python_subprocess=1,
         traj_fn_info_entry="md_traj_label",
         wdir = out_root,
+        autopara_info=autopara_info,
         **md_params,
         )
 
@@ -51,7 +49,7 @@ def run(workdir_root, in_ats, temp, calc, info_label, steps, sampling_interval,
 def prepare_inputs(ats, info_label, workdir_root, tags):
 
     input_files = []
-    output_files = {}
+    output_files = []
     for at in ats:
         hash = configs.hash_atoms(at)
         label = at.info[info_label] + hash
@@ -59,12 +57,11 @@ def prepare_inputs(ats, info_label, workdir_root, tags):
         fname_in = workdir_root / (label + "_in.xyz")
         fname_out = workdir_root / (label + "_out.xyz")
         input_files.append(fname_in)
-        output_files[fname_in] = fname_out
+        output_files.append(fname_out)
         write(fname_in, at)
 
-    ci = ConfigSet(input_files=input_files)
+    ci = ConfigSet(input_files)
     co = OutputSpec(
-        output_files=output_files,
-        all_or_none=True, 
-        set_tags=tags)
+        output_files)
+        # tags=tags)
     return ci, co
