@@ -306,3 +306,51 @@ def mark_mol_rad_envs(at, info_key):
     at.arrays[info_key] = np.array(is_sp3)
     return at
 
+def assign_bde_to_C_atoms (inputs, outputs,bde_label):
+
+    if outputs.all_written():
+        Print(f"{otuputs} written, not reassigning")
+        return outputs.to_ConfigSet()
+
+    ch_cutoff = 1.5
+    ats_out = []
+    for at_idx, at in enumerate(input):
+        syms = list(at.symbols)
+
+        new_bde_label = "C_lowest_" + bde_label
+        new_bde_array = np.empty(len(at))
+        new_bde_array.fill(np.nan)
+
+        if bde_label not in at.arrays:
+            continue
+        
+        old_bde_array = at.arrays[bde_label]
+
+        at = configs.mark_sp3_CH(at)
+
+        for idx, is_sp3  in enumerate(at.arrays["sp3_ch"]):
+
+            if not is_sp3 or syms[idx] != "C":
+                continue
+            
+            # find closest H 
+            distances = at.get_all_distances()[idx]
+            distances[distances == 0] = np.inf
+
+            closest_H_id = [neigh_idx for neigh_idx, dist in enumerate(distances) if dist < ch_cutoff and syms[neigh_idx] == "H"]
+            # print(f"atidx: {at_idx}, cidx: {idx}, num neighbours: {len(closest_H_id)}, neighbours: {closest_H_id}")
+            if at.info["compound"] != "methane":
+                assert len(closest_H_id) < 4 and len(closest_H_id) > 0
+
+            # check that that C atom doesn't have an entry
+            assert np.isnan(old_bde_array[idx])
+
+            # pick lowes of thee bdes
+            lowest_H_bde = np.min(old_bde_array[closest_H_id])
+            new_bde_array[idx] = lowest_H_bde 
+
+        # save to atoms
+        at.arrays[new_bde_label] = new_bde_array
+        outputs.store(at)
+    outputs.close()
+    return outputs.to_ConfigSet()

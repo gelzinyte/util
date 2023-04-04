@@ -28,7 +28,8 @@ def calc_descriptor_ll(atoms, calculator, prefix='mace_', normalize=True, skip_u
 
         calculator.calculate(at)
 
-        local_desc = calculator.extra_results["descriptor"]
+    
+        local_desc = calculator.extra_results["atoms"]["descriptor"]
         # global_sum = np.sum(local_desc, axis=0)
         global_mean = np.mean(local_desc, axis=0)
 
@@ -65,10 +66,10 @@ def calc_descriptor_ll(atoms, calculator, prefix='mace_', normalize=True, skip_u
             at.info[f"{prefix}local_desc_failed"] = "FAILED_DESCRIPTOR"
 
         # at.info[f"{prefix}global_sum_desc"] = global_sum
-        if global_mean is not None:
-            at.info[f"{prefix}global_mean_mace_desc"] = global_mean
-        else:
-            at.info[f"{prefix}global_desc_failed"] = "FAILED_DESCRIPTOR"
+        # if global_mean is not None:
+        #     at.info[f"{prefix}global_mean_mace_desc"] = global_mean
+        # else:
+        #     at.info[f"{prefix}global_desc_failed"] = "FAILED_DESCRIPTOR"
 
 
         ats_out.append(at)
