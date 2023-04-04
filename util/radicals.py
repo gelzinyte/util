@@ -49,7 +49,6 @@ def get_sp3_h_numbers(atoms):
 
 
 
-
 def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
                                 return_mol=True):
     """ Removes molecules' sp3 hydrogen atoms one at a time to give a number

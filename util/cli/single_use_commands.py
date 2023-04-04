@@ -49,7 +49,7 @@ def test_aces(sub_template, input_fname, aces_dir, ace_fname, output_dir, temps)
 @click.option("--pred-prop-prefix", '-p')
 @click.option("--steps", type=click.INT, default=1000000)
 @click.option("--sampling-interval", type=click.INT, default=500)
-def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_interval):
+def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sample_interval):
 
     at = read(xyz, ":")
     assert len(at) == 1
@@ -75,7 +75,7 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
         "dt": 0.5,  # fs
         "temperature": temp,  # K
         "temperature_tau": 500,  # fs, somewhat quicker than recommended (???)
-        "traj_step_interval": sampling_interval,
+        "traj_step_interval": sample_interval,
         "results_prefix": pred_prop_prefix,
         "reuse_momenta": True}
 
@@ -91,26 +91,35 @@ def run_md(ace_fname, xyz, temp, output, pred_prop_prefix, steps, sampling_inter
 
 @click.command('no-wfl-md')
 @click.option('--mace-fname', '-m')
+@click.option('--ace-fname')
 @click.option('--in-fname', '-x')
 @click.option('--in-dir')
 @click.option('--temp', '-t', type=click.FLOAT)
 @click.option('--output-dir')
-@click.option('--pred-prop-prefix', '-p', default='mace_')
+@click.option('--pred-prop-prefix', '-p')
 @click.option('--steps', type=click.INT)
-@click.option('--sampling-interval', type=click.INT)
-def run_md_no_wfl_autopara(mace_fname, in_dir, in_fname, temp, output_dir,  pred_prop_prefix, 
-    steps, sampling_interval):
+@click.option('--sample-interval', type=click.INT)
+@click.option('--full-trajectory', type=click.BOOL, default=False)
+def run_md_no_wfl_autopara(mace_fname, ace_fname, in_dir, in_fname, temp, output_dir,  pred_prop_prefix, 
+    steps, sample_interval, full_trajectory):
 
-    logger.info(f"\n mace: {mace_fname} \n in_dir: {in_dir} \n in_fname: {in_fname} \n temp {temp} K \n output {output_dir}\n pred-prop-prefix {pred_prop_prefix}\n steps {steps}\n sampling interval {sampling_interval}")
+    assert mace_fname is None or ace_fname is None
+
+    logger.info(f"\n mace: {mace_fname} \n ace: {ace_fname} \n in_dir: {in_dir} \n in_fname: {in_fname} \n temp {temp} K \n output {output_dir}\n pred-prop-prefix {pred_prop_prefix}\n steps {steps}\n sampling interval {sample_interval}")
     
-    from mace.calculators.mace import MACECalculator 
-    calc = MACECalculator(model_path=mace_fname, default_dtype="float64", device="cpu")
+    if mace_fname is not None:
+        from mace.calculators.mace import MACECalculator 
+        calc = MACECalculator(model_path=mace_fname, default_dtype="float64", device="cpu")
+    elif ace_fname is not None:
+        from util.calculators import pyjulip_ace
+        calc = (pyjulip_ace, [ace_fname], {})
 
     atoms = read(Path(in_dir) / in_fname, ":")
     assert len(atoms) == 1
     atoms[0].info[f'md_start_hash'] = configs.hash_atoms(atoms[0])
 
     from wfl.generate.md import _sample_autopara_wrappable as run_md
+
 
     output_dir = Path(output_dir)
     in_fname = Path(in_fname)
@@ -128,12 +137,13 @@ def run_md_no_wfl_autopara(mace_fname, in_dir, in_fname, temp, output_dir,  pred
     running_traj_fn = running_traj_dir / str(in_fname.name).replace('.xyz', ".in_progress_traj.xyz")
 
 
+
     md_params = {
         "steps": steps,
         "dt": 0.5,  # fs
         "temperature": temp,  # K
         "temperature_tau": 500,  # fs, somewhat quicker than recommended (???)
-        "traj_step_interval": sampling_interval,
+        "traj_step_interval": sample_interval,
         "results_prefix": pred_prop_prefix,
         "update_config_type": False}
 
@@ -150,7 +160,7 @@ def run_md_no_wfl_autopara(mace_fname, in_dir, in_fname, temp, output_dir,  pred
     failed_count = sum([1 for check in traj_ok if check is False])
 
     if failed_count < 5: 
-        write(ok_at_fn, traj[-1])
+        write(ok_at_fn, traj)
     else:
         write(bad_traj_fn, traj)
     os.remove(running_traj_fn)

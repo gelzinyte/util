@@ -354,3 +354,23 @@ def assign_bde_to_C_atoms (inputs, outputs,bde_label):
         outputs.store(at)
     outputs.close()
     return outputs.to_ConfigSet()
+def find_closest_h(at, c_idx, cutoff=1.5):
+    distances = at.get_all_distances()[c_idx]
+    distances[distances == 0] = np.inf
+    closest_at_idx = np.where(distances < cutoff)[0]
+
+    # check it's sp3 carbon
+    if len(closest_at_idx) != 4:
+        print("at info", at.info)
+        print("c_idx", c_idx)
+        print("closest_at_idx",closest_at_idx)
+        raise RuntimeError(f"Found {len(closest_at_idx)} neighbours, expected 4.")
+
+    idcs_out = []
+    for idx in closest_at_idx:
+        if at.symbols[idx] == "H":
+            idcs_out.append(idx)
+
+    if len(idcs_out) == 0:
+        raise RuntimeError(f"Found no H neighbours.")
+    return idcs_out 
