@@ -309,7 +309,7 @@ def mark_mol_rad_envs(at, info_key):
 def assign_bde_to_C_atoms (inputs, outputs,bde_label):
 
     if outputs.all_written():
-        print(f"{otuputs} written, not reassigning")
+        print(f"{outputs} written, not reassigning")
         return outputs.to_ConfigSet()
 
     ch_cutoff = 1.5
