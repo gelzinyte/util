@@ -309,12 +309,12 @@ def mark_mol_rad_envs(at, info_key):
 def assign_bde_to_C_atoms (inputs, outputs,bde_label):
 
     if outputs.all_written():
-        Print(f"{otuputs} written, not reassigning")
+        print(f"{otuputs} written, not reassigning")
         return outputs.to_ConfigSet()
 
     ch_cutoff = 1.5
     ats_out = []
-    for at_idx, at in enumerate(input):
+    for at_idx, at in enumerate(inputs):
         syms = list(at.symbols)
 
         new_bde_label = "C_lowest_" + bde_label
@@ -326,7 +326,7 @@ def assign_bde_to_C_atoms (inputs, outputs,bde_label):
         
         old_bde_array = at.arrays[bde_label]
 
-        at = configs.mark_sp3_CH(at)
+        at = mark_sp3_CH(at)
 
         for idx, is_sp3  in enumerate(at.arrays["sp3_ch"]):
 
