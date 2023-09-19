@@ -362,39 +362,4 @@ def make_ends_from_mid(at, separation):
 
 
 
-def run_old_neb(neb, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs):
-    "Runs NEB with fire/lbfgs for steps/fmax on given NEB object, returns NEB object"
-
-    opt_fire = FIRE(neb, trajectory=f'structure_files/{fname}.traj')
-    opt_lbfgs = PreconLBFGS(neb, precon=None, use_armijo=False, \
-                            trajectory=f'structure_files/{fname}.traj')
-
-    print('\n----NEB\n')
-    if steps_fire:
-        opt_fire.run(fmax=fmax_fire, steps=steps_fire)
-
-    if steps_lbfgs:
-        opt_lbfgs.run(fmax=fmax_lbfgs, steps=steps_lbfgs)
-    return neb
-
-
-def prepare_do_neb(atoms, calc_name, no_images, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs):
-    """Sets up and NEB given end images"""
-    images = [atoms[0]]
-    images += [atoms[0].copy() for _ in range(no_images - 2)]
-    images += [atoms[1].copy()]
-
-    neb = NEB(images)
-    neb.interpolate()
-
-    for i, image in enumerate(images):
-        print(f'setting {i} image calculator')
-        if calc_name == 'dftb':
-            image.set_calculator(
-                Potential(args_str='TB DFTB', param_filename='/home/eg475/reactions/tightbind.parms.DFTB.mio-0-1.xml'))
-        else:
-            image.set_calculator(Potential(param_filename=calc_name))
-
-    neb = run_neb(neb, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs)
-    return neb
 
