@@ -247,18 +247,15 @@ def make_end_images(sub, H_idx, separation):
     return [at_init, at_mid, at_final]
 
 
-def make_mid_image(orig_sub, H_idx, calculator=None):
+def make_mid_image(orig_sub, H_idx):
     '''Makes end images for H abstraction. Quite a specific case. '''
 
     orig_methanol = molecule('CH3OH')
-    # methanol.set_calculator(dftb)
-    # opt = PreconLBFGS(methanol)
-    # opt.run(fmax=1e-3)
 
     idx_shift = len(orig_methanol)
 
     meth_O_idx = np.where(orig_methanol.get_atomic_numbers()==8)[0][0]
-    # meth_C_idx = np.where(methanol.get_atomic_numbers()==6)[0][0]
+    meth_C_idx = np.where(orig_methanol.get_atomic_numbers()==6)[0][0]
     meth_OH_H_idx = 3
 
     dists = orig_sub.get_all_distances()[H_idx]
@@ -272,7 +269,6 @@ def make_mid_image(orig_sub, H_idx, calculator=None):
     orig_methanol.rotate(HO, CH, center=orig_methanol.positions[1])
 
     orig_sub = util.remove_energy_force_containing_entries(orig_sub)
-
 
     trials = []
     angles = np.arange(0, 360, 30)
@@ -303,28 +299,39 @@ def make_mid_image(orig_sub, H_idx, calculator=None):
         tmp_H_idx = np.argmin([d if d != 0 else np.inf for d in dists])
         del at_mid[tmp_H_idx]
 
+        at_mid.info["clash_dist"] = get_clash_dist(at_mid, idx_shift, meth_OH_H_idx, meth_O_idx, meth_C_idx, sub_C_idx)
+
         trials.append(at_mid)
 
-    inputs = ConfigSet(trials)
-    outputs = OutputSpec()
-    inputs = generic.run(
-        inputs = inputs,
-        outputs=outputs,
-        calculator=calculator,
-        properties=["energy"],
-        output_prefix="test_",
-        autopara_info=AutoparaInfo(
-            remote_info=None,
-            num_inputs_per_python_subprocess=1,
-        )
-    )
 
-    energies = [at.info["test_energy"] for at in inputs]
-    idx = np.argmin(energies)
-    inputs = list(inputs)
-    # inputs[idx].info["selected_as_min_energy"] = "selected"
-    # return inputs 
-    return inputs[idx]
+    energies = [at.info["clash_dist"] for at in trials]
+    idx = np.argmax(energies)
+    # trials[idx].info["selected_as_min_energy"] = "selected"
+    # return trials 
+    return trials[idx]
+
+
+def get_clash_dist(at_mid, idx_shft, meth_OH_H_idx, meth_O_idx, meth_C_idx, sub_C_idx):
+    # finds the minimum istance between any of he atoms on the MeO
+    # and any of the substrate atoms. 
+    # Exclude the removed H. 
+
+    # import pdb; pdb.set_trace()
+
+    all_distances = at_mid.get_all_distances()
+    # select only distances to the MeO atoms 
+    all_meoh_distances = all_distances[:idx_shft] 
+    # mask away all distances within the meoh wit a large number
+    all_meoh_distances[:, :idx_shft] = 100
+    # mask the remved H's, meo C andO distances with something large
+    all_meoh_distances[[meth_OH_H_idx, meth_O_idx, meth_C_idx], :] = 100
+    # mask distances toth sub_C
+    all_meoh_distances[:, sub_C_idx] = 100
+
+    min_dist =  np.min(all_meoh_distances)
+    return min_dist
+
+
 
 
 def make_ends_from_mid(at, separation):
