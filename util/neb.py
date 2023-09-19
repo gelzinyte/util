@@ -18,7 +18,7 @@ from wfl.autoparallelize.autoparainfo import AutoparaInfo
 
 from ase.constraints import FixBondLength
 # from ase.optimize.precon import PreconLBFGS
-# from ase.optimize import FIRE
+from ase.optimize import FIRE, LBFGS
 # from ase.neb import NEB
 from ase import units
 from ase.build import molecule
@@ -26,7 +26,7 @@ from ase.build import molecule
 import util
 
 def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step_interval=1, 
-           fmax=1.0e-3, steps=1000, parallel=False, verbose=False, traj_subselect=None, skip_failures=True, **opt_kwargs):
+           fmax=1.0e-3, steps=1000, parallel=False, verbose=False, traj_subselect=None, skip_failures=True,  neb_precon=None, neb_method="aseneb", spring_const=0.1, climb=False, optimiser="PreconLBFGS", **opt_kwargs):
     """
     inputs - (Atoms_initial, Atoms_end) or list of (Atoms, Atoms) for first and last images.  
     or list of list of neb configs
@@ -40,6 +40,8 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
 
     if opt_kwargs_to_use.get('logfile') is None and verbose:
         opt_kwargs_to_use['logfile'] = '-'
+
+    # import pdb; pdb.set_trace()
 
     if isinstance(inputs[0], Atoms):
         inputs = [inputs]
@@ -56,34 +58,56 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
         num_images = len(neb_configs)
 
         for idx, config in enumerate(neb_configs):
-            configs.info["neb_image_no"] = str(idx)
+            config.info["neb_image_no"] = str(idx)
+            config.info["opt_step"] = 0
 
 
         for at in neb_configs:
             at.calc = deepcopy(calculator)
             at.info["neb_optimize_config_type"] = "optimize_mid"
 
-        neb = NEB(neb_configs, parallel=parallel)
+        neb = NEB(neb_configs, parallel=parallel, k=spring_const, climb=climb)
 
         if interpolate:
             neb.interpolate()
 
-        opt = PreconLBFGS(neb, **opt_kwargs_to_use)
+        if optimiser=="PreconLBFGS":
+            opt = PreconLBFGS(neb, **opt_kwargs_to_use)
+        elif optimiser == "LBFGS":
+            opt = LBFGS(neb, **opt_kwargs_to_use)
+        elif optimiser=="FIRE":
+            opt = FIRE(neb, **opt_kwargs_to_use)
 
         traj = []
+        cur_step = 1
 
-        def process_step():
-            for at in neb_configs:
-                new_config = at_copy_save_results(at, results_prefix=results_prefix)
-                traj.append(new_config)
+        def process_step(interval):
+            nonlocal cur_step
 
-        opt.attach(process_step, interval=traj_step_interval)
+            if cur_step % interval == 0:
+                all_mace_var = [] 
+                for at in neb_configs:
+                    new_config = at_copy_save_results(at, results_prefix=results_prefix)
+                    at.info["opt_step"] = cur_step
+                    traj.append(new_config)
+                    # if "mace_energy_var" not in new_config.info:
+                        # import pdb; pdb.set_trace()
+                    if "mace" in results_prefix:
+                        all_mace_var.append(new_config.info[f"{results_prefix}energy_var"])
+                if len(all_mace_var) > 0:
+                    if np.max(all_mace_var) > 1e-3:
+                        # import pdb; pdb.set_trace() 
+                        raise RuntimeError("Too large of a variance, stopping nebs.")               
+            
+            cur_step += 1
+
+        opt.attach(process_step, 1, traj_step_interval)
 
         # preliminary value
         final_status = 'unconverged'
 
         try:
-            print("optimize!!")
+            # print("optimize!!")
             opt.run(fmax=fmax, steps=steps)
         except Exception as exc:
             # label actual failed optimizations
@@ -123,15 +147,10 @@ def run_neb(*args, **kwargs):
     # Normally each thread needs to call np.random.seed so that it will generate a different
     # set of random numbers.  This env var overrides that to produce deterministic output,
     # for purposes like testing
-    if 'WFL_DETERMINISTIC_HACK' in os.environ:
-        initializer = (None, [])
-    else:
-        initializer = (np.random.seed, [])
-    def_autopara_info={"initializer":initializer, "num_inputs_per_python_subprocess":1,
-            "hash_ignore":["initializer"]}
+    def_autopara_info={ "num_inputs_per_python_subprocess":1}
 
     return autoparallelize(neb_ll, *args, 
-        def_autopara_info=def_autopara_info, **kwargs)
+        default_autopara_info=def_autopara_info, **kwargs)
 # autoparallelize_docstring(run_neb, neb_ll, "Atoms")
 
 

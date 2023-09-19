@@ -3,6 +3,8 @@ import sys
 
 import numpy as np
 
+from ase import Atoms, Atom
+
 from wfl.select import by_descriptor
 from wfl.autoparallelize.utils import get_remote_info
 from wfl.configset import OutputSpec, ConfigSet
@@ -20,7 +22,7 @@ def per_environment(inputs, outputs, num,
                     write_all_configs=False,
                     remote_info=None, remote_label=None):
 
-    if outputs.is_done():
+    if outputs.all_written():
         logger.info('output is done, returning')
         return outputs.to_ConfigSet()
 
@@ -37,7 +39,7 @@ def per_environment(inputs, outputs, num,
             center=center,
             leverage_score_key=leverage_score_key,
             write_all_configs=write_all_configs)
-        return ConfigSet(input_configs=output_configs)
+        return ConfigSet(output_configs)
 
     else:
         xpr = ExPyRe(
@@ -180,6 +182,7 @@ def clean_and_write_selected(inputs, outputs, selected,
     keep_descriptor_arrays: bool, default True
         keep descriptor in info dict
     """
+    # import pdb; pdb.set_trace()
 
     if not keep_descriptor_arrays and at_descs_key is None:
         raise RuntimeError('Got False \'keep_descriptor_arrays\' but not the info key \'at_descs_key\' to wipe')
@@ -214,14 +217,15 @@ def clean_and_write_selected(inputs, outputs, selected,
         if leverage_score_key:
             at.arrays[leverage_score_key] = scores
 
-        outputs.write(at)
+        outputs.store(at)
+
         counter += 1
 
         if not write_all_configs:
             if counter >= len(selected):
                 # skip remaining iterator if we've used entire selected list
                 break
-    outputs.end_write()
+    outputs.close()
 
 def leverage_scores_into_arrays(inputs, leverage_scores, selected,
                              parent_at_idx):
@@ -311,17 +315,5 @@ def prepare_descriptors(inputs, at_descs_key):
 
 def normalisation(a, *args, **kwargs):
     return a / np.sqrt(np.dot(a, a))
-
-
-
-
-
-
-
-
-
-
-
-
 
 
