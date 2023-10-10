@@ -1,7 +1,6 @@
 *.xyz.idx
 *__pycache__*
 util/util_config.yml
-util/default_kwargs.yml
 util.egg-info/*
 *.h5
 #womble outputs
