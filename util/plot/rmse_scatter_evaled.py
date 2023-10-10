@@ -278,7 +278,8 @@ def scatter_plot(ref_energy_name,
         # print(all_plot_data.keys())
         # print(len(all_plot_data[label]["predicted"]))
         # data = all_plot_data[label]
-        color = special_colors[label]
+        if label in special_colors:
+            color = special_colors[label]
 
         ref = data['reference']
         pred = data['predicted']
@@ -372,7 +373,8 @@ def scatter_plot(ref_energy_name,
         for color, (label, data) in zip(colors, all_plot_data.items()):
         # for label in labels_order:
             # data = all_plot_data[label]
-            color = special_colors[label]
+            if label in special_colors:
+                color = special_colors[label]
 
             ref = data['reference']
             pred = data['predicted']
