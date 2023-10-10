@@ -57,6 +57,7 @@ def scatter_plot(ref_energy_name,
         "comp6": "tab:red",
         "ha22": "tab:green",
         "tyzack": "tab:purple",
+        "validation": "purple",
         # "MACE": "#D62627",
         # "ACE": "#25D425",
         # "GAP": "#2525D4",
@@ -79,7 +80,9 @@ def scatter_plot(ref_energy_name,
         "extra_3": "tab:brown",
         "ZINC-test": "tab:red",
         "train": "tab:blue",
-        "ext-test": "tab:green"
+        "ext-test": "tab:green",
+        "rad": "tab:green", 
+        "mol": "pink"
 
     }
     # labels_order = ["zinc-train", "zinc-test", "comp6", "ha22", "tyzack"]

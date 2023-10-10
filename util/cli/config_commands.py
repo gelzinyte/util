@@ -6,6 +6,7 @@ from util import configs
 from util import qm
 from pathlib import Path
 import numpy as np
+from util import radicals
 
 
 @click.command("min-max")
@@ -203,4 +204,46 @@ def configs_count_atoms(input, info):
     print(f"    all   - min: {np.min(all_atoms)}, max: {np.max(all_atoms)}, mean: {np.mean(all_atoms):.1f}")
     print(f"    heavy - min: {np.min(all_heavy)}, max: {np.max(all_heavy)}, mean: {np.mean(all_heavy):.1f}")
 
+
+@click.command("find-sp3-hydrogens")
+@click.argument("inputs")
+@click.option("--outputs", '-o')
+@click.option("--info-key", default="sp3-ch", show_default=True)
+def find_sp3_hydrogens(inputs, outputs, info_key):
+    from util.configs import mark_sp3_CH
+
+    inputs = ConfigSet(inputs)
+    outputs = OutputSpec(outputs)
+
+    if outputs.all_written():
+        print(f"outputs {outputs} with marked sp3 hydrogens found/done , not redoing")
+        return
+
+    for at in inputs:
+        at = mark_sp3_CH(at, info_key=info_key)
+        outputs.store(at)
+    outputs.close()
+
+
+@click.command("mark-rad-environments")
+@click.argument("inputs")
+@click.option("--outputs", '-o')
+@click.option("--info-key", default="mol_or_rad_env", show_default=True)
+def mark_mol_rad_envs(inputs, outputs, info_key):
+
+    from util import configs
+
+    inputs = ConfigSet(inputs)
+    outputs = OutputSpec(outputs)
+
+    if outputs.all_written():
+        print(f"outputs {outputs} with marked sp3 hydrogens found/done , not redoing")
+        return
+
+    for at in inputs:
+
+        at = configs.mark_mol_rad_envs(at, info_key=info_key)
+
+        outputs.store(at)
+    outputs.close()
 

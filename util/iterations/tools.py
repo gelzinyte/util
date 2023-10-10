@@ -302,7 +302,7 @@ def make_structures(
     name_col="zinc_id",
     ):
 
-    if outputs.done():
+    if outputs.all_written():
         logger.info(f"outputs ({outputs} from {smiles_csv.name}) are done, returning")
         return outputs.to_ConfigSet()
 

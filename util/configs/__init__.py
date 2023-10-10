@@ -13,6 +13,7 @@ import util
 import os
 import hashlib
 import random
+from util import radicals
 from util import distances_dict
 
 logger = logging.getLogger(__name__)
@@ -258,3 +259,118 @@ def hash_atoms(at):
 
 def hash_smiles(smi):
     return hashlib.md5(smi.encode()).hexdigest()
+
+
+def find_closest_c(at, h_idx):
+    distances = at.get_all_distances()[h_idx]
+    distances[distances == 0] = np.inf
+    closest_id = np.argmin(distances)
+    if at.symbols[closest_id] != "C":
+        write("bad_at.xyz", at)
+        print(f"h_idx: {h_idx}, closest: {closest_id}")
+        print(distances)
+        raise RuntimeError
+    return closest_id
+
+
+def mark_sp3_CH(at, info_key="sp3_ch"):
+
+    is_sp3 = np.empty(len(at))
+    is_sp3.fill(False)
+    # print(is_sp3)
+
+    sp3_H_numbers = radicals.get_sp3_h_numbers(at)
+    closest_carbons = [find_closest_c(at, h_idx) for h_idx in sp3_H_numbers] 
+    sp3_ch = closest_carbons + sp3_H_numbers 
+
+    is_sp3[sp3_ch] = True
+    is_sp3 = [bool(val) for val in is_sp3]
+
+    at.arrays[info_key] = np.array(is_sp3)
+    return at
+
+
+def mark_mol_rad_envs(at, info_key):
+
+    is_sp3 = np.empty(len(at))
+    is_sp3.fill(False)
+    # print(is_sp3)
+
+    sp3_H_numbers = radicals.get_sp3_h_numbers(at)
+    closest_carbons = [find_closest_c(at, h_idx) for h_idx in sp3_H_numbers] 
+    sp3_ch = closest_carbons + sp3_H_numbers 
+
+    is_sp3[sp3_ch] = True
+    is_sp3 = [bool(val) for val in is_sp3]
+
+    at.arrays[info_key] = np.array(is_sp3)
+    return at
+
+def assign_bde_to_C_atoms (inputs, outputs,bde_label):
+
+    if outputs.all_written():
+        print(f"{outputs} written, not reassigning")
+        return outputs.to_ConfigSet()
+
+    ch_cutoff = 1.5
+    ats_out = []
+    for at_idx, at in enumerate(inputs):
+        syms = list(at.symbols)
+
+        new_bde_label = "C_lowest_" + bde_label
+        new_bde_array = np.empty(len(at))
+        new_bde_array.fill(np.nan)
+
+        if bde_label not in at.arrays:
+            continue
+        
+        old_bde_array = at.arrays[bde_label]
+
+        at = mark_sp3_CH(at)
+
+        for idx, is_sp3  in enumerate(at.arrays["sp3_ch"]):
+
+            if not is_sp3 or syms[idx] != "C":
+                continue
+            
+            # find closest H 
+            distances = at.get_all_distances()[idx]
+            distances[distances == 0] = np.inf
+
+            closest_H_id = [neigh_idx for neigh_idx, dist in enumerate(distances) if dist < ch_cutoff and syms[neigh_idx] == "H"]
+            # print(f"atidx: {at_idx}, cidx: {idx}, num neighbours: {len(closest_H_id)}, neighbours: {closest_H_id}")
+            if at.info["compound"] != "methane":
+                assert len(closest_H_id) < 4 and len(closest_H_id) > 0
+
+            # check that that C atom doesn't have an entry
+            assert np.isnan(old_bde_array[idx])
+
+            # pick lowes of thee bdes
+            lowest_H_bde = np.min(old_bde_array[closest_H_id])
+            new_bde_array[idx] = lowest_H_bde 
+
+        # save to atoms
+        at.arrays[new_bde_label] = new_bde_array
+        outputs.store(at)
+    outputs.close()
+    return outputs.to_ConfigSet()
+def find_closest_h(at, c_idx, cutoff=1.5):
+    distances = at.get_all_distances()[c_idx]
+    distances[distances == 0] = np.inf
+    closest_at_idx = np.where(distances < cutoff)[0]
+
+    # check it's sp3 carbon
+    if len(closest_at_idx) != 4:
+        print("at info", at.info)
+        print("c_idx", c_idx)
+        print("closest_at_idx",closest_at_idx)
+        raise RuntimeError(f"Found {len(closest_at_idx)} neighbours, expected 4.")
+
+    idcs_out = []
+    for idx in closest_at_idx:
+        if at.symbols[idx] == "H":
+            idcs_out.append(idx)
+
+    if len(idcs_out) == 0:
+        raise RuntimeError(f"Found no H neighbours.")
+    return idcs_out 

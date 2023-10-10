@@ -1,6 +1,8 @@
 ENV["GKSwstype"]="nul"     
 
-using IPFitting, ACE, Plots, ArgParse 
+# using IPFitting, ACE, Plots, ArgParse 
+using ACE1, Plots, ArgParse 
+
 
 
 function parse_commandline()
@@ -19,7 +21,6 @@ function main()
 	ip_fname = args["param-fname"]
     fname = args["fname"]
     # fname = replace(ip_fname, ".json"=>"")
-
 
     IP = read_dict(load_dict(ip_fname)["IP"])
 
