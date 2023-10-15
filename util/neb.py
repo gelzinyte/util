@@ -24,6 +24,7 @@ from ase import units
 from ase.build import molecule
 
 import util
+from util.configs import check_geometry
 
 def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step_interval=1, 
            fmax=1.0e-3, steps=1000, parallel=False, verbose=False, traj_subselect=None, skip_failures=True,  neb_precon=None, neb_method="aseneb", spring_const=0.1, climb=False, optimiser="PreconLBFGS", **opt_kwargs):
@@ -32,6 +33,11 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
     or list of list of neb configs
     
     """
+
+
+    if isinstance(calculator, tuple) and calculator[0] == "MACE":
+        from mace.calculators.mace  import MACECalculator
+        calculator = (MACECalculator, calculator[1], calculator[2])
 
     calculator = construct_calculator_picklesafe(calculator)    
 
@@ -47,7 +53,9 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
         inputs = [inputs]
     
     all_nebs = []
-    for neb_configs in inputs:
+    for idx, neb_configs in enumerate(inputs):
+        if verbose== True:
+            print(f"neb no: {idx}, num_configs: {len(neb_configs)}")
         
         interpolate=False
         if len(neb_configs) == 2:
@@ -79,23 +87,26 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
             opt = FIRE(neb, **opt_kwargs_to_use)
 
         traj = []
-        cur_step = 1
+        cur_step = 0
 
         def process_step(interval):
             nonlocal cur_step
 
-            if cur_step % interval == 0:
+            # print(f"cur_step: {cur_step}")
+
+            if cur_step % interval == 0 or cur_step == steps+1:
+                # print('get config')
                 all_mace_var = [] 
                 for at in neb_configs:
                     new_config = at_copy_save_results(at, results_prefix=results_prefix)
-                    at.info["opt_step"] = cur_step
+                    new_config.info["opt_step"] = cur_step  
                     traj.append(new_config)
                     # if "mace_energy_var" not in new_config.info:
                         # import pdb; pdb.set_trace()
                     if "mace" in results_prefix:
                         all_mace_var.append(new_config.info[f"{results_prefix}energy_var"])
                 if len(all_mace_var) > 0:
-                    if np.max(all_mace_var) > 1e-3:
+                    if np.max(all_mace_var) > 1e-1:
                         # import pdb; pdb.set_trace() 
                         raise RuntimeError("Too large of a variance, stopping nebs.")               
             
@@ -123,20 +134,20 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
 
         # set for first config, to be overwritten if it's also last config
         for idx in range(num_images):
-            traj[idx].info['optimize_config_type'] = 'optimize_initial'
+            traj[idx].info['neb_optimize_config_type'] = 'optimize_initial'
 
         if opt.converged():
             final_status = 'converged'
 
         for aaa in traj[-num_images:]:
-            aaa.info['optimize_config_type'] = f'optimize_last_{final_status}'
-            aaa.info['optimize_n_steps'] = opt.get_number_of_steps()
+            aaa.info['neb_optimize_config_type'] = f'neb_optimize_last_{final_status}'
+            aaa.info['neb_optimize_n_steps'] = opt.get_number_of_steps()
 
 
         # Note that if resampling doesn't include original last config, later
         # steps won't be able to identify those configs as the (perhaps unconverged) minima.
         # Perhaps status should be set after resampling?
-        traj = subselect_from_traj(traj, subselect=traj_subselect)
+        traj = subselect_from_traj(traj, subselect=traj_subselect, num_images=num_images)
 
         all_nebs.append(traj)
 
@@ -161,7 +172,7 @@ def run_neb(*args, **kwargs):
 #    equispaced in Cartesian path length
 #    equispaced in some other kind of distance (e.g. SOAP)
 # also, should it also have max distance instead of number of samples?
-def subselect_from_traj(traj, subselect=None):
+def subselect_from_traj(traj, subselect=None, num_images=None):
     """Sub-selects configurations from trajectory.
 
     Parameters
@@ -177,6 +188,10 @@ def subselect_from_traj(traj, subselect=None):
     """
     if subselect is None:
         return traj
+
+    elif subselect == "last":
+        return traj[-num_images:]
+
 
     elif subselect == "last_converged":
         converged_configs = [at for at in traj if at.info["optimize_config_type"] == "optimize_last_converged"]
@@ -368,5 +383,90 @@ def make_ends_from_mid(at, separation):
 
 
 
+def guess_init_neb_from_2(ats, num_copies=20):
 
+    start = ats[0]
+    end = ats[1]
+
+
+    half_1 = [start.copy() for _ in range(num_copies)] + [end.copy()]
+
+    neb_1 = NEB(half_1)
+    neb_1.interpolate()
+
+    return half_1
+    # check geometries
+
+
+
+def guess_init_neb_from_3(ats, num_copies=20):
+
+    start = ats[0]
+    mid = ats[1]
+    end = ats[2]
+
+    num_copies = int(num_copies/2)
+
+    half_1 = [start.copy() for _ in range(num_copies)] + [mid.copy()]
+
+    neb_1 = NEB(half_1)
+    neb_1.interpolate()
+
+    half_2 = [mid.copy() for _ in range(num_copies)] + [end.copy()]
+    neb_2 = NEB(half_2)
+    neb_2.interpolate()
+
+    all_neb = half_1 + half_2[1:]
+    return all_neb
+
+
+def pick_two_ends(start, mid, end):
+
+
+    # start = ats[0]
+    # mid = ats[1]
+    # end = ats[2]
+
+
+    ch_c_idx = start.info["Closest_C_idx"]
+    removed_h_idx = start.info["methanol_OH_H_idx"]
+    methanol_O_idx = 1 
+
+    start_ch_dist = start.get_distance(ch_c_idx, removed_h_idx)
+    start_oh_dist = start.get_distance(methanol_O_idx, removed_h_idx)
+    end_ch_dist = end.get_distance(ch_c_idx, removed_h_idx)
+    end_oh_dist = end.get_distance(methanol_O_idx, removed_h_idx)
+    mid_ch_dist = mid.get_distance(ch_c_idx, removed_h_idx)
+    mid_oh_dist = mid.get_distance(methanol_O_idx, removed_h_idx)
+
+
+    # check which CH or OH distance is shorter
+
+    if mid_oh_dist < mid_ch_dist:
+        # middle is methanol
+        return "good", [start, mid]
+    else:
+        # middle is methoxy
+        return "good", [mid, end]
+
+
+    #--------
+    # checks which distance changed more. Too complicated, unreliable 
+    #------------
+    # # how much going to/from mid the bond lenghts have changed
+    # ch_diff_to_start = np.abs(start_ch_dist - mid_ch_dist)
+    # ch_diff_to_end = np.abs(end_ch_dist - mid_ch_dist)
+    # oh_dist_to_start = np.abs(start_oh_dist - mid_oh_dist)
+    # oh_dist_to_end = np.abs(end_oh_dist - mid_oh_dist)
+
+    # # mid more similar to start
+    # if ch_diff_to_start < ch_diff_to_end:
+    #     # oh should also be more similar to start
+    #     if oh_dist_to_start > oh_dist_to_end:
+    #         return "bad", ats
+    #     return "good", [mid, end]
+    # else:
+    #     if oh_dist_to_start < oh_dist_to_end:
+    #         return "bad", ats
+    #     return "good", [start, mid]
 
