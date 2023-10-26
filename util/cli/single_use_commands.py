@@ -6,6 +6,7 @@ from wfl.configset import ConfigSet, OutputSpec
 from ase.io import read, write
 from wfl.generate import md
 from util import configs
+from util import file_archiver
 import logging
 from util.configs import check_geometry
 
@@ -15,6 +16,14 @@ try:
     import ace
 except ModuleNotFoundError:
     pass
+
+
+@click.command("backup")
+@click.option("--cluster", "-c", default="csd3")
+@click.argument("fnames", nargs=-1)
+def archive_files(fnames, cluster):
+    """copies files to backed up location"""
+    file_archiver.archive_file(fnames, cluster)
 
 
 @click.command("grab-first")
