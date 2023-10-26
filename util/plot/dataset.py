@@ -26,7 +26,10 @@ def energy_by_idx(atoms, prop_prefix='dft_', title=None,
 
     data = {}
     for idx, at in enumerate(atoms):
-        cfg = at.info[info_label]
+        if info_label in at.info:
+            cfg = at.info[info_label]
+        else:
+            cfg = "None"
         if cfg not in data.keys():
             data[cfg] = []
         at.info['dset_idx'] = idx
@@ -78,7 +81,10 @@ def forces_by_idx(atoms, prop_prefix='dft_', title=None,
 
     data = {}
     for idx, at in enumerate(atoms):
-        cfg = at.info[info_label]
+        if info_label in at.info:
+            cfg = at.info[info_label]
+        else:
+            cfg = "None"
         if cfg == 'isolated_atom':
             continue
         if cfg not in data.keys():
