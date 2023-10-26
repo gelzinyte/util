@@ -20,6 +20,9 @@ def cli(ctx, verbose):
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
+from util.cli.single_use_commands import archive_files
+cli.add_command(archive_files)
+
 @cli.group("gap")
 def subcli_gap():
     pass
@@ -45,6 +48,8 @@ subcli_misc.add_command(run_md_no_wfl_autopara)
 subcli_misc.add_command(run_md)
 subcli_misc.add_command(test_aces)
 subcli_misc.add_command(grab_first)
+
+
 
 
 @cli.group("blobs")

@@ -147,7 +147,10 @@ def filter_insane_geometries(atoms_list, mult=1.2, mark_elements=False, skin=0):
     return {'good_geometries':atoms_out, 'bad_geometries':bad_atoms}
 
 
-def check_geometry(atoms, mult=1.2, mark_elements=False, skin=0):
+def check_geometry(atoms, mult=1.2, mark_elements=False, skin=0, ignore_idx=None):
+
+    if ignore_idx is None:
+        ignore_idx = []
 
     natural_cutoffs = neighborlist.natural_cutoffs(atoms, mult=mult)
     neighbor_list = neighborlist.NeighborList(natural_cutoffs,
@@ -157,6 +160,9 @@ def check_geometry(atoms, mult=1.2, mark_elements=False, skin=0):
     _ = neighbor_list.update(atoms)
 
     for at_idx, at in enumerate(atoms):
+
+        if at_idx in ignore_idx:
+            continue
 
         indices, offsets = neighbor_list.get_neighbors(at.index)
         if at.symbol == 'H':
@@ -309,12 +315,12 @@ def mark_mol_rad_envs(at, info_key):
 def assign_bde_to_C_atoms (inputs, outputs,bde_label):
 
     if outputs.all_written():
-        Print(f"{otuputs} written, not reassigning")
+        print(f"{outputs} written, not reassigning")
         return outputs.to_ConfigSet()
 
     ch_cutoff = 1.5
     ats_out = []
-    for at_idx, at in enumerate(input):
+    for at_idx, at in enumerate(inputs):
         syms = list(at.symbols)
 
         new_bde_label = "C_lowest_" + bde_label
@@ -326,7 +332,7 @@ def assign_bde_to_C_atoms (inputs, outputs,bde_label):
         
         old_bde_array = at.arrays[bde_label]
 
-        at = configs.mark_sp3_CH(at)
+        at = mark_sp3_CH(at)
 
         for idx, is_sp3  in enumerate(at.arrays["sp3_ch"]):
 

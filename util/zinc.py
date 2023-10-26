@@ -36,6 +36,8 @@ def main(wget_fname, output_label, elements, wdir='wdir'):
     logger.info(f"wget file: {wget_fname}")
     for idx, command in enumerate(commands):
         logger.info(f'{command}, {idx}')
+        # if idx == 28:
+            # import pdb; pdb.set_trace()
         label = get_label(command)
         if is_logged(label, logged_labels, staged_labels):
             continue
@@ -43,7 +45,7 @@ def main(wget_fname, output_label, elements, wdir='wdir'):
                                         wget_stderr=wget_stderr,wdir=wdir, elements=elements))
         staged_labels.append(label)
 
-        if idx%10 == 9:
+        if idx%10== 9:
             write_entries(staged_info, smi_output_fname, staged_labels,log_fname)
             staged_info, staged_labels, logged_labels = reset_staged(log_fname)
 
@@ -77,7 +79,10 @@ def only_has_CH(entry):
     return not bool(re.search(r'[a-bd-gi-zA-BD-GI-Z]', entry))
 
 def only_has_CHO(entry):
+    if isinstance(entry, int):
+        entry = str(entry)
     return not bool(re.search(r'[a-bd-gi-np-zA-BD-GI-NP-Z]', entry))
+
 
 def only_has_CHNOPS(entry):
     # import pdb; pdb.set_trace()
@@ -109,7 +114,8 @@ def collect_info(command, label, wget_stdout, wget_stderr, wdir, elements):
 
     filesize = Path(tmp_fname).stat().st_size
     if filesize > 0:
-        data = pd.read_csv(tmp_fname, delim_whitespace=True)
+        # data = pd.read_csv(tmp_fname, delim_whitespace=True, engine='python') # python bc pd bug
+        data = pd.read_csv(tmp_fname, delim_whitespace=True, usecols=["smiles", "zinc_id"])
         data = data[["smiles", "zinc_id"]]
         data = filter_elements(data, elements=elements)
 

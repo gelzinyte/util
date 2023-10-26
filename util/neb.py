@@ -18,20 +18,26 @@ from wfl.autoparallelize.autoparainfo import AutoparaInfo
 
 from ase.constraints import FixBondLength
 # from ase.optimize.precon import PreconLBFGS
-# from ase.optimize import FIRE
+from ase.optimize import FIRE, LBFGS
 # from ase.neb import NEB
 from ase import units
 from ase.build import molecule
 
 import util
+from util.configs import check_geometry
 
 def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step_interval=1, 
-           fmax=1.0e-3, steps=1000, parallel=False, verbose=False, traj_subselect=None, skip_failures=True, **opt_kwargs):
+           fmax=1.0e-3, steps=1000, parallel=False, verbose=False, traj_subselect=None, skip_failures=True,  neb_precon=None, neb_method="aseneb", spring_const=0.1, climb=False, optimiser="PreconLBFGS", **opt_kwargs):
     """
     inputs - (Atoms_initial, Atoms_end) or list of (Atoms, Atoms) for first and last images.  
     or list of list of neb configs
     
     """
+
+
+    if isinstance(calculator, tuple) and calculator[0] == "MACE":
+        from mace.calculators.mace  import MACECalculator
+        calculator = (MACECalculator, calculator[1], calculator[2])
 
     calculator = construct_calculator_picklesafe(calculator)    
 
@@ -41,11 +47,15 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
     if opt_kwargs_to_use.get('logfile') is None and verbose:
         opt_kwargs_to_use['logfile'] = '-'
 
+    # import pdb; pdb.set_trace()
+
     if isinstance(inputs[0], Atoms):
         inputs = [inputs]
     
     all_nebs = []
-    for neb_configs in inputs:
+    for idx, neb_configs in enumerate(inputs):
+        if verbose== True:
+            print(f"neb no: {idx}, num_configs: {len(neb_configs)}")
         
         interpolate=False
         if len(neb_configs) == 2:
@@ -56,34 +66,59 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
         num_images = len(neb_configs)
 
         for idx, config in enumerate(neb_configs):
-            configs.info["neb_image_no"] = str(idx)
+            config.info["neb_image_no"] = str(idx)
+            config.info["opt_step"] = 0
 
 
         for at in neb_configs:
             at.calc = deepcopy(calculator)
             at.info["neb_optimize_config_type"] = "optimize_mid"
 
-        neb = NEB(neb_configs, parallel=parallel)
+        neb = NEB(neb_configs, parallel=parallel, k=spring_const, climb=climb)
 
         if interpolate:
             neb.interpolate()
 
-        opt = PreconLBFGS(neb, **opt_kwargs_to_use)
+        if optimiser=="PreconLBFGS":
+            opt = PreconLBFGS(neb, **opt_kwargs_to_use)
+        elif optimiser == "LBFGS":
+            opt = LBFGS(neb, **opt_kwargs_to_use)
+        elif optimiser=="FIRE":
+            opt = FIRE(neb, **opt_kwargs_to_use)
 
         traj = []
+        cur_step = 0
 
-        def process_step():
-            for at in neb_configs:
-                new_config = at_copy_save_results(at, results_prefix=results_prefix)
-                traj.append(new_config)
+        def process_step(interval):
+            nonlocal cur_step
 
-        opt.attach(process_step, interval=traj_step_interval)
+            # print(f"cur_step: {cur_step}")
+
+            if cur_step % interval == 0 or cur_step == steps+1:
+                # print('get config')
+                all_mace_var = [] 
+                for at in neb_configs:
+                    new_config = at_copy_save_results(at, results_prefix=results_prefix)
+                    new_config.info["opt_step"] = cur_step  
+                    traj.append(new_config)
+                    # if "mace_energy_var" not in new_config.info:
+                        # import pdb; pdb.set_trace()
+                    if "mace" in results_prefix:
+                        all_mace_var.append(new_config.info[f"{results_prefix}energy_var"])
+                if len(all_mace_var) > 0:
+                    if np.max(all_mace_var) > 1e-1:
+                        # import pdb; pdb.set_trace() 
+                        raise RuntimeError("Too large of a variance, stopping nebs.")               
+            
+            cur_step += 1
+
+        opt.attach(process_step, 1, traj_step_interval)
 
         # preliminary value
         final_status = 'unconverged'
 
         try:
-            print("optimize!!")
+            # print("optimize!!")
             opt.run(fmax=fmax, steps=steps)
         except Exception as exc:
             # label actual failed optimizations
@@ -99,20 +134,20 @@ def neb_ll(inputs, calculator, num_images=None, results_prefix="neb_", traj_step
 
         # set for first config, to be overwritten if it's also last config
         for idx in range(num_images):
-            traj[idx].info['optimize_config_type'] = 'optimize_initial'
+            traj[idx].info['neb_optimize_config_type'] = 'optimize_initial'
 
         if opt.converged():
             final_status = 'converged'
 
         for aaa in traj[-num_images:]:
-            aaa.info['optimize_config_type'] = f'optimize_last_{final_status}'
-            aaa.info['optimize_n_steps'] = opt.get_number_of_steps()
+            aaa.info['neb_optimize_config_type'] = f'neb_optimize_last_{final_status}'
+            aaa.info['neb_optimize_n_steps'] = opt.get_number_of_steps()
 
 
         # Note that if resampling doesn't include original last config, later
         # steps won't be able to identify those configs as the (perhaps unconverged) minima.
         # Perhaps status should be set after resampling?
-        traj = subselect_from_traj(traj, subselect=traj_subselect)
+        traj = subselect_from_traj(traj, subselect=traj_subselect, num_images=num_images)
 
         all_nebs.append(traj)
 
@@ -123,15 +158,10 @@ def run_neb(*args, **kwargs):
     # Normally each thread needs to call np.random.seed so that it will generate a different
     # set of random numbers.  This env var overrides that to produce deterministic output,
     # for purposes like testing
-    if 'WFL_DETERMINISTIC_HACK' in os.environ:
-        initializer = (None, [])
-    else:
-        initializer = (np.random.seed, [])
-    def_autopara_info={"initializer":initializer, "num_inputs_per_python_subprocess":1,
-            "hash_ignore":["initializer"]}
+    def_autopara_info={ "num_inputs_per_python_subprocess":1}
 
     return autoparallelize(neb_ll, *args, 
-        def_autopara_info=def_autopara_info, **kwargs)
+        default_autopara_info=def_autopara_info, **kwargs)
 # autoparallelize_docstring(run_neb, neb_ll, "Atoms")
 
 
@@ -142,7 +172,7 @@ def run_neb(*args, **kwargs):
 #    equispaced in Cartesian path length
 #    equispaced in some other kind of distance (e.g. SOAP)
 # also, should it also have max distance instead of number of samples?
-def subselect_from_traj(traj, subselect=None):
+def subselect_from_traj(traj, subselect=None, num_images=None):
     """Sub-selects configurations from trajectory.
 
     Parameters
@@ -158,6 +188,10 @@ def subselect_from_traj(traj, subselect=None):
     """
     if subselect is None:
         return traj
+
+    elif subselect == "last":
+        return traj[-num_images:]
+
 
     elif subselect == "last_converged":
         converged_configs = [at for at in traj if at.info["optimize_config_type"] == "optimize_last_converged"]
@@ -228,18 +262,15 @@ def make_end_images(sub, H_idx, separation):
     return [at_init, at_mid, at_final]
 
 
-def make_mid_image(orig_sub, H_idx, calculator=None):
+def make_mid_image(orig_sub, H_idx):
     '''Makes end images for H abstraction. Quite a specific case. '''
 
     orig_methanol = molecule('CH3OH')
-    # methanol.set_calculator(dftb)
-    # opt = PreconLBFGS(methanol)
-    # opt.run(fmax=1e-3)
 
     idx_shift = len(orig_methanol)
 
     meth_O_idx = np.where(orig_methanol.get_atomic_numbers()==8)[0][0]
-    # meth_C_idx = np.where(methanol.get_atomic_numbers()==6)[0][0]
+    meth_C_idx = np.where(orig_methanol.get_atomic_numbers()==6)[0][0]
     meth_OH_H_idx = 3
 
     dists = orig_sub.get_all_distances()[H_idx]
@@ -253,7 +284,6 @@ def make_mid_image(orig_sub, H_idx, calculator=None):
     orig_methanol.rotate(HO, CH, center=orig_methanol.positions[1])
 
     orig_sub = util.remove_energy_force_containing_entries(orig_sub)
-
 
     trials = []
     angles = np.arange(0, 360, 30)
@@ -284,28 +314,39 @@ def make_mid_image(orig_sub, H_idx, calculator=None):
         tmp_H_idx = np.argmin([d if d != 0 else np.inf for d in dists])
         del at_mid[tmp_H_idx]
 
+        at_mid.info["clash_dist"] = get_clash_dist(at_mid, idx_shift, meth_OH_H_idx, meth_O_idx, meth_C_idx, sub_C_idx)
+
         trials.append(at_mid)
 
-    inputs = ConfigSet(trials)
-    outputs = OutputSpec()
-    inputs = generic.run(
-        inputs = inputs,
-        outputs=outputs,
-        calculator=calculator,
-        properties=["energy"],
-        output_prefix="test_",
-        autopara_info=AutoparaInfo(
-            remote_info=None,
-            num_inputs_per_python_subprocess=1,
-        )
-    )
 
-    energies = [at.info["test_energy"] for at in inputs]
-    idx = np.argmin(energies)
-    inputs = list(inputs)
-    # inputs[idx].info["selected_as_min_energy"] = "selected"
-    # return inputs 
-    return inputs[idx]
+    energies = [at.info["clash_dist"] for at in trials]
+    idx = np.argmax(energies)
+    # trials[idx].info["selected_as_min_energy"] = "selected"
+    # return trials 
+    return trials[idx]
+
+
+def get_clash_dist(at_mid, idx_shft, meth_OH_H_idx, meth_O_idx, meth_C_idx, sub_C_idx):
+    # finds the minimum istance between any of he atoms on the MeO
+    # and any of the substrate atoms. 
+    # Exclude the removed H. 
+
+    # import pdb; pdb.set_trace()
+
+    all_distances = at_mid.get_all_distances()
+    # select only distances to the MeO atoms 
+    all_meoh_distances = all_distances[:idx_shft] 
+    # mask away all distances within the meoh wit a large number
+    all_meoh_distances[:, :idx_shft] = 100
+    # mask the remved H's, meo C andO distances with something large
+    all_meoh_distances[[meth_OH_H_idx, meth_O_idx, meth_C_idx], :] = 100
+    # mask distances toth sub_C
+    all_meoh_distances[:, sub_C_idx] = 100
+
+    min_dist =  np.min(all_meoh_distances)
+    return min_dist
+
+
 
 
 def make_ends_from_mid(at, separation):
@@ -342,40 +383,90 @@ def make_ends_from_mid(at, separation):
 
 
 
+def guess_init_neb_from_2(ats, num_copies=20):
 
-def run_old_neb(neb, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs):
-    "Runs NEB with fire/lbfgs for steps/fmax on given NEB object, returns NEB object"
-
-    opt_fire = FIRE(neb, trajectory=f'structure_files/{fname}.traj')
-    opt_lbfgs = PreconLBFGS(neb, precon=None, use_armijo=False, \
-                            trajectory=f'structure_files/{fname}.traj')
-
-    print('\n----NEB\n')
-    if steps_fire:
-        opt_fire.run(fmax=fmax_fire, steps=steps_fire)
-
-    if steps_lbfgs:
-        opt_lbfgs.run(fmax=fmax_lbfgs, steps=steps_lbfgs)
-    return neb
+    start = ats[0]
+    end = ats[1]
 
 
-def prepare_do_neb(atoms, calc_name, no_images, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs):
-    """Sets up and NEB given end images"""
-    images = [atoms[0]]
-    images += [atoms[0].copy() for _ in range(no_images - 2)]
-    images += [atoms[1].copy()]
+    half_1 = [start.copy() for _ in range(num_copies)] + [end.copy()]
 
-    neb = NEB(images)
-    neb.interpolate()
+    neb_1 = NEB(half_1)
+    neb_1.interpolate()
 
-    for i, image in enumerate(images):
-        print(f'setting {i} image calculator')
-        if calc_name == 'dftb':
-            image.set_calculator(
-                Potential(args_str='TB DFTB', param_filename='/home/eg475/reactions/tightbind.parms.DFTB.mio-0-1.xml'))
-        else:
-            image.set_calculator(Potential(param_filename=calc_name))
+    return half_1
+    # check geometries
 
-    neb = run_neb(neb, fname, steps_fire, fmax_fire, steps_lbfgs, fmax_lbfgs)
-    return neb
+
+
+def guess_init_neb_from_3(ats, num_copies=20):
+
+    start = ats[0]
+    mid = ats[1]
+    end = ats[2]
+
+    num_copies = int(num_copies/2)
+
+    half_1 = [start.copy() for _ in range(num_copies)] + [mid.copy()]
+
+    neb_1 = NEB(half_1)
+    neb_1.interpolate()
+
+    half_2 = [mid.copy() for _ in range(num_copies)] + [end.copy()]
+    neb_2 = NEB(half_2)
+    neb_2.interpolate()
+
+    all_neb = half_1 + half_2[1:]
+    return all_neb
+
+
+def pick_two_ends(start, mid, end):
+
+
+    # start = ats[0]
+    # mid = ats[1]
+    # end = ats[2]
+
+
+    ch_c_idx = start.info["Closest_C_idx"]
+    removed_h_idx = start.info["methanol_OH_H_idx"]
+    methanol_O_idx = 1 
+
+    start_ch_dist = start.get_distance(ch_c_idx, removed_h_idx)
+    start_oh_dist = start.get_distance(methanol_O_idx, removed_h_idx)
+    end_ch_dist = end.get_distance(ch_c_idx, removed_h_idx)
+    end_oh_dist = end.get_distance(methanol_O_idx, removed_h_idx)
+    mid_ch_dist = mid.get_distance(ch_c_idx, removed_h_idx)
+    mid_oh_dist = mid.get_distance(methanol_O_idx, removed_h_idx)
+
+
+    # check which CH or OH distance is shorter
+
+    if mid_oh_dist < mid_ch_dist:
+        # middle is methanol
+        return "good", [start, mid]
+    else:
+        # middle is methoxy
+        return "good", [mid, end]
+
+
+    #--------
+    # checks which distance changed more. Too complicated, unreliable 
+    #------------
+    # # how much going to/from mid the bond lenghts have changed
+    # ch_diff_to_start = np.abs(start_ch_dist - mid_ch_dist)
+    # ch_diff_to_end = np.abs(end_ch_dist - mid_ch_dist)
+    # oh_dist_to_start = np.abs(start_oh_dist - mid_oh_dist)
+    # oh_dist_to_end = np.abs(end_oh_dist - mid_oh_dist)
+
+    # # mid more similar to start
+    # if ch_diff_to_start < ch_diff_to_end:
+    #     # oh should also be more similar to start
+    #     if oh_dist_to_start > oh_dist_to_end:
+    #         return "bad", ats
+    #     return "good", [mid, end]
+    # else:
+    #     if oh_dist_to_start < oh_dist_to_end:
+    #         return "bad", ats
+    #     return "good", [start, mid]
 

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_interval=None, info_for_logfile=None, 
-                                steps = 500, precon=None, skip_failures=True, traj_info_field=None):
+                                steps = 500, precon=None, skip_failures=True, verbose=False):
     """traj_step_interval: if None, only the last converged config will be
     taken. Otherwise take all that get sampled. + the last
 
@@ -58,7 +58,7 @@ def optimise_autopara_wrappable(atoms, calculator, output_prefix, traj_step_inte
                              fmax=1e-2, 
                              #traj_fn_prefix = label,
                              skip_failures=skip_failures,
-                             traj_info_field=traj_info_field,
+                             verbose=verbose,
                              **opt_kwargs)
 
     return all_trajs

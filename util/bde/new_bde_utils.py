@@ -60,11 +60,15 @@ def get_table(inputs, keys):
     print(df)
     return df
 
-def plot_rmsds(rmsds):
+def plot_rmsds(rmsds, fname="rmsd_distribution.png", output_dir=None):
     rmsds = np.array(rmsds)
 
     label = f"mean: {np.mean(rmsds):.2f} max: {np.max(rmsds):.2f}, std: {np.std(rmsds):.3f}"
     
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        fname = output_dir / fname
+
     plt.figure()
     bins = np.linspace(0, 1.8, 30)
     plt.hist(rmsds, bins=bins, label=label)
@@ -74,7 +78,7 @@ def plot_rmsds(rmsds):
     plt.yscale("log")
     plt.legend()
     plt.tight_layout()
-    plt.savefig("rmsd_distribution.png")
+    plt.savefig(fname)
 
 
 def get_rmsds(atl1, atl2):
