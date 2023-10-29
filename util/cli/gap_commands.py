@@ -14,15 +14,15 @@ from util.plot import dimer
 @click.option("--input-fn", '-i')
 @click.option("--output-fn", '-o')
 def eval_gap(gap_fname, at_gaussian_weight, pred_prop_prefix, input_fn, output_fn):
-    ci = ConfigSet(input_files=input_fn)
-    co = OutputSpec(output_files=output_fn)
+    ci = ConfigSet(input_fn)
+    co = OutputSpec(output_fn)
     import util.calculators.gap
     gap_calc = util.calculators.gap.at_wt_gap_calc(gap_fname, at_gaussian_weight, type="initialiser")
     wfl_num_threads = int(os.environ.get("WFL_AUTOPARA_NPOOL", 1))
     n_ats = len(read(input_fn, ":"))
     num_inputs_per_python_subprocess = int(n_ats / wfl_num_threads) + 1
     print(num_inputs_per_python_subprocess)
-    generic.run(
+    generic.calculate(
         inputs=ci, 
         outputs=co,
         calculator=gap_calc,
