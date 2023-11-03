@@ -29,9 +29,10 @@ def main(wget_fname, output_label, elements, wdir='wdir'):
     staged_labels = []
     staged_info = []
 
-    with open(smi_output_fname, 'w') as f:
-        writer = csv.writer(f, delimiter=' ')
-        writer.writerow(['smiles', 'zinc_id'])
+    if not Path(smi_output_fname).exists():
+        with open(smi_output_fname, 'w') as f:
+            writer = csv.writer(f, delimiter=' ')
+            writer.writerow(['smiles', 'zinc_id'])
 
     logger.info(f"wget file: {wget_fname}")
     for idx, command in enumerate(commands):
@@ -113,17 +114,25 @@ def collect_info(command, label, wget_stdout, wget_stderr, wdir, elements):
         f.write(result.stderr)
 
     filesize = Path(tmp_fname).stat().st_size
+    upper_limit = 200 * 1024**2 # 500 MB
+    # if filesize > 0 and filesize < upper_limit:
+    #     # data = pd.read_csv(tmp_fname, delim_whitespace=True, engine='python') # python bc pd bug
+    #     data = pd.read_csv(tmp_fname, delim_whitespace=True, usecols=["smiles", "zinc_id"])
+    #     data = data[["smiles", "zinc_id"]]
+    #     data = filter_elements(data, elements=elements)
+
+    #     if len(data) == 0:
+    #         data = None
+
+    #     os.remove(tmp_fname)
+    #     return data
+
+    # elif filesize > upper_limit:
     if filesize > 0:
-        # data = pd.read_csv(tmp_fname, delim_whitespace=True, engine='python') # python bc pd bug
-        data = pd.read_csv(tmp_fname, delim_whitespace=True, usecols=["smiles", "zinc_id"])
-        data = data[["smiles", "zinc_id"]]
-        data = filter_elements(data, elements=elements)
-
-        if len(data) == 0:
-            data = None
-
+        data = read_line_by_line(tmp_fname, elements)
         os.remove(tmp_fname)
         return data
+
     else:
         logger.info(f"Found no entries in {command}")
         return None
@@ -139,3 +148,46 @@ def get_label(command):
     pat = re.compile(r"wget http://files.docking.org/2D/[A-Z]{2}/[A-Z]{4}"
                      r".txt -O ([A-Z]{4}).txt")
     return pat.search(command).groups()[0]
+
+
+def read_line_by_line(tmp_fname, elements):
+
+    out_data = []
+
+    with open(tmp_fname, 'r') as f:
+        for idx, line in enumerate(f):
+
+            if idx == 0:
+                entries = line.split() 
+                assert entries[0] == "smiles"
+                assert entries[1] == "zinc_id"
+                continue
+
+            entries = line.split()
+            smiles_str = entries[0]
+            zinc_id = entries[1]
+
+            if elements == "CH":
+                if only_has_CH(smiles_str):
+                    out_data.append({"smiles":smiles_str, "zinc_id":zinc_id})
+            elif elements == "CHO":
+                if only_has_CHO(smiles_str):
+                    # import pdb; pdb.set_trace()
+                    out_data.append({"smiles":smiles_str, "zinc_id":zinc_id})
+            else:
+                raise ValueError(f"elements {elements} not supported")
+    
+    if len(out_data) == 0:
+        return None
+    else:
+        df = pd.DataFrame(out_data)
+        return df
+
+
+
+
+
+
+
+
+
