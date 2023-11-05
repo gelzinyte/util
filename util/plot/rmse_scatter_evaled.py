@@ -82,8 +82,8 @@ def scatter_plot(ref_energy_name,
         "train": "tab:blue",
         "ext-test": "tab:green",
         "rad": "tab:green", 
-        "mol": "pink"
-
+        "mol": "pink",
+        "no label": "k"
     }
     # labels_order = ["zinc-train", "zinc-test", "comp6", "ha22", "tyzack"]
     # labels_order = ["zinc-test", "comp6", "ha22", "tyzack"]
@@ -306,6 +306,7 @@ def scatter_plot(ref_energy_name,
                         color=color,
                         #edgecolors=color,
                        zorder=2, **marker_kwargs)
+        print(f'mean ref: {np.mean(ref)} pred {np.mean(pred)}')
         ax_err.scatter(ref, errors, **marker_kwargs, 
                         color=color,
                         #edgecolors=color, 
