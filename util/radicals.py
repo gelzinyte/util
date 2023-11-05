@@ -84,8 +84,9 @@ def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
         radicals = []
         for h_idx in sp3_hs:
             at = atoms.copy()
+            closest_c_idx = get_closest_c_idx(at, sp3_h_idx=h_idx)
             del at[h_idx]
-            configs.assign_info_entries(at, mol_or_rad="rad", rad_no=h_idx, compound=at.info["compound"])
+            configs.assign_info_entries(at, mol_or_rad="rad", rad_no=h_idx, compound=at.info["compound"], radical_c_idx=closest_c_idx)
             radicals.append(at)
 
         if label_config_type:
@@ -117,6 +118,22 @@ def abstract_sp3_hydrogen_atoms(inputs, outputs, label_config_type=True,
         outputs.store(atoms_out)
     outputs.close()
     return outputs.to_ConfigSet() 
+
+
+def get_closest_c_idx(at, sp3_h_idx):
+
+    symbols = at.get_chemical_symbols()
+    assert symbols[sp3_h_idx] == "H", f"sp3_h_idx of {sp3_h_idx} is {symbols[sp3_h_idx]}, not H"
+    
+    distances = at.get_all_distances()[sp3_h_idx]
+    distances[sp3_h_idx] = 100 # many angstroms instead of 0 
+
+    closest_c = np.argmin(distances)
+    assert symbols[closest_c] == "C", f"found closest atom no {closest_c} is {symbols[closest_c]}, not C."
+    return closest_c
+
+
+
 
 def rad_conformers_from_smi(smi, compound, num_radicals):
     """given molecule, make "num_radicals" of radicals"""

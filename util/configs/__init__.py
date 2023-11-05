@@ -210,7 +210,7 @@ def process_config_info(fname_in, fname_out):
     write(fname_out, ats)
 
 
-def assign_info_entries(atoms, mol_or_rad, rad_no, config_type=None, compound=None):
+def assign_info_entries(atoms, mol_or_rad, rad_no, config_type=None, compound=None, radical_c_idx=None):
     if config_type is not None:
         atoms.info["config_type"] = config_type
     if compound is not None:
@@ -220,6 +220,8 @@ def assign_info_entries(atoms, mol_or_rad, rad_no, config_type=None, compound=No
     if compound is not None:
         atoms.info["graph_name"] = f'{compound}_{rad_no}' if rad_no == 'mol' \
         else f'{compound}_rad{rad_no}'
+    if radical_c_idx is not None:
+        atoms.info["radical_c_idx"] = radical_c_idx
 
 
 def process_config_info_on_atoms(ats, verbose=True):
@@ -360,6 +362,7 @@ def assign_bde_to_C_atoms (inputs, outputs,bde_label):
         outputs.store(at)
     outputs.close()
     return outputs.to_ConfigSet()
+
 def find_closest_h(at, c_idx, cutoff=1.5):
     distances = at.get_all_distances()[c_idx]
     distances[distances == 0] = np.inf
