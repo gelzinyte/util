@@ -57,7 +57,7 @@ def default_orca_params():
     orca_kwargs["workdir"] = "ORCA_calc_files"
     return orca_kwargs
 
-def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None):
+def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None, additional_info=None, additional_arrays=None):
     "remove info keys with 'energy' in label and arrays keys with 'force' in label"
 
     if keep_info is None:
@@ -66,15 +66,26 @@ def remove_energy_force_containing_entries(at, keep_info=None, keep_arrays=None)
         keep_arrays = []
 
     info_keys_to_remove = [key for key in at.info.keys() if ('energy' in key or "dipole" in key or "stress" in key)]
-    info_keys_to_remove = [key for key in info_keys_to_remove if key not in keep_info]
+    if additional_info is not None:
+        info_keys_to_remove += additional_info
+    info_keys_to_remove = [key for key in info_keys_to_remove if key not in keep_info and key in at.info]
+
     arrays_keys_to_remove = [key for key in at.arrays.keys() if 'force' in key or "charge" in key or "momenta" in key]
-    arrays_keys_to_remove = [key for key in arrays_keys_to_remove if key not in keep_arrays]
+    if additional_arrays is not None:
+        arrays_keys_to_remove += additional_arrays
+    arrays_keys_to_remove = [key for key in arrays_keys_to_remove if key not in keep_arrays and key in at.arrays]
+
+
 
     for key in info_keys_to_remove:
         del at.info[key]
 
     for key in arrays_keys_to_remove:
         del at.arrays[key]
+
+    at.calculator = None
+    at.calc = None
+
     return at
 
 def clean_calc_results(inputs, outputs, keep_info=None, keep_arrays=None):
