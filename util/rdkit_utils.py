@@ -7,18 +7,34 @@ from rdkit import DataStructs
 from ase.io import read, write
 import util
 
-def xyz_to_mol(fname, additional_arrays=None):
+def xyz_to_mol(ats=None, fname=None, additional_arrays=None):
 
     def_additional_arrays = ["cur_leverage_score", "magmoms"]
-
-    out_fname = fname.replace(".xyz", ".cleaned_for_rdkit.xyz")
-
-    ats = read(fname, ":")
     if additional_arrays is None:
         additional_arrays = def_additional_arrays
     else:
         additional_arrays += def_additional_arrays
-    ats = [util.remove_energy_force_containing_entries(at, additional_arrays=additional_arrays) for at in ats]
+
+    if not fname is None:
+        assert ats is None
+        out_fname = fname.replace(".xyz", ".cleaned_for_rdkit.xyz")
+        ats = read(fname, ":")
+    elif ats is not None:
+        out_fname = "cleaned_for_rdkit.xyz"
+        assert fname is None
+
+
+    # ats = [util.remove_energy_force_containing_entries(at, additional_arrays=additional_arrays) for at in ats]
+
+    for at in ats:
+        arrays_keys = list(at.arrays.keys())
+        for key in arrays_keys:
+            if key in ["positions", "numbers"]: 
+                continue
+            del at.arrays[key]
+
+    # import pdb; pdb.set_trace()
+
     write(out_fname, ats)
 
     with open(out_fname) as fileobj:
