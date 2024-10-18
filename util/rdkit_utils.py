@@ -9,7 +9,7 @@ import util
 
 def xyz_to_mol(ats=None, fname=None, additional_arrays=None):
 
-    def_additional_arrays = ["cur_leverage_score", "magmoms"]
+    def_additional_arrays = ["cur_leverage_score", "magmoms", "magmoms"]
     if additional_arrays is None:
         additional_arrays = def_additional_arrays
     else:
@@ -32,6 +32,7 @@ def xyz_to_mol(ats=None, fname=None, additional_arrays=None):
             if key in ["positions", "numbers"]: 
                 continue
             del at.arrays[key]
+        del at.calc
 
     # import pdb; pdb.set_trace()
 
@@ -55,20 +56,26 @@ def xyz_to_mol(ats=None, fname=None, additional_arrays=None):
         frames.append((natoms, atom_lines, info_line))
 
     rdkit_mols = []
+    missed = 0
     for frame in frames:
         xyz_block = str(frame[0]) + "\n\n" + "".join(frame[1])
         mol = rdkit.Chem.rdmolfiles.MolFromXYZBlock(xyz_block)
         if mol is None:
             import pdb; pdb.set_trace()
+            missed += 1
             continue
         try:
-            if "mol_or_rad=rad" in frame[2]:
-                import pdb; pdb.set_trace()
+            # if "mol_or_rad=rad" in frame[2]:
+                # import pdb; pdb.set_trace()
             # import pdb; pdb.set_trace()
             rdDetermineBonds.DetermineBonds(mol, allowChargedFragments=False, useHueckel=False, useAtomMap=False)
         except:
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
+            missed += 1
+            continue
         rdkit_mols.append(mol)
+    if missed !=0:
+        print('missed', missed)
     return rdkit_mols
 
 
